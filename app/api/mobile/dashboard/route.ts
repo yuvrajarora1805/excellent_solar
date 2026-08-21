@@ -1,0 +1,36 @@
+import { NextResponse } from 'next/server';
+import { query } from '@/lib/db';
+
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const workerId = searchParams.get('worker_id');
+
+    if (!workerId) {
+      return NextResponse.json({ error: 'worker_id is required' }, { status: 400 });
+    }
+
+    // Since we don't have assigned_to fully integrated, we'll fetch system-wide metrics for demonstration
+    const surveysQuery = await query("SELECT COUNT(*) as count FROM projects WHERE status IN ('NEW', 'SITE_SURVEY')");
+    const installsQuery = await query("SELECT COUNT(*) as count FROM projects WHERE status IN ('MATERIAL_ALLOCATED', 'INSTALLATION_STARTED')");
+    const completedQuery = await query("SELECT COUNT(*) as count FROM projects WHERE status = 'PROJECT_COMPLETED'");
+    const openTicketsQuery = await query("SELECT COUNT(*) as count FROM service_tickets WHERE status != 'CLOSED'");
+    const closedTicketsQuery = await query("SELECT COUNT(*) as count FROM service_tickets WHERE status = 'CLOSED'");
+    const totalJobsQuery = await query("SELECT COUNT(*) as count FROM projects");
+
+    const stats = {
+      pendingSurveys: (surveysQuery as any[])[0]?.count || 0,
+      activeInstalls: (installsQuery as any[])[0]?.count || 0,
+      completedJobs: (completedQuery as any[])[0]?.count || 0,
+      openTickets: (openTicketsQuery as any[])[0]?.count || 0,
+      closedTickets: (closedTicketsQuery as any[])[0]?.count || 0,
+      totalJobs: (totalJobsQuery as any[])[0]?.count || 0,
+    };
+
+    return NextResponse.json({ success: true, stats });
+
+  } catch (error) {
+    console.error('Error fetching dashboard stats:', error);
+    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+  }
+}

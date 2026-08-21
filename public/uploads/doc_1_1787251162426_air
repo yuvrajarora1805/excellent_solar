@@ -1,0 +1,4 @@
+ airmon-ng kill check 
+ airmon-ng start wlan0mon
+ airodump-ng wlan0mon
+ sudo airodump-ng -c 1 --bssid 5A:4A:0D:EF:E2:C5  -w newcap wlan0mon

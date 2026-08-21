@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3013:3000"
+    environment:
+      - NODE_ENV=production
+      - MYSQL_HOST=db
+      - MYSQL_PORT=3306
+      - MYSQL_USER=solar_user
+      - MYSQL_PASSWORD=solar123
+      - MYSQL_DATABASE=excellent_solar
+      - NEXTAUTH_URL=http://localhost:3013
+      - AUTH_URL=http://localhost:3013
+      - NEXTAUTH_SECRET=your-production-secret-key
+      - AUTH_SECRET=your-production-secret-key
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: mysql:8.0
+    ports:
+      - "3309:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=root123
+      - MYSQL_USER=solar_user
+      - MYSQL_PASSWORD=solar123
+      - MYSQL_DATABASE=excellent_solar
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/1-schema.sql
+      - ./database/seed.js:/docker-entrypoint-initdb.d/2-seed.js # Note: Since this is JS, MySQL container won't run it automatically. You'll need to run it via Node if required.
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  mysql-data:

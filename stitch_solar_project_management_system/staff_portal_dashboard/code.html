@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Excellent Solar - Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,100..900;1,100..900&amp;family=Inter:wght@100..900&amp;family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+                "on-surface-variant": "#504533",
+                "on-secondary-fixed-variant": "#45474c",
+                "primary-container": "#fdb813",
+                "secondary-fixed-dim": "#c6c6cd",
+                "on-surface": "#191c1d",
+                "tertiary": "#466559",
+                "on-secondary-fixed": "#1a1c20",
+                "secondary-container": "#dfdfe6",
+                "on-background": "#191c1d",
+                "surface-container-lowest": "#ffffff",
+                "on-primary-fixed": "#271900",
+                "on-secondary": "#ffffff",
+                "tertiary-fixed-dim": "#accebf",
+                "on-error-container": "#93000a",
+                "primary-fixed": "#ffdea7",
+                "surface-container": "#edeeef",
+                "inverse-surface": "#2e3132",
+                "secondary": "#5d5e64",
+                "surface-bright": "#f8f9fa",
+                "tertiary-container": "#aaccbd",
+                "surface-container-highest": "#e1e3e4",
+                "outline": "#837560",
+                "primary-fixed-dim": "#ffbb1e",
+                "on-tertiary": "#ffffff",
+                "on-tertiary-container": "#39574c",
+                "on-tertiary-fixed": "#012017",
+                "on-primary": "#ffffff",
+                "on-primary-container": "#6b4b00",
+                "error-container": "#ffdad6",
+                "surface-container-high": "#e7e8e9",
+                "error": "#ba1a1a",
+                "on-secondary-container": "#616268",
+                "secondary-fixed": "#e2e2e9",
+                "surface-tint": "#7c5800",
+                "inverse-on-surface": "#f0f1f2",
+                "on-error": "#ffffff",
+                "background": "#f8f9fa",
+                "inverse-primary": "#ffbb1e",
+                "on-primary-fixed-variant": "#5e4200",
+                "surface-dim": "#d9dadb",
+                "on-tertiary-fixed-variant": "#2e4d42",
+                "surface": "#f8f9fa",
+                "outline-variant": "#d5c4ac",
+                "tertiary-fixed": "#c8eadb",
+                "primary": "#7c5800",
+                "surface-variant": "#e1e3e4",
+                "surface-container-low": "#f3f4f5"
+        },
+        "borderRadius": {
+                "DEFAULT": "0.125rem",
+                "lg": "0.25rem",
+                "xl": "0.5rem",
+                "full": "0.75rem"
+        },
+        "spacing": {
+                "container-max-width": "1440px",
+                "stack-sm": "8px",
+                "margin-desktop": "32px",
+                "stack-lg": "32px",
+                "gutter": "24px",
+                "unit": "4px",
+                "stack-md": "16px",
+                "margin-mobile": "16px"
+        },
+        "fontFamily": {
+                "body-md": [
+                        "Inter"
+                ],
+                "headline-md": [
+                        "Hanken Grotesk"
+                ],
+                "label-bold": [
+                        "Inter"
+                ],
+                "technical-mono": [
+                        "JetBrains Mono"
+                ],
+                "headline-sm": [
+                        "Hanken Grotesk"
+                ],
+                "display-lg": [
+                        "Hanken Grotesk"
+                ],
+                "label-sm": [
+                        "Inter"
+                ],
+                "body-lg": [
+                        "Inter"
+                ]
+        },
+        "fontSize": {
+                "body-md": [
+                        "16px",
+                        {
+                                "lineHeight": "24px",
+                                "fontWeight": "400"
+                        }
+                ],
+                "headline-md": [
+                        "32px",
+                        {
+                                "lineHeight": "40px",
+                                "fontWeight": "600"
+                        }
+                ],
+                "label-bold": [
+                        "14px",
+                        {
+                                "lineHeight": "20px",
+                                "fontWeight": "600"
+                        }
+                ],
+                "technical-mono": [
+                        "13px",
+                        {
+                                "lineHeight": "20px",
+                                "fontWeight": "400"
+                        }
+                ],
+                "headline-sm": [
+                        "24px",
+                        {
+                                "lineHeight": "32px",
+                                "fontWeight": "600"
+                        }
+                ],
+                "display-lg": [
+                        "48px",
+                        {
+                                "lineHeight": "56px",
+                                "letterSpacing": "-0.02em",
+                                "fontWeight": "700"
+                        }
+                ],
+                "label-sm": [
+                        "12px",
+                        {
+                                "lineHeight": "16px",
+                                "fontWeight": "500"
+                        }
+                ],
+                "body-lg": [
+                        "18px",
+                        {
+                                "lineHeight": "28px",
+                                "fontWeight": "400"
+                        }
+                ]
+        }
+},
+    },
+  }
+</script>
+<style>
+        body { background-color: #f8f9fa; }
+        .industrial-shadow { box-shadow: 0px 4px 6px -1px rgba(0, 0, 0, 0.05), 0px 2px 4px -1px rgba(0, 0, 0, 0.03); }
+    </style>
+</head>
+<body class="font-body-md text-body-md text-on-surface bg-background antialiased flex h-screen overflow-hidden">
+<!-- SideNavBar -->
+<nav class="hidden md:flex bg-on-secondary-fixed dark:bg-on-secondary-fixed fixed left-0 top-0 h-full w-[280px] border-r border-outline-variant flex-col py-stack-lg z-20">
+<div class="px-margin-desktop mb-stack-lg">
+<h1 class="font-headline-md text-headline-md font-bold text-primary-container">Excellent Solar</h1>
+<p class="font-body-md text-body-md text-secondary-fixed-dim mt-1">Staff Portal</p>
+</div>
+<div class="px-margin-desktop mb-stack-md">
+<button class="w-full bg-primary-container text-on-secondary-fixed font-label-bold text-label-bold py-3 rounded flex items-center justify-center gap-2 hover:bg-primary-fixed-dim transition-colors">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">add</span>
+                New Project
+            </button>
+</div>
+<div class="flex-1 overflow-y-auto px-4 space-y-1 mt-4">
+<a class="flex items-center gap-3 px-4 py-3 rounded text-primary-container border-l-2 border-primary-container font-label-bold text-label-bold bg-on-secondary-fixed-variant opacity-90 scale-[0.98]" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+                Dashboard
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 rounded text-secondary-fixed-dim font-label-bold text-label-bold hover:bg-on-secondary-fixed-variant hover:text-primary-fixed transition-colors" href="#">
+<span class="material-symbols-outlined">solar_power</span>
+                Projects
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 rounded text-secondary-fixed-dim font-label-bold text-label-bold hover:bg-on-secondary-fixed-variant hover:text-primary-fixed transition-colors" href="#">
+<span class="material-symbols-outlined">inventory_2</span>
+                Inventory
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 rounded text-secondary-fixed-dim font-label-bold text-label-bold hover:bg-on-secondary-fixed-variant hover:text-primary-fixed transition-colors" href="#">
+<span class="material-symbols-outlined">groups</span>
+                Team
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 rounded text-secondary-fixed-dim font-label-bold text-label-bold hover:bg-on-secondary-fixed-variant hover:text-primary-fixed transition-colors" href="#">
+<span class="material-symbols-outlined">description</span>
+                Documents
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 rounded text-secondary-fixed-dim font-label-bold text-label-bold hover:bg-on-secondary-fixed-variant hover:text-primary-fixed transition-colors" href="#">
+<span class="material-symbols-outlined">settings</span>
+                Settings
+            </a>
+</div>
+<div class="px-4 mt-auto pt-4 border-t border-on-secondary-fixed-variant/50 space-y-1">
+<a class="flex items-center gap-3 px-4 py-3 rounded text-secondary-fixed-dim font-label-bold text-label-bold hover:bg-on-secondary-fixed-variant hover:text-primary-fixed transition-colors" href="#">
+<span class="material-symbols-outlined">help</span>
+                Support
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 rounded text-secondary-fixed-dim font-label-bold text-label-bold hover:bg-on-secondary-fixed-variant hover:text-primary-fixed transition-colors" href="#">
+<span class="material-symbols-outlined">logout</span>
+                Logout
+            </a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<div class="flex-1 flex flex-col md:ml-[280px] h-screen bg-background relative overflow-hidden">
+<!-- TopAppBar -->
+<header class="bg-surface-bright dark:bg-surface-dim docked full-width top-0 border-b border-outline-variant flex justify-between items-center px-margin-desktop h-16 w-full z-10 shrink-0">
+<div class="flex items-center md:hidden">
+<span class="font-headline-sm text-headline-sm font-bold text-on-surface">Excellent Solar</span>
+</div>
+<div class="hidden md:flex flex-1 max-w-xl mx-4">
+<div class="relative w-full">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+<input class="w-full pl-10 pr-4 py-2 bg-surface-container-low border border-outline-variant rounded focus:border-on-secondary-fixed focus:border-2 focus:outline-none transition-all font-body-md text-body-md" placeholder="Search Serial #, Customer, or Project ID..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-on-surface-variant hover:text-primary transition-colors relative">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-0 right-0 w-2 h-2 bg-primary-container rounded-full"></span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-colors hidden sm:block">
+<span class="material-symbols-outlined">help_outline</span>
+</button>
+<img alt="User Profile" class="w-8 h-8 rounded-full border border-outline-variant ml-2 object-cover" data-alt="A small, professional headshot photo of an industrial project manager in high-key light mode aesthetics, clean background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCoorS30sRJNkHgvrSwxSn8hTiQOyV-XOiKS0IzhID5Lwbm-8tKcJr5mHNX9_kSHz2463Ipr0t3wUBwihbH2vIPoTuofGHmp7z-GhotjgVLL7qUaUW9TQ6sHWhcu7qEBiPQR_uBWTygRmG-aNM7qpJPh5b2pYHHrI2xsp64J6OwichB2-7Me2c7vgCVzYH1cT-awziHWoa36Apd1G-8mZUhodngccNkFF04_ZlSwlKMPXd5kl_JO9Nzig"/>
+</div>
+</header>
+<!-- Main Canvas -->
+<main class="flex-1 overflow-y-auto p-margin-desktop space-y-stack-lg">
+<!-- Quick Action Bar -->
+<div class="flex flex-wrap gap-4 items-center justify-end mb-stack-md">
+<button class="px-4 py-2 border border-outline-variant bg-surface-container-lowest text-on-secondary-fixed font-label-bold text-label-bold rounded hover:bg-surface-container-low transition-colors industrial-shadow flex items-center gap-2">
+<span class="material-symbols-outlined">person_add</span>
+                    New Customer
+                </button>
+<button class="px-4 py-2 bg-on-secondary-fixed text-on-secondary font-label-bold text-label-bold rounded hover:bg-on-secondary-fixed-variant transition-colors industrial-shadow flex items-center gap-2">
+<span class="material-symbols-outlined">request_quote</span>
+                    Create Quotation
+                </button>
+<button class="px-4 py-2 border border-outline-variant bg-surface-container-lowest text-on-secondary-fixed font-label-bold text-label-bold rounded hover:bg-surface-container-low transition-colors industrial-shadow flex items-center gap-2">
+<span class="material-symbols-outlined">inventory</span>
+                    Check Stock
+                </button>
+</div>
+<!-- KPI Header -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-gutter">
+<div class="bg-surface-container-lowest border border-outline-variant rounded p-4 industrial-shadow">
+<div class="flex justify-between items-start mb-2">
+<span class="font-label-bold text-label-bold text-on-surface-variant">New Leads</span>
+<span class="material-symbols-outlined text-secondary">trending_up</span>
+</div>
+<div class="font-headline-md text-headline-md font-bold text-on-surface">24</div>
+<div class="mt-2 pt-2 border-t border-outline-variant/50 text-label-sm font-label-sm text-secondary">+3 since yesterday</div>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant rounded p-4 industrial-shadow">
+<div class="flex justify-between items-start mb-2">
+<span class="font-label-bold text-label-bold text-on-surface-variant">Active Jobs</span>
+<span class="material-symbols-outlined text-primary-container">engineering</span>
+</div>
+<div class="font-headline-md text-headline-md font-bold text-on-surface">38</div>
+<div class="mt-2 pt-2 border-t border-outline-variant/50 text-label-sm font-label-sm text-secondary">Across 4 districts</div>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant rounded p-4 industrial-shadow">
+<div class="flex justify-between items-start mb-2">
+<span class="font-label-bold text-label-bold text-on-surface-variant">Installs This Month</span>
+<span class="material-symbols-outlined text-tertiary">check_circle</span>
+</div>
+<div class="font-headline-md text-headline-md font-bold text-on-surface">17</div>
+<div class="mt-2 pt-2 border-t border-outline-variant/50 text-label-sm font-label-sm text-secondary">Target: 25</div>
+</div>
+<div class="bg-surface-container-lowest border border-outline-variant rounded p-4 industrial-shadow">
+<div class="flex justify-between items-start mb-2">
+<span class="font-label-bold text-label-bold text-on-surface-variant">Pending DISCOM</span>
+<span class="material-symbols-outlined text-error">warning</span>
+</div>
+<div class="font-headline-md text-headline-md font-bold text-on-surface">12</div>
+<div class="mt-2 pt-2 border-t border-outline-variant/50 text-label-sm font-label-sm text-error font-medium">3 requiring immediate action</div>
+</div>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-gutter">
+<!-- Project Pipeline -->
+<div class="lg:col-span-2 bg-surface-container-lowest border border-outline-variant rounded p-6 industrial-shadow flex flex-col h-full">
+<h3 class="font-headline-sm text-headline-sm font-bold text-on-surface mb-4 pb-2 border-b border-outline-variant">Project Pipeline</h3>
+<div class="flex-1 flex flex-col justify-center space-y-4">
+<!-- Simulated Funnel/Vertical Chart -->
+<div class="flex items-center gap-4 group">
+<div class="w-16 text-right font-label-bold text-label-bold text-on-surface-variant">Lead</div>
+<div class="flex-1 h-8 bg-surface-container rounded relative overflow-hidden">
+<div class="absolute top-0 left-0 h-full bg-secondary-container w-full transition-all group-hover:opacity-80"></div>
+</div>
+<div class="w-12 font-technical-mono text-technical-mono">145</div>
+</div>
+<div class="flex items-center gap-4 group">
+<div class="w-16 text-right font-label-bold text-label-bold text-on-surface-variant">Survey</div>
+<div class="flex-1 h-8 bg-surface-container rounded relative overflow-hidden">
+<div class="absolute top-0 left-0 h-full bg-blue-100 w-3/4 transition-all group-hover:opacity-80 border-l-2 border-blue-400"></div>
+</div>
+<div class="w-12 font-technical-mono text-technical-mono">82</div>
+</div>
+<div class="flex items-center gap-4 group">
+<div class="w-16 text-right font-label-bold text-label-bold text-on-surface-variant">Install</div>
+<div class="flex-1 h-8 bg-surface-container rounded relative overflow-hidden">
+<div class="absolute top-0 left-0 h-full bg-primary-fixed w-1/2 transition-all group-hover:opacity-80 border-l-2 border-primary-container"></div>
+</div>
+<div class="w-12 font-technical-mono text-technical-mono">38</div>
+</div>
+<div class="flex items-center gap-4 group">
+<div class="w-16 text-right font-label-bold text-label-bold text-on-surface-variant">DISCOM</div>
+<div class="flex-1 h-8 bg-surface-container rounded relative overflow-hidden">
+<div class="absolute top-0 left-0 h-full bg-error-container w-1/4 transition-all group-hover:opacity-80 border-l-2 border-error"></div>
+</div>
+<div class="w-12 font-technical-mono text-technical-mono">12</div>
+</div>
+<div class="flex items-center gap-4 group">
+<div class="w-16 text-right font-label-bold text-label-bold text-on-surface-variant">Done</div>
+<div class="flex-1 h-8 bg-surface-container rounded relative overflow-hidden">
+<div class="absolute top-0 left-0 h-full bg-tertiary-container w-1/5 transition-all group-hover:opacity-80 border-l-2 border-tertiary"></div>
+</div>
+<div class="w-12 font-technical-mono text-technical-mono">14</div>
+</div>
+</div>
+</div>
+<!-- Schedule & Inventory Column -->
+<div class="flex flex-col gap-gutter">
+<!-- Today's Schedule -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded p-6 industrial-shadow">
+<div class="flex justify-between items-center mb-4 pb-2 border-b border-outline-variant">
+<h3 class="font-headline-sm text-headline-sm font-bold text-on-surface">Today's Schedule</h3>
+<button class="text-primary font-label-sm text-label-sm hover:underline">View All</button>
+</div>
+<div class="space-y-3">
+<div class="flex justify-between items-center p-3 border border-outline-variant rounded bg-surface-bright">
+<div class="flex items-center gap-3">
+<div class="w-2 h-2 rounded-full bg-blue-500"></div>
+<span class="font-label-bold text-label-bold">Site Surveys</span>
+</div>
+<span class="font-technical-mono text-technical-mono px-2 py-1 bg-surface-container-low rounded">8</span>
+</div>
+<div class="flex justify-between items-center p-3 border border-outline-variant rounded bg-surface-bright border-l-2 border-l-primary-container">
+<div class="flex items-center gap-3">
+<div class="w-2 h-2 rounded-full bg-primary-container"></div>
+<span class="font-label-bold text-label-bold">Installations</span>
+</div>
+<span class="font-technical-mono text-technical-mono px-2 py-1 bg-surface-container-low rounded">4</span>
+</div>
+<div class="flex justify-between items-center p-3 border border-outline-variant rounded bg-surface-bright">
+<div class="flex items-center gap-3">
+<div class="w-2 h-2 rounded-full bg-error"></div>
+<span class="font-label-bold text-label-bold">DISCOM Tasks</span>
+</div>
+<span class="font-technical-mono text-technical-mono px-2 py-1 bg-surface-container-low rounded">7</span>
+</div>
+</div>
+</div>
+<!-- Inventory Widget -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded p-6 industrial-shadow flex-1">
+<div class="flex justify-between items-center mb-4 pb-2 border-b border-outline-variant">
+<h3 class="font-headline-sm text-headline-sm font-bold text-on-surface">Inventory Status</h3>
+<span class="material-symbols-outlined text-secondary text-sm">more_horiz</span>
+</div>
+<div class="space-y-4">
+<div>
+<div class="flex justify-between text-sm mb-1">
+<span class="font-label-bold text-label-bold text-on-surface">Solar Panels (540W)</span>
+<span class="font-technical-mono text-technical-mono">420 / 500</span>
+</div>
+<div class="w-full bg-surface-container h-2 rounded-full overflow-hidden">
+<div class="bg-tertiary h-2 rounded-full" style="width: 84%"></div>
+</div>
+<p class="text-label-sm font-label-sm text-secondary mt-1 text-right">80 Reserved</p>
+</div>
+<div>
+<div class="flex justify-between text-sm mb-1">
+<span class="font-label-bold text-label-bold text-on-surface">Inverters (5kW)</span>
+<span class="font-technical-mono text-technical-mono text-error font-medium">12 / 50</span>
+</div>
+<div class="w-full bg-surface-container h-2 rounded-full overflow-hidden">
+<div class="bg-error h-2 rounded-full" style="width: 24%"></div>
+</div>
+<p class="text-label-sm font-label-sm text-error mt-1 text-right flex items-center justify-end gap-1">
+<span class="material-symbols-outlined text-[14px]">warning</span> Low Stock
+                                </p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Spacer for bottom -->
+<div class="h-8"></div>
+</main>
+</div>
+</body></html>
