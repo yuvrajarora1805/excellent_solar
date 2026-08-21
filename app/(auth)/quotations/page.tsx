@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { DataTable } from '@/components/ui/data-table';
 import { Button } from '@/components/ui/button';
@@ -25,7 +25,7 @@ interface Quotation {
   gst_percentage?: number;
 }
 
-export default function QuotationsPage() {
+function QuotationsPageContent() {
   const [quotations, setQuotations] = useState<Quotation[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedQuotation, setSelectedQuotation] = useState<Quotation | null>(null);
@@ -261,6 +261,14 @@ export default function QuotationsPage() {
         />
       </Modal>
     </div>
+  );
+}
+
+export default function QuotationsPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-on-surface-variant animate-pulse">Loading quotations...</div>}>
+      <QuotationsPageContent />
+    </Suspense>
   );
 }
 
