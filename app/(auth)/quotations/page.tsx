@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { DataTable } from '@/components/ui/data-table';
 import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/modal';
@@ -30,6 +31,8 @@ export default function QuotationsPage() {
   const [selectedQuotation, setSelectedQuotation] = useState<Quotation | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const searchParams = useSearchParams();
+  const initialProjectId = searchParams.get('project_id') || '';
 
   useEffect(() => {
     fetchQuotations();
@@ -247,13 +250,9 @@ export default function QuotationsPage() {
       </Modal>
 
       {/* Create Modal */}
-      <Modal
-        isOpen={isCreateOpen}
-        onClose={() => setIsCreateOpen(false)}
-        title="Create New Quotation"
-        size="lg"
-      >
+      <Modal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} title="Create Quotation">
         <CreateQuotationForm
+          initialProjectId={initialProjectId}
           onSuccess={() => {
             setIsCreateOpen(false);
             fetchQuotations();
@@ -318,30 +317,77 @@ function QuotationDetails({ quotation, onClose }: any) {
         </div>
       </div>
 
-      {/* Status */}
+      {/* Status & Actions */}
       <div className="flex items-center justify-between">
         <span className="status-badge bg-secondary-container text-on-secondary-container">{quotation.status}</span>
-        <button
-          onClick={onClose}
-          className="px-4 py-2 text-label-bold text-on-surface hover:bg-surface-container-low rounded transition-colors"
-        >
-          Close
-        </button>
+        <div className="flex gap-3 print-hidden">
+          <button
+            onClick={() => window.print()}
+            className="px-4 py-2 border border-outline-variant bg-surface-container-lowest text-primary font-label-bold rounded hover:bg-surface-container-low transition-colors flex items-center gap-2"
+          >
+            <span className="material-symbols-outlined">print</span>
+            Download PDF
+          </button>
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-label-bold text-on-surface hover:bg-surface-container-low rounded transition-colors"
+          >
+            Close
+          </button>
+        </div>
       </div>
     </div>
   );
 }
 
-function CreateQuotationForm({ onSuccess, onCancel }: any) {
+function CreateQuotationForm({ onSuccess, onCancel, initialProjectId = '' }: any) {
   const [step, setStep] = useState<'select' | 'template' | 'custom'>('select');
   const [formData, setFormData] = useState({
-    project_id: '',
+    project_id: initialProjectId,
     system_template_id: '',
     quotation_date: new Date().toISOString().split('T')[0],
     valid_until: '',
     discount_percentage: 0,
     terms_conditions: '',
   });
+
+  const [templates, setTemplates] = useState<any[]>([]);
+  const [projects, setProjects] = useState<any[]>([]);
+  const [selectedTemplatePreview, setSelectedTemplatePreview] = useState<any | null>(null);
+  const [isLoadingPreview, setIsLoadingPreview] = useState(false);
+
+  useEffect(() => {
+    // Fetch system templates
+    fetch('/api/system-templates')
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) setTemplates(data);
+      })
+      .catch((err) => console.error('Error fetching templates:', err));
+
+    // Fetch projects for dropdown
+    fetch('/api/projects?limit=1000') // fetch enough for a dropdown
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && Array.isArray(data.projects)) setProjects(data.projects);
+      })
+      .catch((err) => console.error('Error fetching projects:', err));
+  }, []);
+
+  useEffect(() => {
+    if (formData.system_template_id) {
+      setIsLoadingPreview(true);
+      fetch(`/api/system-templates/${formData.system_template_id}`)
+        .then(res => res.json())
+        .then(data => {
+          setSelectedTemplatePreview(data);
+        })
+        .catch(err => console.error('Error fetching template preview:', err))
+        .finally(() => setIsLoadingPreview(false));
+    } else {
+      setSelectedTemplatePreview(null);
+    }
+  }, [formData.system_template_id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -395,14 +441,19 @@ function CreateQuotationForm({ onSuccess, onCancel }: any) {
             <label className="block text-label-bold text-on-surface mb-1">
               Project
             </label>
-            <input
-              type="number"
+            <select
               value={formData.project_id}
               onChange={(e) => setFormData({ ...formData, project_id: e.target.value })}
-              placeholder="Enter Project ID"
-              className="input-base"
+              className="input-base cursor-pointer"
               required
-            />
+            >
+              <option value="">Select a Project</option>
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.id_str} - {p.customer_name}
+                </option>
+              ))}
+            </select>
           </div>
 
           {step === 'template' && (
@@ -417,12 +468,52 @@ function CreateQuotationForm({ onSuccess, onCancel }: any) {
                 required
               >
                 <option value="">Select a template</option>
-                <option value="1">3 kW On-Grid - Standard</option>
-                <option value="2">5 kW On-Grid - Standard</option>
-                <option value="3">5 kW On-Grid - Premium</option>
-                <option value="4">10 kW On-Grid - Standard</option>
-                <option value="5">5 kW Hybrid - Standard</option>
+                {templates.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name} ({t.capacity_kw} kW - {t.system_type})
+                  </option>
+                ))}
               </select>
+
+              {/* Template Preview */}
+              {isLoadingPreview && <div className="mt-2 text-sm text-on-surface-variant animate-pulse">Loading preview...</div>}
+              {selectedTemplatePreview && selectedTemplatePreview.items && !isLoadingPreview && (
+                <div className="mt-4 p-4 border border-outline-variant rounded bg-surface-container-lowest">
+                  <h4 className="font-label-bold text-on-surface mb-2">Template Preview</h4>
+                  <table className="w-full text-sm text-left">
+                    <thead className="text-xs text-on-surface-variant uppercase bg-surface-container-low border-b border-outline-variant">
+                      <tr>
+                        <th className="py-2 px-2">Item</th>
+                        <th className="py-2 px-2 text-right">Qty</th>
+                        <th className="py-2 px-2 text-right">Unit Price</th>
+                        <th className="py-2 px-2 text-right">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-outline-variant">
+                      {selectedTemplatePreview.items.filter((i: any) => !i.is_optional).map((item: any, idx: number) => (
+                        <tr key={idx}>
+                          <td className="py-2 px-2 font-medium">{item.product_name}</td>
+                          <td className="py-2 px-2 text-right font-technical-mono">{item.quantity}</td>
+                          <td className="py-2 px-2 text-right font-technical-mono">
+                            ₹{(item.selling_price || 0).toLocaleString('en-IN')}
+                          </td>
+                          <td className="py-2 px-2 text-right font-technical-mono text-primary-container font-bold">
+                            ₹{((item.selling_price || 0) * item.quantity).toLocaleString('en-IN')}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                    <tfoot className="border-t border-outline-variant font-bold">
+                      <tr>
+                        <td colSpan={3} className="py-2 px-2 text-right">Estimated Subtotal:</td>
+                        <td className="py-2 px-2 text-right text-primary-fixed font-technical-mono">
+                          ₹{selectedTemplatePreview.items.filter((i: any) => !i.is_optional).reduce((sum: number, item: any) => sum + (item.quantity * (item.selling_price || 0)), 0).toLocaleString('en-IN')}
+                        </td>
+                      </tr>
+                    </tfoot>
+                  </table>
+                </div>
+              )}
             </div>
           )}
 

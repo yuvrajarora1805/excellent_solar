@@ -119,6 +119,38 @@ export const discomDb = {
       fields.push('completed_at = ?');
       values.push(data.completed_at || null);
     }
+    if (data.processing_fee !== undefined) {
+      fields.push('processing_fee = ?');
+      values.push(data.processing_fee);
+    }
+    if (data.je_approval_status !== undefined) {
+      fields.push('je_approval_status = ?');
+      values.push(data.je_approval_status);
+    }
+    if (data.je_name !== undefined) {
+      fields.push('je_name = ?');
+      values.push(data.je_name);
+    }
+    if (data.je_phone !== undefined) {
+      fields.push('je_phone = ?');
+      values.push(data.je_phone);
+    }
+    if (data.sdo_xen_approval_status !== undefined) {
+      fields.push('sdo_xen_approval_status = ?');
+      values.push(data.sdo_xen_approval_status);
+    }
+    if (data.second_approval_status !== undefined) {
+      fields.push('second_approval_status = ?');
+      values.push(data.second_approval_status);
+    }
+    if (data.np_number !== undefined) {
+      fields.push('np_number = ?');
+      values.push(data.np_number);
+    }
+    if (data.file_apply_upload_path !== undefined) {
+      fields.push('file_apply_upload_path = ?');
+      values.push(data.file_apply_upload_path);
+    }
 
     if (fields.length === 0) return 0;
 

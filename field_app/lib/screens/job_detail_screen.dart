@@ -30,6 +30,16 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
   bool serviceWireStatus = false;
   bool wifiConfigured = false;
 
+  // Survey variables
+  String roofType = 'Concrete';
+  String roofCondition = 'Good';
+  final _availableAreaCtrl = TextEditingController();
+  final _roofLengthCtrl = TextEditingController();
+  final _roofWidthCtrl = TextEditingController();
+  final _estimatedCapacityCtrl = TextEditingController();
+  bool shadingPresent = false;
+  bool extraStructureNeeded = false;
+
   bool _isSaving = false;
   bool _isUploading = false;
   
@@ -39,6 +49,15 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
   Map<String, String> docRejectReasons = {};
   bool _isMarkedDone = false;
   final ImagePicker _picker = ImagePicker();
+
+  @override
+  void dispose() {
+    _availableAreaCtrl.dispose();
+    _roofLengthCtrl.dispose();
+    _roofWidthCtrl.dispose();
+    _estimatedCapacityCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -108,6 +127,14 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
       final checklistData = {
         'serviceWireStatus': serviceWireStatus,
         'wifiConfigured': wifiConfigured,
+        'roof_type': roofType,
+        'roof_condition': roofCondition,
+        'available_area': double.tryParse(_availableAreaCtrl.text),
+        'roof_length': double.tryParse(_roofLengthCtrl.text),
+        'roof_width': double.tryParse(_roofWidthCtrl.text),
+        'estimated_capacity': double.tryParse(_estimatedCapacityCtrl.text),
+        'shading': shadingPresent,
+        'extra_structure': extraStructureNeeded,
       };
 
       final response = await http.post(
@@ -490,6 +517,60 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
             _buildUploadRow('Front of Site / Building', 'survey_front'),
             _buildUploadRow('Electricity Meter', 'survey_meter'),
             _buildUploadRow('Earthing / Wiring Setup', 'survey_earthing'),
+
+            const SizedBox(height: 24),
+            Text('Survey Details', style: GoogleFonts.hankenGrotesk(fontWeight: FontWeight.bold, fontSize: 16)),
+            const SizedBox(height: 8),
+            DropdownButtonFormField<String>(
+              value: roofType,
+              decoration: const InputDecoration(labelText: 'Roof Type', border: OutlineInputBorder()),
+              items: ['Flat', 'Tilted', 'Asbestos Sheet', 'Metal Sheet', 'Concrete', 'Tile']
+                  .map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
+              onChanged: (v) { if (v != null) setState(() => roofType = v); _saveChecklist(); },
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              value: roofCondition,
+              decoration: const InputDecoration(labelText: 'Roof Condition', border: OutlineInputBorder()),
+              items: ['Excellent', 'Good', 'Fair', 'Poor']
+                  .map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
+              onChanged: (v) { if (v != null) setState(() => roofCondition = v); _saveChecklist(); },
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _availableAreaCtrl,
+              decoration: const InputDecoration(labelText: 'Available Area (sq ft)', border: OutlineInputBorder()),
+              keyboardType: TextInputType.number,
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(child: TextFormField(controller: _roofLengthCtrl, decoration: const InputDecoration(labelText: 'Length (ft)', border: OutlineInputBorder()), keyboardType: TextInputType.number)),
+                const SizedBox(width: 12),
+                Expanded(child: TextFormField(controller: _roofWidthCtrl, decoration: const InputDecoration(labelText: 'Width (ft)', border: OutlineInputBorder()), keyboardType: TextInputType.number)),
+              ],
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _estimatedCapacityCtrl,
+              decoration: const InputDecoration(labelText: 'Estimated Capacity (kW)', border: OutlineInputBorder()),
+              keyboardType: TextInputType.number,
+            ),
+            SwitchListTile(
+              title: const Text('Shading Present?'),
+              value: shadingPresent,
+              onChanged: (v) => _onCheckChanged((val) => setState(() => shadingPresent = val), v),
+            ),
+            SwitchListTile(
+              title: const Text('Extra Structure Needed?'),
+              value: extraStructureNeeded,
+              onChanged: (v) => _onCheckChanged((val) => setState(() => extraStructureNeeded = val), v),
+            ),
+            const SizedBox(height: 8),
+            ElevatedButton(
+              onPressed: _saveChecklist,
+              child: const Text('Save Survey Details'),
+            ),
           ] else ...[
             // INSTALLATION PHOTOS
             Text('Installation Photos', style: GoogleFonts.hankenGrotesk(fontWeight: FontWeight.bold, fontSize: 16)),

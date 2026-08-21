@@ -52,7 +52,7 @@ export const systemTemplateDb = {
 
     // Get items
     const items = await query<any>(
-      `SELECT sti.*, p.name as product_name, p.product_code
+      `SELECT sti.*, p.name as product_name, p.product_code, p.selling_price as product_price
        FROM system_template_items sti
        LEFT JOIN products p ON sti.product_id = p.id
        WHERE sti.system_template_id = ?
@@ -65,7 +65,7 @@ export const systemTemplateDb = {
       created_by_user: template.created_by_name ? { id: template.created_by, name: template.created_by_name } : undefined,
       items: items.map(i => ({
         ...i,
-        product: i.product_id ? { id: i.product_id, name: i.product_name, product_code: i.product_code } : undefined,
+        product: i.product_id ? { id: i.product_id, name: i.product_name, product_code: i.product_code, selling_price: i.product_price } : undefined,
       })),
     };
   },

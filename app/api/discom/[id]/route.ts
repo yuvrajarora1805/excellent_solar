@@ -52,16 +52,18 @@ export async function PUT(
     if (isNaN(id)) return NextResponse.json({ error: 'Invalid ID' }, { status: 400 });
 
     const body = await request.json();
-    const { stage, status } = body; // stage: 'je' | 'sdo' | 'xen'
+    const { stage, status, action, updateData } = body; 
 
-    if (stage === 'je') {
+    if (action === 'update_fields' && updateData) {
+      await discomDb.update(id, updateData);
+    } else if (stage === 'je') {
       await jeVerificationDb.createOrUpdate({ discom_application_id: id, status });
     } else if (stage === 'sdo') {
       await sdoVerificationDb.createOrUpdate({ discom_application_id: id, status });
     } else if (stage === 'xen') {
       await xenVerificationDb.createOrUpdate({ discom_application_id: id, status });
     } else {
-      return NextResponse.json({ error: 'Invalid verification stage' }, { status: 400 });
+      return NextResponse.json({ error: 'Invalid verification stage or action' }, { status: 400 });
     }
 
     return NextResponse.json({ success: true, message: 'Status updated' });
@@ -91,6 +93,8 @@ export async function POST(
     const file = formData.get('file') as File | null;
     const documentName = formData.get('documentName') as string || 'Document';
 
+    const isFileApply = formData.get('is_file_apply') === 'true';
+
     if (file && file.size > 0) {
       const buffer = Buffer.from(await file.arrayBuffer());
       const filename = `doc_${id}_${Date.now()}_${file.name.replaceAll(' ', '_')}`;
@@ -101,26 +105,27 @@ export async function POST(
       return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
     }
 
-    const fileName = file.name;
-    const fileSize = file.size;
-    const mimeType = file.type || 'application/octet-stream';
+    if (isFileApply) {
+      await discomDb.update(id, { file_apply_upload_path: photoPath });
+    } else {
+      const fileName = file.name;
+      const fileSize = file.size;
+      const mimeType = file.type || 'application/octet-stream';
 
-    // Since we don't know document_type_id mapping, we can try to insert without it if nullable
-    // or just assume 1 (assuming 1 is general). Looking at schema, document_type_id is required.
-    // Assuming we just use ID 1 for now if we can't look it up.
-    await documentDb.create({
-      discom_application_id: id,
-      document_type_id: 1, // Fallback
-      file_name: documentName,
-      file_path: photoPath,
-      file_size: fileSize,
-      mime_type: mimeType,
-      status: 'APPROVED',
-      verified_by: 1,
-      created_by: 1 // Fallback
-    } as any);
+      await documentDb.create({
+        discom_application_id: id,
+        document_type_id: 1, // Fallback
+        file_name: documentName,
+        file_path: photoPath,
+        file_size: fileSize,
+        mimeType: mimeType,
+        status: 'APPROVED',
+        verified_by: 1,
+        created_by: 1 // Fallback
+      } as any);
+    }
 
-    return NextResponse.json({ success: true, message: 'Document uploaded' });
+    return NextResponse.json({ success: true, message: 'Document uploaded', path: photoPath });
   } catch (error) {
     console.error('Error uploading document:', error);
     return NextResponse.json({ error: 'Failed to upload document' }, { status: 500 });

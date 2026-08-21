@@ -26,6 +26,9 @@ class _OnGridBookingFormState extends State<OnGridBookingForm> {
   final _mobileNumberCtrl = TextEditingController();
   final _emailIdCtrl = TextEditingController();
   final _addressCtrl = TextEditingController();
+  final _cityCtrl = TextEditingController();
+  final _districtCtrl = TextEditingController();
+  final _stateCtrl = TextEditingController();
 
   // Technical fields
   String connectionPhase = 'Single Phase';
@@ -46,6 +49,9 @@ class _OnGridBookingFormState extends State<OnGridBookingForm> {
     _mobileNumberCtrl.dispose();
     _emailIdCtrl.dispose();
     _addressCtrl.dispose();
+    _cityCtrl.dispose();
+    _districtCtrl.dispose();
+    _stateCtrl.dispose();
     _pspclSubDivisionCtrl.dispose();
     _pspclAccountNoCtrl.dispose();
     _sanctionedLoadCtrl.dispose();
@@ -210,7 +216,7 @@ class _OnGridBookingFormState extends State<OnGridBookingForm> {
             TextFormField(
               controller: _customerNameCtrl,
               decoration: const InputDecoration(
-                labelText: 'Customer Legal Name *',
+                labelText: 'Customer Name *',
                 border: OutlineInputBorder(),
               ),
             ),
@@ -227,7 +233,7 @@ class _OnGridBookingFormState extends State<OnGridBookingForm> {
             TextFormField(
               controller: _emailIdCtrl,
               decoration: const InputDecoration(
-                labelText: 'E-Mail ID',
+                labelText: 'Email (Optional)',
                 border: OutlineInputBorder(),
               ),
               keyboardType: TextInputType.emailAddress,
@@ -237,7 +243,31 @@ class _OnGridBookingFormState extends State<OnGridBookingForm> {
               controller: _addressCtrl,
               maxLines: 2,
               decoration: const InputDecoration(
-                labelText: 'Site Address *',
+                labelText: 'Address *',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _cityCtrl,
+              decoration: const InputDecoration(
+                labelText: 'City *',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _districtCtrl,
+              decoration: const InputDecoration(
+                labelText: 'District *',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _stateCtrl,
+              decoration: const InputDecoration(
+                labelText: 'State *',
                 border: OutlineInputBorder(),
               ),
             ),

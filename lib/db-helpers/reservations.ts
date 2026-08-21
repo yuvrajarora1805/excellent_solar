@@ -26,10 +26,12 @@ export const reservationDb = {
     const rows = await query<any>(
       `SELECT pr.*, 
               p.name as product_name, p.product_code, p.category, p.brand, p.model, p.unit,
-              proj.project_id as project_id_str
+              proj.project_id as project_id_str,
+              c.name as customer_name
        FROM project_reservations pr
        JOIN products p ON pr.product_id = p.id
        JOIN projects proj ON pr.project_id = proj.id
+       LEFT JOIN customers c ON proj.customer_id = c.id
        ORDER BY pr.updated_at DESC`
     );
 
@@ -42,6 +44,7 @@ export const reservationDb = {
           reservation_number: `RES-${row.project_id_str || row.project_id}`,
           project_id: row.project_id,
           project_id_str: row.project_id_str || `Project #${row.project_id}`,
+          customer_name: row.customer_name || 'Unknown Customer',
           reservation_date: row.updated_at || row.created_at || new Date().toISOString(),
           status: row.status, // We could compute an aggregate status here
           items: []

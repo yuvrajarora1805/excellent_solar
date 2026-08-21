@@ -8,14 +8,23 @@ export const runtime = 'nodejs';
 // Routes that don't require authentication
 const publicRoutes = ['/login', '/api/auth', '/api/mobile', '/api/inventory/products'];
 
-// Routes accessible by workers
-const workerRoutes = [
+// Removed legacy workerRoutes
+
+// Routes accessible by MARKETING
+const marketingRoutes = [
   '/dashboard',
+  '/customers',
   '/projects',
+  '/quotations',
+];
+
+// Routes accessible by INSTALLATION
+const installationRoutes = [
+  '/dashboard',
   '/survey',
+  '/inventory',
   '/installation',
-  '/discom',
-  '/documents',
+  '/service',
 ];
 
 // Routes accessible by DISCOM operators
@@ -27,10 +36,10 @@ const discomRoutes = [
 
 // Admin-only routes
 const adminOnlyRoutes = [
-  '/customers',
-  '/inventory',
+  '/system-templates',
   '/users',
   '/reports',
+  '/settings',
 ];
 
 export default auth((req) => {
@@ -48,24 +57,28 @@ export default auth((req) => {
     return NextResponse.next();
   }
 
-  // Require authentication
+  // Not logged in -> Redirect to login
   if (!isLoggedIn) {
-    const signInUrl = new URL('/login', req.url);
-    signInUrl.searchParams.set('callbackUrl', encodeURI(pathname));
-    return NextResponse.redirect(signInUrl);
+    return NextResponse.redirect(new URL('/login', req.url));
   }
 
-  // Role-based access control
-  if (userRole === 'WORKER') {
-    const isWorkerRoute = workerRoutes.some((route) => pathname.startsWith(route));
-    if (!isWorkerRoute) {
-      return NextResponse.redirect(new URL('/dashboard', req.url));
-    }
-  } else if (userRole === 'DISCOM_OPERATOR') {
-    const isDiscomRoute = discomRoutes.some((route) => pathname.startsWith(route));
-    if (!isDiscomRoute) {
-      return NextResponse.redirect(new URL('/dashboard', req.url));
-    }
+  // Admin has full access
+  if (userRole === 'ADMIN') {
+    return NextResponse.next();
+  }
+
+  // Check role-specific routes
+  let hasAccess = false;
+  if (userRole === 'MARKETING') {
+    hasAccess = marketingRoutes.some((route) => pathname.startsWith(route));
+  } else if (userRole === 'INSTALLATION') {
+    hasAccess = installationRoutes.some((route) => pathname.startsWith(route));
+  } else if (userRole === 'DISCOM') {
+    hasAccess = discomRoutes.some((route) => pathname.startsWith(route));
+  }
+
+  if (!hasAccess) {
+    return NextResponse.redirect(new URL('/dashboard', req.url));
   }
 
   return NextResponse.next();

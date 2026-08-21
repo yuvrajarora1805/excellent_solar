@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid } from 'recharts';
 
 // Types for dashboard data
 interface DashboardStats {
@@ -62,6 +63,7 @@ export default function DashboardPage() {
   const [pipelineData, setPipelineData] = useState<PipelineItem[]>([]);
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [recentCustomers, setRecentCustomers] = useState<Customer[]>([]);
+  const [chartData, setChartData] = useState<{ revenue: any[], projectStatus: any[] }>({ revenue: [], projectStatus: [] });
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
 
@@ -95,6 +97,17 @@ export default function DashboardPage() {
         const pipelineRes = await fetch('/api/dashboard/pipeline');
         const pipelineData = await pipelineRes.json();
         setPipelineData(pipelineData);
+
+        // Fetch charts data
+        try {
+          const chartsRes = await fetch(`/api/dashboard/charts?role=${user.role}`);
+          if (chartsRes.ok) {
+            const chartsData = await chartsRes.json();
+            setChartData(chartsData);
+          }
+        } catch (e) {
+          console.error('Error fetching charts data', e);
+        }
 
         // Fetch recent customers
         const customersRes = await fetch('/api/customers?limit=5');
@@ -209,6 +222,51 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Content Column */}
         <div className="lg:col-span-2 flex flex-col gap-6">
+          
+          {/* Visual Analytics */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="bg-surface-container-lowest border border-outline-variant rounded p-6 industrial-shadow">
+              <h3 className="text-xl font-bold text-on-surface mb-4">Revenue Overview (6 Months)</h3>
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartData.revenue}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--outline-variant)" />
+                    <XAxis dataKey="name" axisLine={false} tickLine={false} fontSize={12} />
+                    <YAxis axisLine={false} tickLine={false} fontSize={12} tickFormatter={(value) => `₹${value / 1000}k`} />
+                    <Tooltip cursor={{ fill: 'transparent' }} contentStyle={{ borderRadius: '8px', border: '1px solid var(--outline-variant)' }} />
+                    <Bar dataKey="revenue" fill="var(--primary-container)" radius={[4, 4, 0, 0]} name="Revenue" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            <div className="bg-surface-container-lowest border border-outline-variant rounded p-6 industrial-shadow">
+              <h3 className="text-xl font-bold text-on-surface mb-4">Active Project Status</h3>
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={chartData.projectStatus}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={80}
+                      paddingAngle={5}
+                      dataKey="value"
+                    >
+                      {chartData.projectStatus.map((entry, index) => {
+                        const colors = ['var(--primary-container)', 'var(--secondary)', 'var(--tertiary)', 'var(--error-container)', 'var(--outline-variant)'];
+                        return <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />;
+                      })}
+                    </Pie>
+                    <Tooltip contentStyle={{ borderRadius: '8px', border: '1px solid var(--outline-variant)' }} />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+
           {/* Project Pipeline */}
           <div className="bg-surface-container-lowest border border-outline-variant rounded p-6 industrial-shadow flex flex-col">
           <div className="flex justify-between items-center mb-4 pb-2 border-b border-outline-variant">

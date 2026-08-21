@@ -24,6 +24,7 @@ export default function NewProductPage() {
     unit: 'Piece',
     minimum_stock: '0',
     current_stock: '0',
+    selling_price: '0',
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
@@ -72,6 +73,7 @@ export default function NewProductPage() {
           ...formData,
           minimum_stock: parseInt(formData.minimum_stock),
           current_stock: parseInt(formData.current_stock),
+          selling_price: parseFloat(formData.selling_price),
         }),
       });
 
@@ -235,6 +237,21 @@ export default function NewProductPage() {
                   disabled={loading}
                 />
                 {errors.current_stock && <p className="text-sm text-red-600 mt-1">{errors.current_stock}</p>}
+              </div>
+
+              <div>
+                <Label htmlFor="selling_price">Selling Price (₹)</Label>
+                <Input
+                  id="selling_price"
+                  name="selling_price"
+                  type="number"
+                  step="0.01"
+                  value={formData.selling_price}
+                  onChange={handleChange}
+                  className={errors.selling_price ? 'border-red-500' : ''}
+                  disabled={loading}
+                />
+                {errors.selling_price && <p className="text-sm text-red-600 mt-1">{errors.selling_price}</p>}
               </div>
             </div>
 

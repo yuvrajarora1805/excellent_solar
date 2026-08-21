@@ -103,6 +103,13 @@ export default function InventoryReservationsPage() {
       ),
     },
     {
+      key: 'customer_name',
+      title: 'Customer',
+      render: (value: string) => (
+        <span className="text-sm font-medium">{value}</span>
+      ),
+    },
+    {
       key: 'reservation_date',
       title: 'Date',
       render: (value: string) => new Date(value).toLocaleDateString(),

@@ -16,16 +16,24 @@ export default function DiscomApplicationDetailsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Modals state
   const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [isUpdateFieldsModalOpen, setIsUpdateFieldsModalOpen] = useState(false);
   const [viewingDoc, setViewingDoc] = useState<any>(null);
 
   // Form state
   const [stage, setStage] = useState('je');
   const [status, setStatus] = useState('APPROVED');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isFileApply, setIsFileApply] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const [updateFields, setUpdateFields] = useState({
+    processing_fee: '',
+    je_name: '',
+    je_phone: '',
+    np_number: ''
+  });
 
   useEffect(() => {
     fetchApplication();
@@ -40,6 +48,12 @@ export default function DiscomApplicationDetailsPage() {
       }
       const data = await res.json();
       setApplication(data);
+      setUpdateFields({
+        processing_fee: data.processing_fee || '',
+        je_name: data.je_name || '',
+        je_phone: data.je_phone || '',
+        np_number: data.np_number || ''
+      });
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -79,6 +93,33 @@ export default function DiscomApplicationDetailsPage() {
     }
   };
 
+  const handleUpdateFields = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      const res = await fetch(`/api/discom/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          action: 'update_fields',
+          updateData: {
+            processing_fee: updateFields.processing_fee ? parseFloat(updateFields.processing_fee) : null,
+            je_name: updateFields.je_name,
+            je_phone: updateFields.je_phone,
+            np_number: updateFields.np_number
+          }
+        })
+      });
+      if (!res.ok) throw new Error('Failed to update fields');
+      setIsUpdateFieldsModalOpen(false);
+      fetchApplication(); // Refresh data
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   const handleUploadDocument = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedFile) return;
@@ -87,6 +128,9 @@ export default function DiscomApplicationDetailsPage() {
     try {
       const formData = new FormData();
       formData.append('file', selectedFile);
+      if (isFileApply) {
+        formData.append('is_file_apply', 'true');
+      }
 
       const res = await fetch(`/api/discom/${id}`, {
         method: 'POST',
@@ -139,7 +183,12 @@ export default function DiscomApplicationDetailsPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Application Details */}
         <div className="bg-surface-container-lowest border border-outline-variant rounded p-6 industrial-shadow">
-          <h3 className="text-lg font-bold text-on-surface mb-4 pb-2 border-b border-outline-variant">Application Details</h3>
+          <div className="flex justify-between items-center mb-4 pb-2 border-b border-outline-variant">
+            <h3 className="text-lg font-bold text-on-surface">Application Details</h3>
+            <Button variant="outline" size="sm" onClick={() => setIsUpdateFieldsModalOpen(true)}>
+              <Edit className="w-4 h-4 mr-2" /> Edit Details
+            </Button>
+          </div>
           <div className="space-y-3 text-sm">
             <div className="flex justify-between">
               <span className="text-on-surface-variant">Application ID:</span>
@@ -152,6 +201,34 @@ export default function DiscomApplicationDetailsPage() {
             <div className="flex justify-between">
               <span className="text-on-surface-variant">Customer:</span>
               <span className="font-medium text-on-surface">{application.customer_name}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-on-surface-variant">NP Number:</span>
+              <span className="font-medium text-on-surface">{application.np_number || 'N/A'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-on-surface-variant">Processing Fee:</span>
+              <span className="font-medium text-on-surface">{application.processing_fee ? `₹${application.processing_fee}` : 'N/A'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-on-surface-variant">JE Name / Phone:</span>
+              <span className="font-medium text-on-surface">
+                {application.je_name ? `${application.je_name} ${application.je_phone ? `(${application.je_phone})` : ''}` : 'N/A'}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-on-surface-variant">File Apply Upload:</span>
+              <span className="font-medium text-on-surface">
+                {application.file_apply_upload_path ? (
+                   <a href={application.file_apply_upload_path} target="_blank" rel="noreferrer" className="text-primary hover:underline flex items-center gap-1">
+                     <FileText className="w-4 h-4"/> View File
+                   </a>
+                ) : (
+                   <Button variant="ghost" size="sm" onClick={() => { setIsFileApply(true); setIsUploadModalOpen(true); }} className="h-6 px-2 text-xs">
+                     Upload
+                   </Button>
+                )}
+              </span>
             </div>
             <div className="flex justify-between">
               <span className="text-on-surface-variant">Submission Date:</span>
@@ -210,7 +287,7 @@ export default function DiscomApplicationDetailsPage() {
         <div className="col-span-1 md:col-span-2 bg-surface-container-lowest border border-outline-variant rounded p-6 industrial-shadow">
           <div className="flex justify-between items-center mb-4 pb-2 border-b border-outline-variant">
             <h3 className="text-lg font-bold text-on-surface">Documents</h3>
-            <Button variant="outline" size="sm" onClick={() => setIsUploadModalOpen(true)}>
+            <Button variant="outline" size="sm" onClick={() => { setIsFileApply(false); setIsUploadModalOpen(true); }}>
               <Upload className="w-4 h-4 mr-2" /> Upload Document
             </Button>
           </div>
@@ -275,8 +352,57 @@ export default function DiscomApplicationDetailsPage() {
         </form>
       </Modal>
 
+      {/* Update Fields Modal */}
+      <Modal isOpen={isUpdateFieldsModalOpen} onClose={() => setIsUpdateFieldsModalOpen(false)} title="Update Application Details">
+        <form onSubmit={handleUpdateFields} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Processing Fee (₹)</label>
+            <input 
+              type="number" 
+              step="0.01"
+              className="w-full p-2 border rounded bg-surface-container-low" 
+              value={updateFields.processing_fee} 
+              onChange={(e) => setUpdateFields({...updateFields, processing_fee: e.target.value})}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">NP Number</label>
+            <input 
+              type="text" 
+              className="w-full p-2 border rounded bg-surface-container-low" 
+              value={updateFields.np_number} 
+              onChange={(e) => setUpdateFields({...updateFields, np_number: e.target.value})}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">JE Name</label>
+            <input 
+              type="text" 
+              className="w-full p-2 border rounded bg-surface-container-low" 
+              value={updateFields.je_name} 
+              onChange={(e) => setUpdateFields({...updateFields, je_name: e.target.value})}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">JE Phone</label>
+            <input 
+              type="tel" 
+              className="w-full p-2 border rounded bg-surface-container-low" 
+              value={updateFields.je_phone} 
+              onChange={(e) => setUpdateFields({...updateFields, je_phone: e.target.value})}
+            />
+          </div>
+          <div className="flex justify-end gap-2 pt-4">
+            <Button type="button" variant="outline" onClick={() => setIsUpdateFieldsModalOpen(false)}>Cancel</Button>
+            <Button type="submit" disabled={isSubmitting}>
+              {isSubmitting ? 'Updating...' : 'Save Details'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
       {/* Upload Modal */}
-      <Modal isOpen={isUploadModalOpen} onClose={() => setIsUploadModalOpen(false)} title="Upload Document">
+      <Modal isOpen={isUploadModalOpen} onClose={() => setIsUploadModalOpen(false)} title={isFileApply ? "Upload File Apply Document" : "Upload Document"}>
         <form onSubmit={handleUploadDocument} className="space-y-4">
           <div>
             <label className="block text-sm font-medium mb-1">Select File</label>

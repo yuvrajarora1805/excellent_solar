@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { query, queryOne } from '@/lib/db';
+import { reservationDb } from '@/lib/db-helpers/reservations';
 
 // Valid project status ENUM values from DB
 const VALID_PROJECT_STATUSES = [
@@ -75,6 +76,9 @@ export async function POST(request: Request) {
         } else {
           await query('UPDATE installations SET status = ?, submitted_at = NOW() WHERE project_id = ?', ['SUBMITTED', id]);
         }
+
+        // Reduce reserved items and make them SOLD/ISSUED
+        await reservationDb.issue(id);
       }
 
     } else if (type === 'TICKET') {

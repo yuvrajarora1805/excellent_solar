@@ -4,42 +4,32 @@ import { auth } from '@/lib/auth/config';
 import { signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 
-// Navigation items with Material Icons
+// Navigation items
 const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: 'dashboard', roles: ['ADMIN', 'WORKER', 'DISCOM_OPERATOR'] },
-  { name: 'Customers', href: '/customers', icon: 'groups', roles: ['ADMIN'] },
-  { name: 'Projects', href: '/projects', icon: 'folder_open', roles: ['ADMIN', 'WORKER'] },
-  { name: 'Quotations', href: '/quotations', icon: 'description', roles: ['ADMIN'] },
-  { name: 'Inventory', href: '/inventory', icon: 'inventory_2', roles: ['ADMIN'] },
-  { name: 'Site Survey', href: '/survey', icon: 'assignment_turned_in', roles: ['ADMIN', 'WORKER'] },
-  { name: 'Installation', href: '/installation', icon: 'engineering', roles: ['ADMIN', 'WORKER'] },
-  { name: 'DISCOM', href: '/discom', icon: 'account_balance', roles: ['ADMIN', 'DISCOM_OPERATOR'] },
-  { name: 'Service', href: '/service', icon: 'support_agent', roles: ['ADMIN', 'WORKER'] },
+  { name: 'Dashboard', href: '/dashboard', icon: 'dashboard', roles: ['ADMIN', 'MARKETING', 'INSTALLATION', 'DISCOM'] },
+  { name: 'Customers', href: '/customers', icon: 'groups', roles: ['ADMIN', 'MARKETING'] },
+  { name: 'Site Survey', href: '/survey', icon: 'assignment_turned_in', roles: ['ADMIN', 'INSTALLATION'] },
+  { name: 'Projects', href: '/projects', icon: 'folder_open', roles: ['ADMIN', 'MARKETING'] },
+  { name: 'Quotations', href: '/quotations', icon: 'description', roles: ['ADMIN', 'MARKETING'] },
+  { name: 'DISCOM', href: '/discom', icon: 'account_balance', roles: ['ADMIN', 'DISCOM'] },
+  { name: 'Inventory', href: '/inventory', icon: 'inventory_2', roles: ['ADMIN', 'INSTALLATION'] },
+  { name: 'Installation', href: '/installation', icon: 'engineering', roles: ['ADMIN', 'INSTALLATION'] },
+  { name: 'Service', href: '/service', icon: 'support_agent', roles: ['ADMIN', 'INSTALLATION'] },
   { name: 'System Templates', href: '/system-templates', icon: 'settings', roles: ['ADMIN'] },
-  { name: 'Reports', href: '/reports', icon: 'bar_chart', roles: ['ADMIN', 'DISCOM_OPERATOR'] },
+  { name: 'Reports', href: '/reports', icon: 'bar_chart', roles: ['ADMIN', 'DISCOM', 'MARKETING'] },
   { name: 'Users', href: '/users', icon: 'people', roles: ['ADMIN'] },
   { name: 'Settings', href: '/settings', icon: 'settings_applications', roles: ['ADMIN'] },
 ];
-
-// Material Icon component
-const MaterialIcon = ({ name, filled = false, className = '' }: { name: string; filled?: boolean; className?: string }) => (
-  <span
-    className={`material-symbols-outlined ${className}`}
-    style={filled ? { fontVariationSettings: 'FILL 1' } : undefined}
-  >
-    {name}
-  </span>
-);
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
 
-  // This would come from session in a real app
-  const user = { name: 'Admin User', email: 'admin@excellentsolar.com', role: 'ADMIN' };
+  const { data: session } = useSession();
+  const user = session?.user || { name: 'Loading', email: '', role: 'ADMIN', id: 0 };
 
   const filteredNavigation = navigation.filter((item) =>
     item.roles.includes(user.role)
@@ -50,190 +40,179 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
   };
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
-      {/* Mobile sidebar overlay */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40 md:hidden backdrop-blur-sm transition-opacity"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
+    <>
+      <div className="app-shell">
+        {/* Mobile sidebar overlay */}
+        {sidebarOpen && (
+          <div
+            className="fixed inset-0 bg-black/50 z-40 md:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
 
-      {/* Sidebar */}
-      <aside
-        className="hidden md:flex bg-[#0f172a] fixed left-0 top-0 h-full w-[280px] border-r border-slate-800 flex-col py-8 z-20 md:translate-x-0"
-      >
-        {/* Logo */}
-        <div className="px-8 mb-8 mt-2">
-          <Link href="/dashboard" className="flex items-center gap-3 group">
-            <div className="w-12 h-12 flex items-center justify-center transition-transform group-hover:scale-105">
-              <img src="/logo.png" alt="Excellent Solar Logo" className="w-full h-full object-contain" />
-            </div>
-            <div>
-              <span className="font-bold text-lg text-white">Excellent Solar</span>
-              <p className="text-xs text-slate-400">Management System</p>
-            </div>
-          </Link>
-        </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto px-4 space-y-1">
-          {filteredNavigation.map((item) => {
-            const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
-            return (
-              <Link key={item.name} href={item.href}>
-                <div
-                  className={`flex items-center gap-3 px-4 py-3 rounded font-label-bold transition-colors ${
-                    isActive
-                      ? 'bg-emerald-600/20 text-emerald-400 border-l-2 border-emerald-500 scale-[0.98]'
-                      : 'text-slate-300 hover:bg-white/10 hover:text-white'
-                  }`}
-                  onClick={() => setSidebarOpen(false)}
-                >
-                  <MaterialIcon name={item.icon} filled={isActive} className={isActive ? 'text-emerald-400' : 'text-slate-400'} />
-                  <span>{item.name}</span>
-                </div>
-              </Link>
-            );
-          })}
-        </nav>
-
-        {/* User menu */}
-        <div className="px-4 mt-auto pt-4 border-t border-slate-800 space-y-1">
-          <div className="flex items-center gap-3 p-3 rounded bg-slate-900 border border-slate-800">
-            <div className="w-10 h-10 bg-amber-500 rounded-full flex items-center justify-center text-slate-950 font-bold">
-              {user.name.charAt(0)}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-white truncate">{user.name}</p>
-              <p className="text-xs text-slate-400 truncate">{user.email}</p>
-            </div>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-3 px-4 py-3 rounded text-slate-400 font-label-bold hover:bg-white/10 hover:text-white transition-colors w-full"
-          >
-            <MaterialIcon name="logout" />
-            Logout
-          </button>
-        </div>
-      </aside>
-
-      {/* Mobile Sidebar */}
-      <aside
-        className={`md:hidden fixed top-0 left-0 z-50 h-full w-[280px] bg-[#0f172a] border-r border-slate-800 transform transition-transform duration-300 ease-in-out ${
-          sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-        }`}
-      >
-        <div className="flex h-full flex-col">
-          {/* Logo */}
-          <div className="flex h-20 items-center justify-between px-6 border-b border-slate-800 bg-[#0b0f19]">
-            <Link href="/dashboard" className="flex items-center gap-3 group">
-              <div className="w-10 h-10 flex items-center justify-center">
+        {/* =========================================================
+            SIDEBAR
+        ========================================================== */}
+        <aside className="app-sidebar flex w-[280px] min-w-0 flex-col overflow-x-hidden overflow-y-auto border-r border-slate-800 bg-[#0f172a]">
+          {/* Logo/Brand */}
+          <div className="flex shrink-0 flex-col px-6 py-6">
+            <div className="flex items-center gap-3">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center">
                 <img src="/logo.png" alt="Excellent Solar Logo" className="w-full h-full object-contain" />
               </div>
-              <div>
-                <span className="font-bold text-lg text-white">Excellent Solar</span>
+
+              <div className="min-w-0">
+                <h1 className="truncate text-base font-bold text-white">
+                  Excellent Solar
+                </h1>
+
+                <p className="truncate text-xs text-slate-400">
+                  Project Management System
+                </p>
               </div>
-            </Link>
-            <button
-              onClick={() => setSidebarOpen(false)}
-              className="p-2 rounded-lg hover:bg-white/10 transition-colors"
-            >
-              <MaterialIcon name="close" className="text-slate-400" />
-            </button>
+            </div>
+          </div>
+
+          {/* CTA Button - Role-specific */}
+          <div className="px-3 pb-4">
+            {user.role === 'ADMIN' && (
+              <Link
+                href="/projects/new"
+                className="flex h-10 items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 text-sm font-semibold text-white transition-opacity hover:opacity-90 shadow-sm"
+              >
+                <span className="material-symbols-outlined text-[18px]">
+                  add
+                </span>
+                <span>New Project</span>
+              </Link>
+            )}
+            {user.role === 'MARKETING' && (
+              <Link
+                href="/customers/new"
+                className="flex h-10 items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 text-sm font-semibold text-white transition-opacity hover:opacity-90 shadow-sm"
+              >
+                <span className="material-symbols-outlined text-[18px]">
+                  person_add
+                </span>
+                <span>New Customer</span>
+              </Link>
+            )}
+            {user.role === 'INSTALLATION' && (
+              <Link
+                href="/survey"
+                className="flex h-10 items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 text-sm font-semibold text-white transition-opacity hover:opacity-90 shadow-sm"
+              >
+                <span className="material-symbols-outlined text-[18px]">
+                  playlist_add_check
+                </span>
+                <span>My Jobs</span>
+              </Link>
+            )}
+            {user.role === 'DISCOM' && (
+              <Link
+                href="/discom/new"
+                className="flex h-10 items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 text-sm font-semibold text-white transition-opacity hover:opacity-90 shadow-sm"
+              >
+                <span className="material-symbols-outlined text-[18px]">
+                  add
+                </span>
+                <span>New Application</span>
+              </Link>
+            )}
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 overflow-y-auto px-4 py-6 space-y-1">
-            {filteredNavigation.map((item) => {
-              const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
-              return (
-                <Link key={item.name} href={item.href}>
-                  <div
-                    className={`flex items-center gap-3 px-4 py-3 rounded font-label-bold transition-colors ${
+          <nav className="flex-1 overflow-y-auto overflow-x-hidden px-3 pb-4">
+            <div className="space-y-1">
+              {filteredNavigation.map((item) => {
+                const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={`group flex h-12 min-w-0 items-center gap-4 rounded-lg px-3 transition-colors ${
                       isActive
-                        ? 'bg-emerald-600/20 text-emerald-400 border-l-2 border-emerald-500'
+                        ? 'bg-emerald-600/20 text-emerald-400 font-semibold border-l-4 border-emerald-500'
                         : 'text-slate-300 hover:bg-white/10 hover:text-white'
                     }`}
-                    onClick={() => setSidebarOpen(false)}
                   >
-                    <MaterialIcon name={item.icon} filled={isActive} className={isActive ? 'text-emerald-400' : 'text-slate-400'} />
-                    <span>{item.name}</span>
-                  </div>
-                </Link>
-              );
-            })}
+                    <span className={`material-symbols-outlined h-6 w-6 shrink-0 text-[24px] ${isActive ? 'text-emerald-400' : 'text-slate-400 group-hover:text-white'}`}>
+                      {item.icon}
+                    </span>
+
+                    <span className="min-w-0 truncate text-sm font-medium">
+                      {item.name}
+                    </span>
+                  </Link>
+                );
+              })}
+            </div>
           </nav>
 
-          {/* User menu */}
-          <div className="px-4 py-4 border-t border-slate-800 bg-[#0b0f19]">
-            <div className="flex items-center gap-3 mb-4 p-3 rounded bg-slate-900 border border-slate-800">
-              <div className="w-10 h-10 bg-amber-500 rounded-full flex items-center justify-center text-slate-950 font-bold">
-                {user.name.charAt(0)}
+          {/* User */}
+          <div className="shrink-0 border-t border-slate-800 p-3">
+            <div className="flex items-center gap-3 rounded-lg bg-slate-900 border border-slate-800 p-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-amber-500 text-slate-950 font-bold">
+                <span className="text-lg font-semibold uppercase">
+                  {user.name?.charAt(0) || 'U'}
+                </span>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-white truncate">{user.name}</p>
-                <p className="text-xs text-slate-400 truncate">{user.email}</p>
+
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-white">
+                  {user.name}
+                </p>
+
+                <p className="truncate text-xs text-slate-400">
+                  {user.email}
+                </p>
               </div>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full justify-start text-white border-slate-800 hover:bg-white/10"
-              onClick={handleLogout}
-            >
-              <MaterialIcon name="logout" className="mr-2 text-slate-400" />
-              Logout
-            </Button>
-          </div>
-        </div>
-      </aside>
 
-      {/* Main content */}
-      <div className="flex-1 flex flex-col md:ml-[280px] h-screen bg-background">
-        {/* Top bar */}
-        <header className="sticky top-0 z-30 h-16 bg-surface-bright border-b border-outline-variant flex items-center justify-between px-4 lg:px-8 shrink-0">
-          <div className="flex items-center gap-4">
             <button
-              onClick={() => setSidebarOpen(true)}
-              className="md:hidden p-2 rounded-lg hover:bg-surface-container transition-colors"
+              onClick={handleLogout}
+              className="mt-2 flex h-11 w-full items-center gap-4 rounded-lg px-3 text-slate-400 transition-colors hover:bg-white/10 hover:text-white"
             >
-              <MaterialIcon name="menu" className="text-on-surface-variant" />
-            </button>
-            <Link href="/dashboard" className="flex items-center gap-2 md:hidden">
-              <div className="w-8 h-8 bg-gradient-to-br from-orange-500 to-orange-600 rounded-lg flex items-center justify-center">
-                <MaterialIcon name="solar_power" filled className="w-4 h-4 text-white" />
-              </div>
-              <span className="font-semibold text-on-surface">Excellent Solar</span>
-            </Link>
-          </div>
+              <span className="material-symbols-outlined h-6 w-6 shrink-0">
+                logout
+              </span>
 
-          <div className="flex items-center gap-4">
-            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-container">
-              <div className="w-2 h-2 rounded-full bg-tertiary-container"></div>
-              <span className="text-sm font-medium text-on-surface">
+              <span>Logout</span>
+            </button>
+          </div>
+        </aside>
+
+        {/* =====================================================
+            MAIN AREA
+        ====================================================== */}
+        <div className="app-main-wrapper">
+          {/* Header */}
+          <header className="app-header flex items-center justify-end px-6">
+            <div className="flex items-center gap-2 rounded-full bg-gray-100 px-4 py-2">
+              <span className="h-2 w-2 rounded-full bg-emerald-400" />
+              <span className="text-sm font-medium text-gray-800">
                 {user.role}
               </span>
             </div>
-          </div>
-        </header>
+          </header>
 
-        {/* Page content with proper spacing - THIS IS THE KEY FIX */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 space-y-8">
-          <div className="page-transition">
+          {/* Page */}
+          <main className="app-content">
             {children}
-          </div>
-        </main>
+          </main>
 
-        {/* Footer */}
-        <footer className="border-t border-outline-variant bg-surface-bright py-4 px-4 lg:px-8 shrink-0">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-on-surface-variant">
-            <p>© 2025 Excellent Solar. All rights reserved.</p>
-            <p>Solar Project Management System v1.0</p>
-          </div>
-        </footer>
+          {/* Footer */}
+          <footer className="app-footer flex items-center justify-between px-6 border-t border-slate-200 mt-auto py-4 bg-white">
+            <p className="text-sm text-gray-600">
+              © 2026 Excellent Solar. All rights reserved.
+            </p>
+
+            <p className="text-sm text-gray-600 font-medium">
+              Made by OMVKY PVT LTD
+            </p>
+          </footer>
+        </div>
       </div>
-    </div>
+    </>
   );
 }

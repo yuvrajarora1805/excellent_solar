@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { PageHeader, CardGrid, StatsCard } from '@/components/page-layout';
 import { DataTable, StatusBadge } from '@/components/ui/data-table';
 import { Button } from '@/components/ui/button';
@@ -122,15 +123,22 @@ export default function SystemTemplatesPage() {
       title: 'Actions',
       render: (_: any, row: SystemTemplate) => (
         <div className="flex items-center gap-2">
+          <Link href={`/system-templates/${row.id}/builder`}>
+            <button className="p-1 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded transition-colors" title="Builder">
+              <Package className="w-4 h-4 text-orange-500" />
+            </button>
+          </Link>
           <button
             onClick={() => handleEdit(row)}
             className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors"
+            title="Edit Settings"
           >
             <Edit className="w-4 h-4 text-slate-500" />
           </button>
           <button
             onClick={() => handleDelete(row.id)}
             className="p-1 hover:bg-red-50 dark:hover:bg-red-900/20 rounded transition-colors"
+            title="Delete"
           >
             <Trash2 className="w-4 h-4 text-red-500" />
           </button>

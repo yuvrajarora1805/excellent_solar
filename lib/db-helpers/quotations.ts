@@ -109,7 +109,7 @@ export const quotationDb = {
     return transaction(async (conn) => {
       // Get template with items
       const template = await queryOne<any>(
-        `SELECT st.*, p.name as product_name, p.product_code, 0 as unit_price
+        `SELECT st.*, p.name as product_name, p.product_code, p.selling_price as unit_price
          FROM system_templates st
          LEFT JOIN system_template_items sti ON st.id = sti.system_template_id
          LEFT JOIN products p ON sti.product_id = p.id
@@ -128,7 +128,7 @@ export const quotationDb = {
 
       // Get all template items
       const templateItems = await query<any>(
-        `SELECT sti.*, p.name as product_name, p.product_code, 0 as unit_price
+        `SELECT sti.*, p.name as product_name, p.product_code, p.selling_price as unit_price
          FROM system_template_items sti
          LEFT JOIN products p ON sti.product_id = p.id
          WHERE sti.system_template_id = ? AND sti.is_optional = 0
@@ -162,7 +162,7 @@ export const quotationDb = {
         `INSERT INTO quotations (quotation_number, project_id, quotation_date, valid_until, system_type, capacity_kw,
          system_template_id, subtotal, discount_amount, discount_percentage, gst_amount, gst_percentage, total_amount,
          status, terms_conditions, remarks, created_by)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           quotationNumber,
           data.project_id,

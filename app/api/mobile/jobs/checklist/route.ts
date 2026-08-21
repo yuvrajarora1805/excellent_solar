@@ -21,10 +21,15 @@ export async function POST(request: Request) {
       const surveys = await query('SELECT id FROM site_surveys WHERE project_id = ?', [job_id]) as any[];
       if (surveys.length === 0) {
         await query(
-          'INSERT INTO site_surveys (project_id, roof_type, shading, extra_structure, created_by) VALUES (?, ?, ?, ?, ?)',
+          'INSERT INTO site_surveys (project_id, roof_type, roof_condition, available_area, roof_length, roof_width, estimated_capacity, shading, extra_structure, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
           [
             job_id, 
             checklist_data.roof_type || 'Concrete', 
+            checklist_data.roof_condition || null,
+            checklist_data.available_area || null,
+            checklist_data.roof_length || null,
+            checklist_data.roof_width || null,
+            checklist_data.estimated_capacity || null,
             checklist_data.shading === true ? 1 : 0, 
             checklist_data.extra_structure === true ? 1 : 0,
             1 // Mocked user ID
@@ -32,9 +37,14 @@ export async function POST(request: Request) {
         );
       } else {
         await query(
-          'UPDATE site_surveys SET roof_type = ?, shading = ?, extra_structure = ? WHERE project_id = ?',
+          'UPDATE site_surveys SET roof_type = ?, roof_condition = ?, available_area = ?, roof_length = ?, roof_width = ?, estimated_capacity = ?, shading = ?, extra_structure = ? WHERE project_id = ?',
           [
             checklist_data.roof_type || 'Concrete',
+            checklist_data.roof_condition || null,
+            checklist_data.available_area || null,
+            checklist_data.roof_length || null,
+            checklist_data.roof_width || null,
+            checklist_data.estimated_capacity || null,
             checklist_data.shading === true ? 1 : 0,
             checklist_data.extra_structure === true ? 1 : 0,
             job_id

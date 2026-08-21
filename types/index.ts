@@ -1,8 +1,9 @@
 // User Roles
 export enum Role {
   ADMIN = 'ADMIN',
-  WORKER = 'WORKER',
-  DISCOM_OPERATOR = 'DISCOM_OPERATOR',
+  MARKETING = 'MARKETING',
+  INSTALLATION = 'INSTALLATION',
+  DISCOM = 'DISCOM',
 }
 
 // User
@@ -109,6 +110,8 @@ export interface Product {
   status: string;
   created_at: Date;
   updated_at: Date;
+  reserved_stock: number;
+  selling_price: number;
 }
 
 // Stock Transaction Type
@@ -200,6 +203,14 @@ export interface DiscomApplication {
   completed_at?: Date;
   created_at: Date;
   updated_at: Date;
+  processing_fee?: number | null;
+  je_approval_status?: string | null;
+  je_name?: string | null;
+  je_phone?: string | null;
+  sdo_xen_approval_status?: string | null;
+  second_approval_status?: string | null;
+  np_number?: string | null;
+  file_apply_upload_path?: string | null;
   project?: Project;
 }
 

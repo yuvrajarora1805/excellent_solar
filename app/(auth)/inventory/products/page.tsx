@@ -16,6 +16,7 @@ interface Product {
   unit: string;
   current_stock: number;
   minimum_stock: number;
+  selling_price?: number;
   status: string;
 }
 
@@ -168,6 +169,9 @@ export default function ProductsPage() {
                     Category
                   </th>
                   <th className="px-6 py-4 text-right text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
+                    Price (₹)
+                  </th>
+                  <th className="px-6 py-4 text-right text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
                     Stock Level
                   </th>
                   <th className="px-6 py-4 text-center text-xs font-semibold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
@@ -199,6 +203,9 @@ export default function ProductsPage() {
                         {product.category}
                       </span>
                     </td>
+                    <td className="px-6 py-4 text-right font-medium text-slate-900 dark:text-white">
+                      ₹{product.selling_price || 0}
+                    </td>
                     <td className="px-6 py-4">
                       <div className="text-right space-y-1">
                         <div className="flex items-center justify-end gap-2">
@@ -214,9 +221,6 @@ export default function ProductsPage() {
                             )
                           )}
                         </div>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
-                          Min: {product.minimum_stock} {product.unit}
-                        </p>
                       </div>
                     </td>
                     <td className="px-6 py-4">

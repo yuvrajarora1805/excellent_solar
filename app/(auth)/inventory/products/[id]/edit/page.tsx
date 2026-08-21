@@ -27,6 +27,7 @@ export default function EditProductPage() {
     unit: 'Piece',
     minimum_stock: '0',
     current_stock: '0',
+    selling_price: '0',
   });
 
   useEffect(() => {
@@ -51,6 +52,7 @@ export default function EditProductPage() {
           unit: product.unit || 'Piece',
           minimum_stock: product.minimum_stock?.toString() || '0',
           current_stock: product.current_stock?.toString() || '0',
+          selling_price: product.selling_price?.toString() || '0',
         });
       } else {
         setErrors({ form: 'Product not found.' });
@@ -108,6 +110,7 @@ export default function EditProductPage() {
           ...formData,
           minimum_stock: parseInt(formData.minimum_stock),
           current_stock: parseInt(formData.current_stock),
+          selling_price: parseFloat(formData.selling_price),
         }),
       });
 
@@ -287,6 +290,21 @@ export default function EditProductPage() {
                   disabled={loading}
                 />
                 {errors.current_stock && <p className="text-sm text-red-600 mt-1">{errors.current_stock}</p>}
+              </div>
+
+              <div>
+                <Label htmlFor="selling_price">Selling Price (₹)</Label>
+                <Input
+                  id="selling_price"
+                  name="selling_price"
+                  type="number"
+                  step="0.01"
+                  value={formData.selling_price}
+                  onChange={handleChange}
+                  className={errors.selling_price ? 'border-red-500' : ''}
+                  disabled={loading}
+                />
+                {errors.selling_price && <p className="text-sm text-red-600 mt-1">{errors.selling_price}</p>}
               </div>
             </div>
 

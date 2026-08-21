@@ -176,8 +176,9 @@ export default function EditUserPage() {
                     disabled={loading}
                   >
                     <option value="ADMIN">Admin</option>
-                    <option value="WORKER">Worker</option>
-                    <option value="DISCOM_OPERATOR">DISCOM Operator</option>
+                    <option value="MARKETING">Marketing</option>
+                    <option value="INSTALLATION">Installation</option>
+                    <option value="DISCOM">DISCOM</option>
                   </select>
                 </div>
                 <div>

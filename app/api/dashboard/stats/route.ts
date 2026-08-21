@@ -84,7 +84,7 @@ export async function GET(request: Request) {
         quotesSent: quotesSent?.count || 0,
         scheduledSurveys: scheduledSurveys?.count || 0,
       };
-    } else if (role === 'WORKER') {
+    } else if (role === 'INSTALLATION') {
       // Worker stats
       const userId = searchParams.get('userId');
 
@@ -118,7 +118,7 @@ export async function GET(request: Request) {
         weekTotal: weekTotal?.count || 0,
         completedThisWeek: completedThisWeek?.count || 0,
       };
-    } else if (role === 'DISCOM_OPERATOR') {
+    } else if (role === 'DISCOM') {
       // DISCOM stats
       const [totalApplications] = await query<{ count: number }>(
         'SELECT COUNT(*) as count FROM discom_applications'
