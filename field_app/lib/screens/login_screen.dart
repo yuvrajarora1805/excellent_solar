@@ -38,6 +38,7 @@ class _LoginScreenState extends State<LoginScreen> {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setInt('worker_id', data['user']['id']);
         await prefs.setString('worker_name', data['user']['name']);
+        await prefs.setString('worker_role', data['user']['role'] ?? 'ADMIN');
 
         if (!mounted) return;
         Navigator.of(context).pushReplacement(

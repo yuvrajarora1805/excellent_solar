@@ -20,6 +20,7 @@ class _FieldDashboardScreenState extends State<FieldDashboardScreen> {
   int _closedTickets = 0;
   int _totalJobs = 0;
   bool _isLoading = true;
+  String _role = 'ADMIN';
 
   @override
   void initState() {
@@ -31,6 +32,7 @@ class _FieldDashboardScreenState extends State<FieldDashboardScreen> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final workerId = prefs.getInt('worker_id') ?? 1;
+      _role = prefs.getString('worker_role') ?? 'ADMIN';
 
       final response = await http.get(Uri.parse('$baseUrl/api/mobile/dashboard?worker_id=$workerId'));
 
@@ -106,12 +108,14 @@ class _FieldDashboardScreenState extends State<FieldDashboardScreen> {
                   crossAxisSpacing: 12,
                   childAspectRatio: 1.5,
                   children: [
-                    _buildStatCard('Pending Surveys', _pendingSurveys.toString(), Colors.amber),
-                    _buildStatCard('Active Installs', _activeInstalls.toString(), Colors.green),
-                    _buildStatCard('Completed Jobs', _completedJobs.toString(), Colors.blue),
-                    _buildStatCard('Total Jobs', _totalJobs.toString(), Colors.indigo),
-                    _buildStatCard('Open Tickets', _openTickets.toString(), Colors.red),
-                    _buildStatCard('Closed Tickets', _closedTickets.toString(), Colors.grey),
+                    if (_role == 'ADMIN' || _role == 'INSTALLATION') ...[
+                      _buildStatCard('Pending Surveys', _pendingSurveys.toString(), Colors.amber),
+                      _buildStatCard('Active Installs', _activeInstalls.toString(), Colors.green),
+                      _buildStatCard('Completed Jobs', _completedJobs.toString(), Colors.blue),
+                      _buildStatCard('Total Jobs', _totalJobs.toString(), Colors.indigo),
+                      _buildStatCard('Open Tickets', _openTickets.toString(), Colors.red),
+                      _buildStatCard('Closed Tickets', _closedTickets.toString(), Colors.grey),
+                    ]
                   ],
                 ),
                 const SizedBox(height: 24),

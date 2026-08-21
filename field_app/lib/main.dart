@@ -197,18 +197,75 @@ class MainNavigationScreen extends StatefulWidget {
 
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
   int _selectedIndex = 0;
-  final List<Widget> _screens = [
-    const FieldDashboardScreen(),
-    const MyJobsListScreen(),
-    const MyTicketsListScreen(),
-    const OnGridBookingForm(),
-    const ProfileScreen(),
-  ];
+  List<Widget> _screens = [];
+  List<NavigationDestination> _destinations = [];
+  String _role = '';
 
+  @override
+  void initState() {
+    super.initState();
+    _loadRole();
+  }
 
+  Future<void> _loadRole() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _role = prefs.getString('worker_role') ?? 'ADMIN';
+      _buildNavItems();
+    });
+  }
+
+  void _buildNavItems() {
+    _screens = [
+      const FieldDashboardScreen(),
+    ];
+    _destinations = [
+      const NavigationDestination(
+        icon: Icon(Icons.dashboard_outlined),
+        selectedIcon: Icon(Icons.dashboard),
+        label: 'Dashboard',
+      ),
+    ];
+
+    if (_role == 'ADMIN' || _role == 'INSTALLATION') {
+      _screens.add(const MyJobsListScreen());
+      _destinations.add(const NavigationDestination(
+        icon: Icon(Icons.assignment_turned_in_outlined),
+        selectedIcon: Icon(Icons.assignment_turned_in),
+        label: 'Jobs',
+      ));
+      
+      _screens.add(const MyTicketsListScreen());
+      _destinations.add(const NavigationDestination(
+        icon: Icon(Icons.confirmation_number_outlined),
+        selectedIcon: Icon(Icons.confirmation_number),
+        label: 'Tickets',
+      ));
+    }
+
+    _screens.add(const OnGridBookingForm());
+    _destinations.add(const NavigationDestination(
+      icon: Icon(Icons.add_circle_outline),
+      selectedIcon: Icon(Icons.add_circle),
+      label: 'Booking',
+    ));
+
+    _screens.add(const ProfileScreen());
+    _destinations.add(const NavigationDestination(
+      icon: Icon(Icons.person_outline),
+      selectedIcon: Icon(Icons.person),
+      label: 'Profile',
+    ));
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_screens.isEmpty) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       body: _screens[_selectedIndex],
       bottomNavigationBar: NavigationBar(
@@ -218,33 +275,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             _selectedIndex = index;
           });
         },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.dashboard_outlined),
-            selectedIcon: Icon(Icons.dashboard),
-            label: 'Dashboard',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.assignment_turned_in_outlined),
-            selectedIcon: Icon(Icons.assignment_turned_in),
-            label: 'Jobs',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.confirmation_number_outlined),
-            selectedIcon: Icon(Icons.confirmation_number),
-            label: 'Tickets',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.add_circle_outline),
-            selectedIcon: Icon(Icons.add_circle),
-            label: 'Booking',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-        ],
+        destinations: _destinations,
       ),
     );
   }
