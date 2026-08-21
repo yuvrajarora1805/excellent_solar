@@ -16,7 +16,7 @@ import 'screens/booking_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/profile_screen.dart';
 
-const String baseUrl = 'https://es.yarora.dev';
+const String baseUrl = 'https://es.omvky.com';
 
 @pragma('vm:entry-point')
 void onStart(ServiceInstance service) async {

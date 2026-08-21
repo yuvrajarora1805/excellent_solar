@@ -14,8 +14,8 @@ services:
       - MYSQL_USER=solar_user
       - MYSQL_PASSWORD=solar123
       - MYSQL_DATABASE=excellent_solar
-      - NEXTAUTH_URL=http://localhost:3013
-      - AUTH_URL=http://localhost:3013
+      - NEXTAUTH_URL=https://es.omvky.com
+      - AUTH_URL=https://es.omvky.com
       - NEXTAUTH_SECRET=your-production-secret-key
       - AUTH_SECRET=your-production-secret-key
     depends_on:
