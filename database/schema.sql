@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS users (
   email VARCHAR(255) UNIQUE NOT NULL,
   name VARCHAR(255) NOT NULL,
   password VARCHAR(255) NOT NULL,
-  role ENUM('ADMIN', 'WORKER', 'DISCOM_OPERATOR') DEFAULT 'WORKER',
+  role VARCHAR(50) DEFAULT 'WORKER',
   mobile VARCHAR(20),
   active BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -775,3 +775,60 @@ INSERT INTO document_types (name, description, mandatory) VALUES
 ('Site Photograph', 'Photograph of the installation site', TRUE),
 ('Solar Proposal', 'Detailed solar proposal', TRUE)
 ON DUPLICATE KEY UPDATE name = name;
+
+-- ============================================
+-- MISSING TABLES (Quotations, Service Tickets, etc.)
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS service_tickets (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  ticket_number VARCHAR(50) UNIQUE NOT NULL,
+  customer_id INT NOT NULL,
+  issue_category VARCHAR(100),
+  issue_type VARCHAR(100),
+  priority VARCHAR(50),
+  description TEXT,
+  status VARCHAR(50) DEFAULT 'OPEN',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS quotations (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  quotation_number VARCHAR(50) UNIQUE NOT NULL,
+  customer_id INT NOT NULL,
+  quotation_date DATE NOT NULL,
+  total_amount DECIMAL(12, 2) NOT NULL,
+  status VARCHAR(50) DEFAULT 'DRAFT',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS system_settings (
+  setting_key VARCHAR(100) PRIMARY KEY,
+  setting_value TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS system_templates (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  capacity_kw DECIMAL(10, 2) NOT NULL,
+  description TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS system_template_items (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  system_template_id INT NOT NULL,
+  product_id INT NOT NULL,
+  quantity INT NOT NULL,
+  sort_order INT DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (system_template_id) REFERENCES system_templates(id) ON DELETE CASCADE,
+  FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
