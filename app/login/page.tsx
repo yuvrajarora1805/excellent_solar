@@ -6,20 +6,24 @@ import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('admin@excellentsolar.com');
+  const [password, setPassword] = useState('admin123');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
 
+    const formData = new FormData(e.currentTarget);
+    const submittedEmail = (formData.get('email') as string) || email;
+    const submittedPassword = (formData.get('password') as string) || password;
+
     try {
       const result = await signIn('credentials', {
-        email,
-        password,
+        email: submittedEmail,
+        password: submittedPassword,
         redirect: false,
       });
 
@@ -66,6 +70,7 @@ export default function LoginPage() {
             </label>
             <input
               id="email"
+              name="email"
               type="email"
               placeholder="admin@excellentsolar.com"
               value={email}
@@ -82,6 +87,7 @@ export default function LoginPage() {
             </label>
             <input
               id="password"
+              name="password"
               type="password"
               placeholder="Enter your password"
               value={password}
