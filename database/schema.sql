@@ -801,15 +801,23 @@ ON DUPLICATE KEY UPDATE name = name;
 CREATE TABLE IF NOT EXISTS service_tickets (
   id INT AUTO_INCREMENT PRIMARY KEY,
   ticket_number VARCHAR(50) UNIQUE NOT NULL,
+  project_id INT,
   customer_id INT NOT NULL,
   issue_category VARCHAR(100),
   issue_type VARCHAR(100),
   priority VARCHAR(50),
   description TEXT,
+  assigned_to INT,
   status VARCHAR(50) DEFAULT 'OPEN',
+  resolved_at TIMESTAMP NULL,
+  resolution TEXT,
+  customer_rating INT,
+  customer_feedback TEXT,
+  created_by INT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
+  FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE,
+  FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS quotations (
@@ -834,8 +842,13 @@ CREATE TABLE IF NOT EXISTS system_settings (
 CREATE TABLE IF NOT EXISTS system_templates (
   id INT AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(100) NOT NULL,
-  capacity_kw DECIMAL(10, 2) NOT NULL,
+  code VARCHAR(100),
   description TEXT,
+  system_type VARCHAR(100),
+  capacity_kw DECIMAL(10, 2) NOT NULL,
+  template_type VARCHAR(100),
+  status VARCHAR(50) DEFAULT 'ACTIVE',
+  created_by INT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -845,8 +858,24 @@ CREATE TABLE IF NOT EXISTS system_template_items (
   system_template_id INT NOT NULL,
   product_id INT NOT NULL,
   quantity INT NOT NULL,
+  unit VARCHAR(50),
+  is_optional BOOLEAN DEFAULT FALSE,
   sort_order INT DEFAULT 0,
+  remarks TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (system_template_id) REFERENCES system_templates(id) ON DELETE CASCADE,
   FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS project_reservations (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  project_id INT NOT NULL,
+  product_id INT NOT NULL,
+  quantity INT NOT NULL,
+  status VARCHAR(50) DEFAULT 'RESERVED',
+  reserved_by INT,
+  notes TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY(project_id, product_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
