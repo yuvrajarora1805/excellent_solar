@@ -43,11 +43,11 @@ export async function GET() {
     `);
     results.push('Created quotation_items table');
 
-    const safeAlter = async (table, queryStr) => {
+    const safeAlter = async (table: string, queryStr: string) => {
       try {
         await execute(queryStr);
         results.push(`Altered ${table} successfully`);
-      } catch (e) {
+      } catch (e: any) {
         if (e.code === 'ER_DUP_FIELDNAME') {
           results.push(`Columns already exist in ${table}`);
         } else {
@@ -111,7 +111,7 @@ export async function GET() {
     `);
 
     return NextResponse.json({ success: true, messages: results });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Migration error:', error);
     return NextResponse.json({ error: error.message || 'Migration failed' }, { status: 500 });
   }
