@@ -823,13 +823,48 @@ CREATE TABLE IF NOT EXISTS service_tickets (
 CREATE TABLE IF NOT EXISTS quotations (
   id INT AUTO_INCREMENT PRIMARY KEY,
   quotation_number VARCHAR(50) UNIQUE NOT NULL,
+  project_id INT,
   customer_id INT NOT NULL,
   quotation_date DATE NOT NULL,
+  valid_until DATE,
+  system_type VARCHAR(100),
+  capacity_kw DECIMAL(10, 2),
+  system_template_id INT,
+  subtotal DECIMAL(12, 2),
+  discount_amount DECIMAL(12, 2),
+  discount_percentage DECIMAL(5, 2),
+  gst_amount DECIMAL(12, 2),
+  gst_percentage DECIMAL(5, 2),
   total_amount DECIMAL(12, 2) NOT NULL,
+  payment_schedule TEXT,
   status VARCHAR(50) DEFAULT 'DRAFT',
+  terms_conditions TEXT,
+  remarks TEXT,
+  created_by INT,
+  sent_at TIMESTAMP NULL,
+  accepted_at TIMESTAMP NULL,
+  rejected_at TIMESTAMP NULL,
+  rejection_reason TEXT,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS quotation_items (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  quotation_id INT NOT NULL,
+  product_id INT,
+  description VARCHAR(255),
+  quantity INT NOT NULL,
+  unit VARCHAR(50),
+  unit_price DECIMAL(10, 2) NOT NULL,
+  discount_amount DECIMAL(10, 2) DEFAULT 0,
+  tax_amount DECIMAL(10, 2) DEFAULT 0,
+  line_total DECIMAL(12, 2) NOT NULL,
+  sort_order INT DEFAULT 0,
+  remarks TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (quotation_id) REFERENCES quotations(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS system_settings (
