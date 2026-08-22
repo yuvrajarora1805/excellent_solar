@@ -21,32 +21,41 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
+        try {
+          console.log("Login attempt for:", credentials?.email);
+          if (!credentials?.email || !credentials?.password) {
+            console.log("Missing credentials");
+            return null;
+          }
+
+          const user = await queryOne<DbUser>(
+            'SELECT id, email, name, password, role, mobile, active FROM users WHERE email = ? AND active = 1',
+            [credentials.email]
+          );
+
+          if (!user) {
+            console.log("User not found or inactive");
+            return null;
+          }
+
+          const isPasswordValid = await compare(credentials.password as string, user.password);
+          console.log("Password valid:", isPasswordValid);
+
+          if (!isPasswordValid) {
+            return null;
+          }
+
+          return {
+            id: user.id.toString(),
+            email: user.email,
+            name: user.name,
+            role: user.role,
+            mobile: user.mobile,
+          };
+        } catch (error) {
+          console.error("Authorize error:", error);
           return null;
         }
-
-        const user = await queryOne<DbUser>(
-          'SELECT id, email, name, password, role, mobile, active FROM users WHERE email = ? AND active = 1',
-          [credentials.email]
-        );
-
-        if (!user) {
-          return null;
-        }
-
-        const isPasswordValid = await compare(credentials.password as string, user.password);
-
-        if (!isPasswordValid) {
-          return null;
-        }
-
-        return {
-          id: user.id.toString(),
-          email: user.email,
-          name: user.name,
-          role: user.role,
-          mobile: user.mobile,
-        };
       },
     }),
   ],
