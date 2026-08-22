@@ -212,7 +212,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   Future<void> _loadRole() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      _role = prefs.getString('worker_role') ?? 'ADMIN';
+      _role = (prefs.getString('worker_role') ?? 'ADMIN').toUpperCase().trim();
+      debugPrint('Loaded role: $_role');
       _buildNavItems();
     });
   }
