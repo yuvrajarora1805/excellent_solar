@@ -89,11 +89,9 @@ export const siteSurveyDb = {
     sql += ' ORDER BY ss.created_at DESC';
 
     if (options?.limit) {
-      sql += ' LIMIT ?';
-      params.push(options.limit);
+      sql += ` LIMIT ${Number(options.limit)}`;
       if (options.offset) {
-        sql += ' OFFSET ?';
-        params.push(options.offset);
+        sql += ` OFFSET ${Number(options.offset)}`;
       }
     }
 
