@@ -15,6 +15,7 @@ import 'screens/tickets_screen.dart';
 import 'screens/booking_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/profile_screen.dart';
+import 'screens/discom_screen.dart';
 
 const String baseUrl = 'https://es.omvky.com';
 
@@ -240,6 +241,13 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         icon: Icon(Icons.confirmation_number_outlined),
         selectedIcon: Icon(Icons.confirmation_number),
         label: 'Tickets',
+      ));
+    if (_role == 'ADMIN' || _role == 'DISCOM') {
+      _screens.add(const DiscomListScreen());
+      _destinations.add(const NavigationDestination(
+        icon: Icon(Icons.electrical_services_outlined),
+        selectedIcon: Icon(Icons.electrical_services),
+        label: 'DISCOM',
       ));
     }
 
