@@ -22,23 +22,38 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       },
       async authorize(credentials) {
         try {
-          console.log("Login attempt for:", credentials?.email);
-          if (!credentials?.email || !credentials?.password) {
-            console.log("Missing credentials");
+          console.log("Raw credentials:", credentials);
+          let email: string | undefined = undefined;
+          let password: string | undefined = undefined;
+
+          if (credentials) {
+            if (typeof (credentials as any).get === 'function') {
+              email = (credentials as any).get('email') as string;
+              password = (credentials as any).get('password') as string;
+            } else {
+              email = (credentials as any).email as string;
+              password = (credentials as any).password as string;
+            }
+          }
+
+          console.log("Login attempt for email:", email);
+
+          if (!email || !password) {
+            console.log("Missing email or password in credentials");
             return null;
           }
 
           const user = await queryOne<DbUser>(
             'SELECT id, email, name, password, role, mobile, active FROM users WHERE email = ? AND active = 1',
-            [credentials.email]
+            [email]
           );
 
           if (!user) {
-            console.log("User not found or inactive");
+            console.log("User not found or inactive in DB");
             return null;
           }
 
-          const isPasswordValid = await compare(credentials.password as string, user.password);
+          const isPasswordValid = await compare(password, user.password);
           console.log("Password valid:", isPasswordValid);
 
           if (!isPasswordValid) {
