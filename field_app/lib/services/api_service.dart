@@ -32,4 +32,11 @@ class ApiService {
     request.headers.addAll(await _getHeaders());
     return request;
   }
+
+  static Future<http.StreamedResponse> sendMultipart(http.MultipartRequest request) async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('jwt_token') ?? '';
+    request.headers['Authorization'] = 'Bearer $token';
+    return await request.send();
+  }
 }
