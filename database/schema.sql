@@ -70,6 +70,8 @@ CREATE TABLE IF NOT EXISTS projects (
   -- Installation Info
   capacity DECIMAL(10, 2),
   installation_date DATE,
+  geotag_location VARCHAR(255),
+  site_photo_path VARCHAR(500),
 
   -- Audit
   created_by INT NOT NULL,
@@ -138,6 +140,7 @@ CREATE TABLE IF NOT EXISTS products (
   unit VARCHAR(20) DEFAULT 'Piece',
   minimum_stock INT DEFAULT 0,
   current_stock INT DEFAULT 0,
+  reserved_stock INT DEFAULT 0,
   status VARCHAR(20) DEFAULT 'Active',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
