@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
+import '../services/api_service.dart';
 import '../main.dart' show baseUrl;
 
 class Product {
@@ -84,7 +85,7 @@ class _ProductPickerScreenState extends State<ProductPickerScreen> {
 
   Future<void> _fetchProducts() async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/api/inventory/products'));
+      final response = await ApiService.get(Uri.parse('$baseUrl/api/inventory/products'));
       if (response.statusCode == 200) {
         final List<dynamic> data = jsonDecode(response.body);
         final products = data.map((e) => Product.fromJson(e)).toList();

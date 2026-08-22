@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
+import '../services/api_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../main.dart' show baseUrl;
 
@@ -34,7 +35,7 @@ class _FieldDashboardScreenState extends State<FieldDashboardScreen> {
       final workerId = prefs.getInt('worker_id') ?? 1;
       _role = prefs.getString('worker_role') ?? 'ADMIN';
 
-      final response = await http.get(Uri.parse('$baseUrl/api/mobile/dashboard?worker_id=$workerId'));
+      final response = await ApiService.get(Uri.parse('$baseUrl/api/mobile/dashboard?worker_id=$workerId'));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);

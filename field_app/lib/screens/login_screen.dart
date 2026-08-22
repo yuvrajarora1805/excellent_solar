@@ -25,7 +25,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/api/mobile/login'),
+        Uri.parse('$baseUrl/api/mobile/auth/login'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'email': _emailController.text.trim(),
@@ -39,6 +39,9 @@ class _LoginScreenState extends State<LoginScreen> {
         await prefs.setInt('worker_id', data['user']['id']);
         await prefs.setString('worker_name', data['user']['name']);
         await prefs.setString('worker_role', data['user']['role'] ?? 'ADMIN');
+        if (data.containsKey('token')) {
+          await prefs.setString('jwt_token', data['token']);
+        }
 
         if (!mounted) return;
         Navigator.of(context).pushReplacement(

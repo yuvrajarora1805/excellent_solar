@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
+import 'services/api_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
 import 'dart:ui';
@@ -61,7 +62,7 @@ void onStart(ServiceInstance service) async {
       int lastTicketCount = prefs.getInt('last_ticket_count') ?? 0;
 
       // Poll Jobs
-      final jobsResponse = await http.get(Uri.parse('$baseUrl/api/mobile/jobs?worker_id=$workerId'));
+      final jobsResponse = await ApiService.get(Uri.parse('$baseUrl/api/mobile/jobs?worker_id=$workerId'));
       if (jobsResponse.statusCode == 200) {
         final Map<String, dynamic> data = jsonDecode(jobsResponse.body);
         final List<dynamic> jobs = data['jobs'] ?? [];
@@ -76,7 +77,7 @@ void onStart(ServiceInstance service) async {
       }
 
       // Poll Tickets
-      final ticketsResponse = await http.get(Uri.parse('$baseUrl/api/mobile/tickets?worker_id=$workerId'));
+      final ticketsResponse = await ApiService.get(Uri.parse('$baseUrl/api/mobile/tickets?worker_id=$workerId'));
       if (ticketsResponse.statusCode == 200) {
         final Map<String, dynamic> tdata = jsonDecode(ticketsResponse.body);
         final List<dynamic> tickets = tdata['tickets'] ?? [];

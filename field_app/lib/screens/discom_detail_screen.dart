@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import '../services/api_service.dart';
 import '../main.dart' show baseUrl;
 
 class DiscomDetailScreen extends StatefulWidget {
@@ -43,7 +44,7 @@ class _DiscomDetailScreenState extends State<DiscomDetailScreen> {
     });
 
     try {
-      final response = await http.put(
+      final response = await ApiService.put(
         Uri.parse('$baseUrl/api/mobile/discom/${widget.application['id']}'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({

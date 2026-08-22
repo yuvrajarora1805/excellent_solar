@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
+import '../services/api_service.dart';
 import 'package:image_picker/image_picker.dart';
 
 import 'package:geolocator/geolocator.dart';
@@ -67,7 +68,7 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
 
   Future<void> _fetchDocuments() async {
     try {
-      final response = await http.get(Uri.parse('$baseUrl/api/mobile/jobs/${widget.jobId}/documents'));
+      final response = await ApiService.get(Uri.parse('$baseUrl/api/mobile/jobs/${widget.jobId}/documents'));
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final docs = data['documents'] as List<dynamic>;
@@ -91,7 +92,7 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
   Future<void> _markJobDone() async {
     setState(() => _isSaving = true);
     try {
-      final response = await http.post(
+      final response = await ApiService.post(
         Uri.parse('$baseUrl/api/mobile/update-status'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
@@ -137,7 +138,7 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
         'extra_structure': extraStructureNeeded,
       };
 
-      final response = await http.post(
+      final response = await ApiService.post(
         Uri.parse('$baseUrl/api/mobile/jobs/checklist'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
@@ -264,7 +265,7 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
     if (!useCamera) setState(() => _isUploading = true);
 
     try {
-      var request = http.MultipartRequest('POST', Uri.parse('$baseUrl/api/mobile/upload'));
+      var request = await ApiService.multipartRequest('POST', Uri.parse('$baseUrl/api/mobile/upload'));
       request.fields['job_id'] = widget.jobId;
       request.fields['document_type'] = docKey;
       request.files.add(await http.MultipartFile.fromPath('file', fileToUpload.path));

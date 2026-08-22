@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import '../services/api_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../main.dart' show baseUrl;
 
@@ -27,7 +28,7 @@ class _MyTicketsListScreenState extends State<MyTicketsListScreen> {
       final prefs = await SharedPreferences.getInstance();
       final workerId = prefs.getInt('worker_id') ?? 1;
 
-      final response = await http.get(Uri.parse('$baseUrl/api/mobile/tickets?worker_id=$workerId'));
+      final response = await ApiService.get(Uri.parse('$baseUrl/api/mobile/tickets?worker_id=$workerId'));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -51,7 +52,7 @@ class _MyTicketsListScreenState extends State<MyTicketsListScreen> {
 
   Future<void> _markResolved(int ticketId) async {
     try {
-      await http.post(
+      await ApiService.post(
         Uri.parse('$baseUrl/api/mobile/update-status'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({

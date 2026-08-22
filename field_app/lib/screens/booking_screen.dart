@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../services/api_service.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../main.dart' show baseUrl;
@@ -519,7 +520,7 @@ class _OnGridBookingFormState extends State<OnGridBookingForm> {
                   
                   setState(() => _isSubmitting = true);
                   try {
-                    var request = http.MultipartRequest('POST', Uri.parse('$baseUrl/api/mobile/bookings'));
+                    var request = await ApiService.multipartRequest('POST', Uri.parse('$baseUrl/api/mobile/bookings'));
                     
                     // Add text fields
                     request.fields['customerName'] = _customerNameCtrl.text;

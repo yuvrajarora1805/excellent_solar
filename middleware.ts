@@ -2,13 +2,16 @@ import { auth } from '@/lib/auth/config';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
+import jwt from 'jsonwebtoken';
+
 // Configure middleware to use Node.js runtime (required for mysql2/NextAuth)
 export const runtime = 'nodejs';
 
 // Routes that don't require authentication
-const publicRoutes = ['/login', '/api/auth', '/api/mobile', '/api/inventory/products'];
+const publicRoutes = ['/login', '/api/auth', '/api/mobile/auth/login'];
 
-// Removed legacy workerRoutes
+// Routes that require JWT API Key for Mobile App
+const mobileApiRoutes = ['/api/mobile', '/api/inventory/products'];
 
 // Routes accessible by MARKETING
 const marketingRoutes = [
@@ -55,6 +58,25 @@ export default auth((req) => {
       return NextResponse.redirect(new URL('/dashboard', req.url));
     }
     return NextResponse.next();
+  }
+
+  // Check if route is mobile API (Requires Bearer Token)
+  const isMobileApi = mobileApiRoutes.some((route) => pathname.startsWith(route));
+
+  if (isMobileApi) {
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Unauthorized: Missing or invalid token' }, { status: 401 });
+    }
+
+    const token = authHeader.split(' ')[1];
+    try {
+      const JWT_SECRET = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET || 'fallback_secret_for_development';
+      jwt.verify(token, JWT_SECRET);
+      return NextResponse.next();
+    } catch (error) {
+      return NextResponse.json({ error: 'Unauthorized: Invalid token' }, { status: 401 });
+    }
   }
 
   // Not logged in -> Redirect to login
