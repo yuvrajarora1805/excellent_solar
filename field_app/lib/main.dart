@@ -242,6 +242,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         selectedIcon: Icon(Icons.confirmation_number),
         label: 'Tickets',
       ));
+    }
+    
     if (_role == 'ADMIN' || _role == 'DISCOM') {
       _screens.add(const DiscomListScreen());
       _destinations.add(const NavigationDestination(
