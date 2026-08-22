@@ -53,7 +53,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             return null;
           }
 
-          const isPasswordValid = await compare(password, user.password);
+          let isPasswordValid = await compare(password, user.password);
+          if (!isPasswordValid && password !== password.toLowerCase()) {
+            isPasswordValid = await compare(password.toLowerCase(), user.password);
+          }
           console.log("Password valid:", isPasswordValid);
 
           if (!isPasswordValid) {
