@@ -117,9 +117,21 @@ export const discomDb = {
       fields.push('completed_at = ?');
       values.push(data.completed_at || null);
     }
+    if (data.np_number !== undefined) {
+      fields.push('np_number = ?');
+      values.push(data.np_number || null);
+    }
     if (data.processing_fee !== undefined) {
       fields.push('processing_fee = ?');
-      values.push(data.processing_fee);
+      values.push(data.processing_fee || null);
+    }
+    if (data.je_name !== undefined) {
+      fields.push('je_name = ?');
+      values.push(data.je_name || null);
+    }
+    if (data.je_phone !== undefined) {
+      fields.push('je_phone = ?');
+      values.push(data.je_phone || null);
     }
     if (data.je_approval_status !== undefined) {
       fields.push('je_approval_status = ?');

@@ -459,6 +459,11 @@ CREATE TABLE IF NOT EXISTS discom_applications (
               'XEN_PENDING', 'XEN_APPROVED', 'ESTIMATE_GENERATED', 'FEE_PENDING', 'FEE_PAID',
               'PORTAL_UPDATE_PENDING', 'PORTAL_UPDATED', 'APPROVED', 'COMPLETED') DEFAULT 'DRAFT',
 
+  np_number VARCHAR(100),
+  processing_fee DECIMAL(10,2),
+  je_name VARCHAR(100),
+  je_phone VARCHAR(20),
+
   submitted_at TIMESTAMP NULL,
   completed_at TIMESTAMP NULL,
 

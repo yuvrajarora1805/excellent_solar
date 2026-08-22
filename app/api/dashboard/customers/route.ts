@@ -19,8 +19,8 @@ export async function GET(request: Request) {
       FROM customers c
       LEFT JOIN projects p ON c.id = p.customer_id
       ORDER BY c.created_at DESC
-      LIMIT ?
-    `, [limit]);
+      LIMIT ${Number(limit)}
+    `);
 
     return NextResponse.json(customers);
   } catch (error) {

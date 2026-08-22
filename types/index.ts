@@ -203,13 +203,13 @@ export interface DiscomApplication {
   completed_at?: Date;
   created_at: Date;
   updated_at: Date;
+  np_number?: string | null;
   processing_fee?: number | null;
   je_approval_status?: string | null;
   je_name?: string | null;
   je_phone?: string | null;
   sdo_xen_approval_status?: string | null;
   second_approval_status?: string | null;
-  np_number?: string | null;
   file_apply_upload_path?: string | null;
   project?: Project;
 }
