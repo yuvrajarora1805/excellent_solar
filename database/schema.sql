@@ -779,6 +779,16 @@ INSERT INTO document_types (name, description, mandatory) VALUES
 ('Solar Proposal', 'Detailed solar proposal', TRUE)
 ON DUPLICATE KEY UPDATE name = name;
 
+-- Insert sample products
+INSERT INTO products (product_code, name, category, brand, model, specification, current_stock, reserved_stock, minimum_stock) VALUES
+('SP-540W-LUM', 'Luminous 540W Mono PERC', 'Solar Panels', 'Luminous', 'LUM-540', '540W Monocrystalline', 150, 0, 20),
+('SP-550W-WAA', 'Waaree 550W Bifacial', 'Solar Panels', 'Waaree', 'WAR-550B', '550W Bifacial', 200, 0, 30),
+('INV-5KW-GRO', 'Growatt 5kW On-Grid', 'Inverters', 'Growatt', 'MIN 5000TL-X', '5kW Single Phase', 25, 0, 5),
+('INV-10KW-LUM', 'Luminous 10kW On-Grid', 'Inverters', 'Luminous', 'NXI-110', '10kW Three Phase', 10, 0, 2),
+('STR-GI-3KW', '3kW GI Structure', 'Structure', 'Local', 'GI-3KW', 'Galvanized Iron Structure', 50, 0, 10),
+('CBL-DC-4SQ', '4 sqmm DC Cable', 'Cables', 'Polycab', 'DC-4SQ', '4 sqmm Tinned Copper', 1000, 0, 200)
+ON DUPLICATE KEY UPDATE name = name;
+
 -- ============================================
 -- MISSING TABLES (Quotations, Service Tickets, etc.)
 -- ============================================
