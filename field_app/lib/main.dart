@@ -253,12 +253,14 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       ));
     }
 
-    _screens.add(const OnGridBookingForm());
-    _destinations.add(const NavigationDestination(
-      icon: Icon(Icons.add_circle_outline),
-      selectedIcon: Icon(Icons.add_circle),
-      label: 'Booking',
-    ));
+    if (_role != 'DISCOM') {
+      _screens.add(const OnGridBookingForm());
+      _destinations.add(const NavigationDestination(
+        icon: Icon(Icons.add_circle_outline),
+        selectedIcon: Icon(Icons.add_circle),
+        label: 'Booking',
+      ));
+    }
 
     _screens.add(const ProfileScreen());
     _destinations.add(const NavigationDestination(
