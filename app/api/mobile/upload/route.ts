@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
     const formData = await req.formData();
     const file = formData.get('file') as File | null;
     const jobId = formData.get('job_id') as string;
-    const documentType = formData.get('document_type') as string;
+    const documentType = (formData.get('document_type') || formData.get('document_type_id')) as string;
 
     const discomId = formData.get('discom_id') as string;
 

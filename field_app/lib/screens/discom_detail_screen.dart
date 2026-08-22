@@ -130,6 +130,7 @@ class _DiscomDetailScreenState extends State<DiscomDetailScreen> {
       var request = http.MultipartRequest('POST', Uri.parse('$baseUrl/api/mobile/upload'));
       request.fields['discom_id'] = widget.application['id'].toString();
       request.fields['document_type_id'] = docTypeId;
+      request.fields['document_type'] = docTypeId;
       request.files.add(await http.MultipartFile.fromPath('file', image.path));
 
       final streamedResponse = await ApiService.sendMultipart(request);
