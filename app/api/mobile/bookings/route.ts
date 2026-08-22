@@ -47,13 +47,19 @@ export async function POST(request: Request) {
     const workerId = workerIdRaw ? parseInt(workerIdRaw) : 1;
     const reservationsRaw = formData.get('reservations') as string;
 
-    // 1. Insert Customer
-    const custResult = await query(
-      'INSERT INTO customers (name, mobile, email, address, city, district, state) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [customerName, mobileNumber, emailId || null, address, 'N/A', 'N/A', 'N/A']
-    ) as any;
-
-    const customerId = custResult.insertId;
+    // 1. Find or Insert Customer
+    let customerId;
+    const existingCust = await query('SELECT id FROM customers WHERE mobile = ?', [mobileNumber]) as any[];
+    
+    if (existingCust && existingCust.length > 0) {
+      customerId = existingCust[0].id;
+    } else {
+      const custResult = await query(
+        'INSERT INTO customers (name, mobile, email, address, city, district, state) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [customerName, mobileNumber, emailId || null, address, 'N/A', 'N/A', 'N/A']
+      ) as any;
+      customerId = custResult.insertId;
+    }
     const projectId = `ES-${new Date().getFullYear()}-${customerId.toString().padStart(4, '0')}`;
 
     // 2. Insert Project with all technical data
