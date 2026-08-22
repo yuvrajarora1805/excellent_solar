@@ -60,10 +60,15 @@ export default auth((req) => {
     return NextResponse.next();
   }
 
-  // Check if route is mobile API (Requires Bearer Token)
+  // Check if route is mobile API (Requires Bearer Token or Web Session)
   const isMobileApi = mobileApiRoutes.some((route) => pathname.startsWith(route));
 
   if (isMobileApi) {
+    // Allow logged in web dashboard users
+    if (isLoggedIn) {
+      return NextResponse.next();
+    }
+
     const authHeader = req.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json({ error: 'Unauthorized: Missing or invalid token' }, { status: 401 });
