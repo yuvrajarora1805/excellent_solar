@@ -40,11 +40,15 @@ export async function GET(request: Request) {
     const countParams = [...params]; // Copy params before adding limit/offset
 
     if (limitParam) {
-      sql += ' LIMIT ?';
-      params.push(parseInt(limitParam));
-      if (offsetParam) {
-        sql += ' OFFSET ?';
-        params.push(parseInt(offsetParam));
+      const limit = Number(limitParam);
+      if (!isNaN(limit)) {
+        sql += ` LIMIT ${limit}`;
+        if (offsetParam) {
+          const offset = Number(offsetParam);
+          if (!isNaN(offset)) {
+            sql += ` OFFSET ${offset}`;
+          }
+        }
       }
     }
 
