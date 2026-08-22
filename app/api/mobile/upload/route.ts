@@ -39,9 +39,24 @@ export async function POST(req: NextRequest) {
     
     // Check if this is a DISCOM document upload
     if (discomId) {
-      // 1 is a generic document type ID if none is provided
-      const docTypeId = documentType ? parseInt(documentType) : 1; 
-      
+      let docTypeId = 1;
+
+      if (documentType) {
+        const parsed = parseInt(documentType, 10);
+        if (!isNaN(parsed)) {
+          docTypeId = parsed;
+        } else {
+          // Find document_type by matching name
+          const docTypeRows = await query<any>(
+            'SELECT id FROM document_types WHERE name LIKE ? OR name LIKE ? LIMIT 1',
+            [`%${documentType}%`, `%${documentType.replace(/_/g, ' ')}%`]
+          );
+          if (docTypeRows.length > 0) {
+            docTypeId = docTypeRows[0].id;
+          }
+        }
+      }
+
       await query(
         'INSERT INTO documents (discom_application_id, document_type_id, file_name, file_path, file_size, mime_type, status, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
         [discomId, docTypeId, file.name, publicUrl, file.size, file.type, 'PENDING', 1]
