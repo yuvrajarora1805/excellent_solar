@@ -70,8 +70,8 @@ export default function DiscomApplicationDetailsPage() {
       case 'VERIFICATION_PENDING':
       case 'FEASIBILITY_PENDING':
         return 'warning';
-      case 'REJECTED': return 'danger';
-      default: return 'neutral';
+      case 'REJECTED': return 'error';
+      default: return 'default';
     }
   };
 
