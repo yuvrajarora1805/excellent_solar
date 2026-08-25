@@ -18,15 +18,12 @@ subprojects {
 subprojects {
     project.evaluationDependsOn(":app")
 }
-// Force all plugin subprojects to compile against SDK 36
-subprojects {
-    afterEvaluate {
-        if (project.hasProperty("android")) {
-            val androidExt = project.extensions.findByName("android")
-            if (androidExt != null) {
-                val baseExt = androidExt as? com.android.build.gradle.BaseExtension
-                baseExt?.compileSdkVersion(36)
-            }
+
+// Force all Android library plugins to compileSdk 36
+allprojects {
+    plugins.withId("com.android.library") {
+        extensions.getByType(com.android.build.gradle.LibraryExtension::class).apply {
+            compileSdk = 36
         }
     }
 }
