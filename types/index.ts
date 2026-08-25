@@ -204,6 +204,7 @@ export interface DiscomApplication {
   created_at: Date;
   updated_at: Date;
   np_number?: string | null;
+  application_date?: string | Date | null;
   processing_fee?: number | null;
   je_approval_status?: string | null;
   je_name?: string | null;

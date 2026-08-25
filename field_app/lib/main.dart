@@ -230,14 +230,18 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       ),
     ];
 
-    if (_role == 'ADMIN' || _role == 'INSTALLATION') {
+    String uRole = _role.toUpperCase();
+
+    if (uRole == 'ADMIN' || uRole == 'INSTALLATION' || uRole == 'WORKER' || uRole == 'SALES' || uRole == 'MARKETING') {
       _screens.add(const MyJobsListScreen());
       _destinations.add(const NavigationDestination(
         icon: Icon(Icons.assignment_turned_in_outlined),
         selectedIcon: Icon(Icons.assignment_turned_in),
         label: 'Jobs',
       ));
-      
+    }
+
+    if (uRole == 'ADMIN' || uRole == 'INSTALLATION' || uRole == 'WORKER') {
       _screens.add(const MyTicketsListScreen());
       _destinations.add(const NavigationDestination(
         icon: Icon(Icons.confirmation_number_outlined),
@@ -246,7 +250,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       ));
     }
     
-    if (_role == 'ADMIN' || _role == 'DISCOM') {
+    if (uRole == 'ADMIN' || uRole == 'DISCOM' || uRole == 'DISCOM_OPERATOR') {
       _screens.add(const DiscomListScreen());
       _destinations.add(const NavigationDestination(
         icon: Icon(Icons.electrical_services_outlined),

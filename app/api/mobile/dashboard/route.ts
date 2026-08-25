@@ -18,6 +18,13 @@ export async function GET(request: Request) {
     const closedTicketsQuery = await query("SELECT COUNT(*) as count FROM service_tickets WHERE status = 'CLOSED'");
     const totalJobsQuery = await query("SELECT COUNT(*) as count FROM projects");
 
+    // DISCOM Metrics
+    const totalDiscomQuery = await query("SELECT COUNT(*) as count FROM discom_applications");
+    const pendingJeQuery = await query("SELECT COUNT(*) as count FROM je_verifications WHERE status = 'PENDING'");
+    const pendingSdoQuery = await query("SELECT COUNT(*) as count FROM sdo_verifications WHERE status = 'PENDING'");
+    const pendingXenQuery = await query("SELECT COUNT(*) as count FROM xen_verifications WHERE status = 'PENDING'");
+    const pendingSecondQuery = await query("SELECT COUNT(*) as count FROM discom_applications WHERE second_approval_status = 'PENDING' OR second_approval_status IS NULL");
+
     const stats = {
       pendingSurveys: (surveysQuery as any[])[0]?.count || 0,
       activeInstalls: (installsQuery as any[])[0]?.count || 0,
@@ -25,6 +32,11 @@ export async function GET(request: Request) {
       openTickets: (openTicketsQuery as any[])[0]?.count || 0,
       closedTickets: (closedTicketsQuery as any[])[0]?.count || 0,
       totalJobs: (totalJobsQuery as any[])[0]?.count || 0,
+      totalDiscom: (totalDiscomQuery as any[])[0]?.count || 0,
+      pendingJe: (pendingJeQuery as any[])[0]?.count || 0,
+      pendingSdo: (pendingSdoQuery as any[])[0]?.count || 0,
+      pendingXen: (pendingXenQuery as any[])[0]?.count || 0,
+      pendingSecondApproval: (pendingSecondQuery as any[])[0]?.count || 0,
     };
 
     return NextResponse.json({ success: true, stats });

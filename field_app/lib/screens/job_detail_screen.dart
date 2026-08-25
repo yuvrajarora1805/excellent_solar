@@ -575,24 +575,21 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
           ] else ...[
             // INSTALLATION PHOTOS
             Text('Installation Photos', style: GoogleFonts.hankenGrotesk(fontWeight: FontWeight.bold, fontSize: 16)),
+            const SizedBox(height: 4),
+            Text('Take required installation photos.', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
             const SizedBox(height: 8),
-            _buildUploadRow('Module with Serial Number', 'module_serial'),
-            _buildUploadRow('Inverter Serial Number', 'inverter_serial'),
-            _buildUploadRow('Earthing Setup', 'earthing_setup'),
-            _buildUploadRow('ACDB/DCDB Photo', 'acd_dcdb'),
-            _buildUploadRow('Final Plant View', 'final_plant'),
+            _buildUploadRow('Installed Set Photo', 'installed_set_photo'),
+            _buildUploadRow('Earthing Photo', 'earthing_photo'),
+            _buildUploadRow('Finishing Photo', 'finishing_photo'),
+            _buildUploadRow('Final Photo with Customer', 'customer_final_photo'),
             
             const SizedBox(height: 24),
             // INSTALLATION CHECKPOINTS
             Text('Installation Quality Checks', style: GoogleFonts.hankenGrotesk(fontWeight: FontWeight.bold, fontSize: 16)),
             const SizedBox(height: 8),
             CheckboxListTile(
-              title: const Text('Service wire concealed properly'),
-              value: serviceWireStatus,
-              onChanged: (val) => _onCheckChanged((v) => setState(() => serviceWireStatus = v), val),
-            ),
-            CheckboxListTile(
-              title: const Text('Inverter Wi-Fi Configured & Online'),
+              title: const Text('Check WiFi Attached (Yes / No)'),
+              subtitle: Text(wifiConfigured ? 'Yes (WiFi Attached)' : 'No (WiFi Not Attached)'),
               value: wifiConfigured,
               onChanged: (val) => _onCheckChanged((v) => setState(() => wifiConfigured = v), val),
             ),

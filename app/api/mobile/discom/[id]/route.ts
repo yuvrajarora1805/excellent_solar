@@ -62,6 +62,8 @@ export async function PUT(
         await sdoVerificationDb.createOrUpdate({ discom_application_id: id, status });
       } else if (stage === 'xen') {
         await xenVerificationDb.createOrUpdate({ discom_application_id: id, status });
+      } else if (stage === 'second_approval') {
+        await discomDb.update(id, { second_approval_status: status });
       } else {
         return NextResponse.json({ error: 'Invalid verification stage' }, { status: 400 });
       }

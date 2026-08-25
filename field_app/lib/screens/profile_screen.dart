@@ -11,8 +11,12 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  String _workerName = 'Field Worker';
-  String _workerEmail = 'field.worker@excellentsolar.com';
+  int _workerId = 0;
+  String _workerName = '';
+  String _workerEmail = '';
+  String _workerRole = '';
+  String _workerMobile = '';
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -23,8 +27,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _loadProfile() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
-      _workerName = prefs.getString('worker_name') ?? 'Field Worker';
-      _workerEmail = prefs.getString('worker_email') ?? 'field.worker@excellentsolar.com';
+      _workerId = prefs.getInt('worker_id') ?? 0;
+      _workerName = prefs.getString('worker_name') ?? 'User';
+      _workerEmail = prefs.getString('worker_email') ?? '';
+      _workerRole = prefs.getString('worker_role') ?? 'ADMIN';
+      _workerMobile = prefs.getString('worker_mobile') ?? '';
+      _isLoading = false;
     });
   }
 
@@ -45,50 +53,114 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Profile'),
+        title: Text(
+          'My Profile',
+          style: GoogleFonts.hankenGrotesk(fontWeight: FontWeight.bold),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.logout),
+            icon: const Icon(Icons.logout, color: Colors.red),
+            tooltip: 'Logout',
             onPressed: _logout,
           ),
         ],
       ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const CircleAvatar(
-                radius: 50,
-                backgroundColor: Color(0xFF7C5800),
-                child: Icon(Icons.person, size: 50, color: Colors.white),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                children: [
+                  const SizedBox(height: 12),
+                  // User Avatar
+                  CircleAvatar(
+                    radius: 50,
+                    backgroundColor: const Color(0xFF7C5800),
+                    child: Text(
+                      _workerName.isNotEmpty ? _workerName[0].toUpperCase() : 'U',
+                      style: const TextStyle(fontSize: 40, color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  
+                  // User Name
+                  Text(
+                    _workerName,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.hankenGrotesk(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+
+                  // Role Badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.shade50,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.blue.shade200),
+                    ),
+                    child: Text(
+                      _workerRole.toUpperCase(),
+                      style: TextStyle(color: Colors.blue.shade800, fontWeight: FontWeight.bold, fontSize: 12),
+                    ),
+                  ),
+
+                  const SizedBox(height: 32),
+
+                  // User Info Card
+                  Card(
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: const BorderSide(color: Color(0xFFE5E7EB)),
+                    ),
+                    child: Column(
+                      children: [
+                        ListTile(
+                          leading: const Icon(Icons.badge_outlined, color: Colors.blue),
+                          title: const Text('User ID'),
+                          subtitle: Text(_workerId > 0 ? '#$_workerId' : 'N/A'),
+                        ),
+                        const Divider(height: 1),
+                        ListTile(
+                          leading: const Icon(Icons.email_outlined, color: Colors.blue),
+                          title: const Text('Email Address'),
+                          subtitle: Text(_workerEmail.isNotEmpty ? _workerEmail : 'Not set'),
+                        ),
+                        if (_workerMobile.isNotEmpty) ...[
+                          const Divider(height: 1),
+                          ListTile(
+                            leading: const Icon(Icons.phone_outlined, color: Colors.blue),
+                            title: const Text('Mobile Phone'),
+                            subtitle: Text(_workerMobile),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 32),
+
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: _logout,
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        side: const BorderSide(color: Colors.red),
+                        foregroundColor: Colors.red,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      icon: const Icon(Icons.logout),
+                      label: const Text('Logout Account', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 16),
-              Text(
-                _workerName,
-                style: GoogleFonts.hankenGrotesk(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Text(_workerEmail, style: const TextStyle(color: Colors.grey)),
-              const SizedBox(height: 32),
-              ElevatedButton.icon(
-                onPressed: () {},
-                icon: const Icon(Icons.sync),
-                label: const Text('Sync Offline Data Now'),
-              ),
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                onPressed: _logout,
-                icon: const Icon(Icons.logout, color: Colors.red),
-                label: const Text('Logout', style: TextStyle(color: Colors.red)),
-              ),
-            ],
-          ),
-        ),
-      ),
+            ),
     );
   }
 }

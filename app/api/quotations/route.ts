@@ -23,9 +23,9 @@ export async function GET(request: NextRequest) {
 
     const quotations = await quotationDb.findAll(options);
     return NextResponse.json(quotations);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error fetching quotations:', error);
-    return NextResponse.json({ error: 'Failed to fetch quotations' }, { status: 500 });
+    return NextResponse.json({ error: error.message || 'Failed to fetch quotations' }, { status: 500 });
   }
 }
 

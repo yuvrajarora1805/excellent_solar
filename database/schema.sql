@@ -460,6 +460,7 @@ CREATE TABLE IF NOT EXISTS discom_applications (
               'PORTAL_UPDATE_PENDING', 'PORTAL_UPDATED', 'APPROVED', 'COMPLETED') DEFAULT 'DRAFT',
 
   np_number VARCHAR(100),
+  application_date DATE NULL,
   processing_fee DECIMAL(10,2),
   je_name VARCHAR(100),
   je_phone VARCHAR(20),

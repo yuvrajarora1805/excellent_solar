@@ -37,8 +37,10 @@ class _LoginScreenState extends State<LoginScreen> {
         final data = jsonDecode(response.body);
         final prefs = await SharedPreferences.getInstance();
         await prefs.setInt('worker_id', data['user']['id']);
-        await prefs.setString('worker_name', data['user']['name']);
+        await prefs.setString('worker_name', data['user']['name'] ?? 'User');
+        await prefs.setString('worker_email', data['user']['email'] ?? '');
         await prefs.setString('worker_role', data['user']['role'] ?? 'ADMIN');
+        await prefs.setString('worker_mobile', data['user']['mobile'] ?? '');
         if (data.containsKey('token')) {
           await prefs.setString('jwt_token', data['token']);
         }

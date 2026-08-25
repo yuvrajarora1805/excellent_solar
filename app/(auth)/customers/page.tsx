@@ -89,7 +89,7 @@ export default function CustomersPage() {
       {/* Search Card */}
       <div className="card-base p-4">
         <div className="relative">
-          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant">search</span>
+          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none select-none">search</span>
           <input
             placeholder="Search customers by name, mobile, or email..."
             value={search}
@@ -166,8 +166,16 @@ export default function CustomersPage() {
                         <span className="material-symbols-outlined text-on-surface-variant">location_on</span>
                       </div>
                       <div className="text-on-surface-variant">
-                        <p>{customer.city}, {customer.district}</p>
-                        <p className="text-on-surface-variant text-sm">{customer.state}</p>
+                        {customer.address ? (
+                          <p className="font-medium text-on-surface">{customer.address}</p>
+                        ) : null}
+                        {(customer.city && customer.city !== 'N/A') || (customer.district && customer.district !== 'N/A') ? (
+                          <p className="text-xs text-on-surface-variant mt-0.5">
+                            {[customer.city, customer.district, customer.state].filter(x => x && x !== 'N/A').join(', ')}
+                          </p>
+                        ) : (
+                          !customer.address && <p>N/A</p>
+                        )}
                       </div>
                     </div>
                   </div>

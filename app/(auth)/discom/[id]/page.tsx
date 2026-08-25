@@ -32,7 +32,8 @@ export default function DiscomApplicationDetailsPage() {
     processing_fee: '',
     je_name: '',
     je_phone: '',
-    np_number: ''
+    np_number: '',
+    application_date: ''
   });
 
   useEffect(() => {
@@ -52,7 +53,8 @@ export default function DiscomApplicationDetailsPage() {
         processing_fee: data.processing_fee || '',
         je_name: data.je_name || '',
         je_phone: data.je_phone || '',
-        np_number: data.np_number || ''
+        np_number: data.np_number || '',
+        application_date: data.application_date ? data.application_date.toString().split('T')[0] : ''
       });
     } catch (err: any) {
       setError(err.message);
@@ -68,9 +70,8 @@ export default function DiscomApplicationDetailsPage() {
       case 'VERIFICATION_PENDING':
       case 'FEASIBILITY_PENDING':
         return 'warning';
-      case 'DRAFT': return 'default';
-      case 'REJECTED': return 'error';
-      default: return 'default';
+      case 'REJECTED': return 'danger';
+      default: return 'neutral';
     }
   };
 
@@ -207,6 +208,10 @@ export default function DiscomApplicationDetailsPage() {
               <span className="font-medium text-on-surface">{application.np_number || 'N/A'}</span>
             </div>
             <div className="flex justify-between">
+              <span className="text-on-surface-variant">Application Date:</span>
+              <span className="font-medium text-on-surface">{application.application_date ? new Date(application.application_date).toLocaleDateString('en-IN') : 'N/A'}</span>
+            </div>
+            <div className="flex justify-between">
               <span className="text-on-surface-variant">Processing Fee:</span>
               <span className="font-medium text-on-surface">{application.processing_fee ? `₹${application.processing_fee}` : 'N/A'}</span>
             </div>
@@ -280,6 +285,17 @@ export default function DiscomApplicationDetailsPage() {
               </div>
             </div>
 
+            <div className="flex items-center gap-3">
+              {application.second_approval_status === 'APPROVED' ? 
+                <CheckCircle2 className="w-5 h-5 text-green-600" /> : 
+                <Clock className="w-5 h-5 text-amber-500" />
+              }
+              <div>
+                <p className="font-medium">Second Approval</p>
+                <p className="text-xs text-on-surface-variant">Status: {application.second_approval_status || 'PENDING'}</p>
+              </div>
+            </div>
+
           </div>
         </div>
 
@@ -329,6 +345,7 @@ export default function DiscomApplicationDetailsPage() {
               <option value="je">JE Verification</option>
               <option value="sdo">SDO Verification</option>
               <option value="xen">XEN Verification</option>
+              <option value="second_approval">Second Approval</option>
             </select>
           </div>
           <div>
@@ -372,6 +389,15 @@ export default function DiscomApplicationDetailsPage() {
               className="w-full p-2 border rounded bg-surface-container-low" 
               value={updateFields.np_number} 
               onChange={(e) => setUpdateFields({...updateFields, np_number: e.target.value})}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Application Date</label>
+            <input 
+              type="date" 
+              className="w-full p-2 border rounded bg-surface-container-low" 
+              value={updateFields.application_date} 
+              onChange={(e) => setUpdateFields({...updateFields, application_date: e.target.value})}
             />
           </div>
           <div>

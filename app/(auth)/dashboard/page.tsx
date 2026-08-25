@@ -340,7 +340,7 @@ export default function DashboardPage() {
                         </Link>
                       </td>
                       <td className="px-4 py-3 text-on-surface-variant">{customer.mobile}</td>
-                      <td className="px-4 py-3 text-on-surface-variant">{customer.city}</td>
+                      <td className="px-4 py-3 text-on-surface-variant max-w-[150px] truncate">{customer.address || (customer.city !== 'N/A' ? customer.city : 'N/A')}</td>
                       <td className="px-4 py-3 text-on-surface-variant text-right">
                         {new Date(customer.created_at).toLocaleDateString()}
                       </td>

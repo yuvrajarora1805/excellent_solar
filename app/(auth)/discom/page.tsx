@@ -111,18 +111,22 @@ export default function DiscomPage() {
                   <th className="px-4 py-3 text-left text-label-bold text-on-surface-variant">Application ID</th>
                   <th className="px-4 py-3 text-left text-label-bold text-on-surface-variant">Project</th>
                   <th className="px-4 py-3 text-left text-label-bold text-on-surface-variant">Customer</th>
+                  <th className="px-4 py-3 text-left text-label-bold text-on-surface-variant">Application Date</th>
                   <th className="px-4 py-3 text-left text-label-bold text-on-surface-variant">Status</th>
                   <th className="px-4 py-3 text-right text-label-bold text-on-surface-variant">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant">
-                {applications.map((app) => {
+                {applications.map((app: any) => {
                   const status = statusConfig[app.status] || { label: app.status, color: 'bg-gray-100' };
                   return (
                     <tr key={app.id} className="hover:bg-surface-container-low transition-colors">
                       <td className="px-4 py-3 text-sm font-technical-mono">{app.application_id}</td>
                       <td className="px-4 py-3 text-sm text-on-surface">{app.project_id}</td>
                       <td className="px-4 py-3 text-sm text-on-surface">{app.customer_name}</td>
+                      <td className="px-4 py-3 text-sm text-on-surface-variant">
+                        {app.application_date ? new Date(app.application_date).toLocaleDateString('en-IN') : (app.created_at ? new Date(app.created_at).toLocaleDateString('en-IN') : 'N/A')}
+                      </td>
                       <td className="px-4 py-3">
                         <span className={`status-badge ${status.color}`}>
                           {status.label}

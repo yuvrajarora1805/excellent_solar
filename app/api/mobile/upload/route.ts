@@ -53,6 +53,12 @@ export async function POST(req: NextRequest) {
           );
           if (docTypeRows.length > 0) {
             docTypeId = docTypeRows[0].id;
+          } else {
+            const insertRes: any = await query(
+              'INSERT INTO document_types (name, description, mandatory) VALUES (?, ?, FALSE)',
+              [documentType, documentType]
+            );
+            docTypeId = insertRes.insertId;
           }
         }
       }

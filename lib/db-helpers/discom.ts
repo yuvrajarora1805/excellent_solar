@@ -121,6 +121,10 @@ export const discomDb = {
       fields.push('np_number = ?');
       values.push(data.np_number || null);
     }
+    if (data.application_date !== undefined) {
+      fields.push('application_date = ?');
+      values.push(data.application_date || null);
+    }
     if (data.processing_fee !== undefined) {
       fields.push('processing_fee = ?');
       values.push(data.processing_fee || null);

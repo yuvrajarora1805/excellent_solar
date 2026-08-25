@@ -22,102 +22,108 @@
   font-variation-settings: 'opsz' 24, 'wght' 400, 'FILL' 0, 'GRAD' 0;
 }
 
-/* Button Base Styles */
-.btn-primary {
-  background-color: #047857;
-  color: #ffffff;
-  font-weight: 600;
-  font-size: 14px;
-  line-height: 20px;
-  padding: 0 16px;
-  border-radius: 4px;
-  border: 1px solid #047857;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  transition: opacity 0.2s;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  min-height: 40px;
+@layer components {
+  /* Button Base Styles */
+  .btn-primary {
+    background-color: #047857;
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 14px;
+    line-height: 20px;
+    padding: 0 16px;
+    border-radius: 4px;
+    border: 1px solid #047857;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    transition: opacity 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 40px;
+  }
+
+  .btn-primary:hover {
+    opacity: 0.9;
+    background-color: #065f46;
+    border-color: #065f46;
+  }
+
+  .btn-outline {
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    color: #0f172a;
+    padding: 0 16px;
+    font-weight: 600;
+    font-size: 14px;
+    line-height: 20px;
+    border-radius: 4px;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    transition: background-color 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 40px;
+  }
+
+  .btn-outline:hover {
+    background: #f1f5f9;
+  }
+
+  .btn-outline:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
+
+  /* Input Base Styles */
+  .input-base {
+    width: 100%;
+    background-color: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 4px;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    color: #0f172a;
+    transition: border-color 0.2s;
+    min-height: 40px;
+  }
+
+  .input-base::placeholder {
+    color: #64748b;
+  }
+
+  .input-base:focus {
+    border-color: #047857;
+    outline: none;
+  }
+
+  /* STATUS BADGES */
+  .status-badge {
+    display: inline-flex;
+    min-height: 28px;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 10px;
+    border-width: 1px;
+    border-style: solid;
+    border-radius: 999px;
+    white-space: nowrap;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+  }
+
+  /* Card Base Styles */
+  .card-base {
+    background-color: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    box-shadow: 0px 4px 6px -1px rgba(0, 0, 0, 0.05), 0px 2px 4px -1px rgba(0, 0, 0, 0.03);
+  }
 }
 
-.btn-primary:hover {
-  opacity: 0.9;
-  background-color: #065f46;
-  border-color: #065f46;
-}
-
-.btn-outline {
-  border: 1px solid #cbd5e1;
-  background: #ffffff;
-  color: #0f172a;
-  padding: 0 16px;
-  font-weight: 600;
-  font-size: 14px;
-  line-height: 20px;
-  border-radius: 4px;
-  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  transition: background-color 0.2s;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  min-height: 40px;
-}
-
-.btn-outline:hover {
-  background: #f1f5f9;
-}
-
-.btn-outline:disabled {
-  cursor: not-allowed;
-  opacity: 0.45;
-}
-
-/* Input Base Styles */
-.input-base {
-  width: 100%;
-  background-color: #ffffff;
-  border: 1px solid #cbd5e1;
-  border-radius: 4px;
-  padding: 0.5rem 1rem;
-  color: #0f172a;
-  transition: border-color 0.2s;
-  min-height: 40px;
-}
-
-.input-base::placeholder {
-  color: #64748b;
-}
-
-.input-base:focus {
-  border-color: #047857;
-  outline: none;
-}
-
-/* STATUS BADGES */
-.status-badge {
-  display: inline-flex;
-  min-height: 28px;
-  align-items: center;
-  justify-content: center;
-  padding: 4px 10px;
-  border-width: 1px;
-  border-style: solid;
-  border-radius: 999px;
-  white-space: nowrap;
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 1;
-}
-
-/* Card Base Styles */
-.card-base {
-  background-color: #ffffff;
-  border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  box-shadow: 0px 4px 6px -1px rgba(0, 0, 0, 0.05), 0px 2px 4px -1px rgba(0, 0, 0, 0.03);
-}
 
 /* App Shell Layout */
 .app-shell {

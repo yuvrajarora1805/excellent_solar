@@ -9,37 +9,46 @@ export const quotationDb = {
     limit?: number;
     offset?: number;
   }): Promise<Quotation[]> => {
-    let sql = `
-      SELECT q.*, p.project_id, c.name as customer_name,
-             u.name as created_by_name, st.name as template_name
-      FROM quotations q
-      LEFT JOIN projects p ON q.project_id = p.id
-      LEFT JOIN customers c ON p.customer_id = c.id
-      LEFT JOIN users u ON q.created_by = u.id
-      LEFT JOIN system_templates st ON q.system_template_id = st.id
-      WHERE 1=1
-    `;
-    const params: any[] = [];
+    try {
+      let sql = `
+        SELECT q.*, p.project_id, c.name as customer_name,
+               u.name as created_by_name
+        FROM quotations q
+        LEFT JOIN projects p ON q.project_id = p.id
+        LEFT JOIN customers c ON p.customer_id = c.id
+        LEFT JOIN users u ON q.created_by = u.id
+        WHERE 1=1
+      `;
+      const params: any[] = [];
 
-    if (options?.project_id) {
-      sql += ' AND q.project_id = ?';
-      params.push(options.project_id);
-    }
-    if (options?.status) {
-      sql += ' AND q.status = ?';
-      params.push(options.status);
-    }
+      if (options?.project_id) {
+        sql += ' AND q.project_id = ?';
+        params.push(options.project_id);
+      }
+      if (options?.status) {
+        sql += ' AND q.status = ?';
+        params.push(options.status);
+      }
 
-    sql += ' ORDER BY q.quotation_date DESC, q.created_at DESC';
+      sql += ' ORDER BY q.quotation_date DESC, q.created_at DESC';
 
-    if (options?.limit) {
-      sql += ` LIMIT ${Number(options.limit)}`;
-      if (options.offset) {
-        sql += ` OFFSET ${Number(options.offset)}`;
+      if (options?.limit) {
+        sql += ` LIMIT ${Number(options.limit)}`;
+        if (options.offset) {
+          sql += ` OFFSET ${Number(options.offset)}`;
+        }
+      }
+
+      return await query<Quotation>(sql, params);
+    } catch (e) {
+      console.warn('quotationDb.findAll query warning:', e);
+      // Fallback simple query if complex joins fail
+      try {
+        return await query<Quotation>('SELECT * FROM quotations ORDER BY id DESC');
+      } catch (err) {
+        return [];
       }
     }
-
-    return query<Quotation>(sql, params);
   },
 
   // Find by ID with items
