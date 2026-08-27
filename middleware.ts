@@ -8,7 +8,18 @@ import jwt from 'jsonwebtoken';
 export const runtime = 'nodejs';
 
 // Routes that don't require authentication
-const publicRoutes = ['/login', '/api/auth', '/api/mobile/auth/login', '/api/mobile/app-version', '/downloads', '/api/ocr'];
+const publicRoutes = [
+  '/login',
+  '/api/auth',
+  '/api/mobile/auth/login',
+  '/api/mobile/login',
+  '/api/mobile/app-version',
+  '/downloads',
+  '/api/ocr',
+  '/api/run-migrations',
+];
+
+
 
 const marketingRoutes: string[] = [
   '/dashboard',
