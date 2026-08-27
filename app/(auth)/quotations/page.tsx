@@ -438,7 +438,7 @@ function CreateQuotationForm({ onSuccess, onCancel, initialProjectId = '' }: any
                   {templatePreview.items.filter((i: any) => !i.is_optional).map((item: any, idx: number) => (
                     <div key={idx} className="flex justify-between py-1 border-b border-outline-variant">
                       <span>{item.product_name}</span>
-                      <span className="font-technical-mono">x{item.quantity} @ ₹{(item.selling_price || 0).toLocaleString('en-IN')}</span>
+                      <span className="font-technical-mono">x{item.quantity} @ ₹{(item.product?.selling_price || 0).toLocaleString('en-IN')}</span>
                     </div>
                   ))}
                 </div>
