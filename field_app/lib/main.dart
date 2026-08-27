@@ -268,7 +268,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         selectedIcon: Icon(Icons.local_shipping),
         label: 'Orders',
       ));
+    }
 
+    if (uRole == 'ADMIN' || uRole == 'SALES' || uRole == 'MARKETING') {
       _screens.add(const OnGridBookingForm());
       _destinations.add(const NavigationDestination(
         icon: Icon(Icons.add_circle_outline),
@@ -276,6 +278,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         label: 'Booking',
       ));
     }
+
 
     _screens.add(const ProfileScreen());
     _destinations.add(const NavigationDestination(
