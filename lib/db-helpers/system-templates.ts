@@ -53,7 +53,7 @@ export const systemTemplateDb = {
 
     // Get items
     const items = await query<any>(
-      `SELECT sti.*, p.name as product_name, p.product_code, 0 as product_price
+      `SELECT sti.*, p.name as product_name, p.product_code, p.selling_price as product_price
        FROM system_template_items sti
        LEFT JOIN products p ON sti.product_id = p.id
        WHERE sti.system_template_id = ?
