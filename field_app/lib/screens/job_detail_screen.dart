@@ -89,7 +89,77 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
     }
   }
 
+  Future<void> _showPendingRemarksDialog() async {
+    final TextEditingController remarksController = TextEditingController();
+    return showDialog<void>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Add Pending Work Remarks'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Record any pending site work, missing items, or DISCOM delays:'),
+              const SizedBox(height: 12),
+              TextField(
+                controller: remarksController,
+                maxLines: 3,
+                decoration: const InputDecoration(
+                  labelText: 'Pending Work Remarks *',
+                  hintText: 'e.g. Net meter pending from DISCOM, 2 structure panels pending',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.orange.shade800, foregroundColor: Colors.white),
+              onPressed: () async {
+                final text = remarksController.text.trim();
+                if (text.isEmpty) return;
+                Navigator.pop(context);
+                setState(() => _isSaving = true);
+                try {
+                  await ApiService.post(
+                    Uri.parse('$baseUrl/api/mobile/update-status'),
+                    headers: {'Content-Type': 'application/json'},
+                    body: jsonEncode({
+                      'type': 'JOB',
+                      'id': int.tryParse(widget.jobId),
+                      'status': 'PENDING_WORK',
+                      'notes': text,
+                    }),
+                  );
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('✅ Pending work remarks submitted to manager!'),
+                        backgroundColor: Colors.orange,
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Error submitting remarks')));
+                } finally {
+                  if (mounted) setState(() => _isSaving = false);
+                }
+              },
+              child: const Text('Submit Remarks'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   Future<void> _markJobDone() async {
+
     setState(() => _isSaving = true);
     try {
       final response = await ApiService.post(
@@ -595,11 +665,24 @@ class _JobDetailScreenState extends State<JobDetailScreen> {
             ),
           ],
 
-          const SizedBox(height: 32),
+          // PENDING WORK REMARKS BUTTON
+          OutlinedButton.icon(
+            onPressed: _isSaving ? null : _showPendingRemarksDialog,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.orange.shade800,
+              side: BorderSide(color: Colors.orange.shade800),
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            icon: const Icon(Icons.edit_note),
+            label: Text('Add Pending Work Remarks', style: GoogleFonts.hankenGrotesk(fontWeight: FontWeight.bold, fontSize: 15)),
+          ),
+          const SizedBox(height: 12),
 
           // MARK AS DONE BUTTON
           SizedBox(
             width: double.infinity,
+
             child: _isMarkedDone
                 ? Container(
                     padding: const EdgeInsets.all(16),

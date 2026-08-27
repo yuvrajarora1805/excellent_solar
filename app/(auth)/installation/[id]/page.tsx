@@ -190,10 +190,16 @@ export default function InstallationDetailsPage() {
 
             {installation.remarks && (
               <div className="pt-4 border-t border-outline-variant">
-                <span className="text-on-surface-variant block mb-1 text-sm">Remarks</span>
-                <p className="text-sm bg-surface-variant/30 p-3 rounded-md">{installation.remarks}</p>
+                <span className="text-orange-700 dark:text-orange-400 block mb-1 text-sm font-semibold flex items-center gap-1">
+                  <span className="material-symbols-outlined text-base">edit_note</span>
+                  Field Remarks & Pending Work Notes
+                </span>
+                <p className="text-sm bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 p-3 rounded-md border border-amber-200 dark:border-amber-800 font-medium">
+                  {installation.remarks}
+                </p>
               </div>
             )}
+
           </CardContent>
         </Card>
 

@@ -157,11 +157,23 @@ class _MyJobsListScreenState extends State<MyJobsListScreen> {
                       ),
                     ],
                   ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      const Icon(Icons.calendar_today, size: 14, color: Colors.grey),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Date: ${j['date'] ?? j['created_at'] ?? 'N/A'}',
+                        style: TextStyle(color: Colors.grey.shade700, fontSize: 13, fontWeight: FontWeight.w500),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
           ),
         );
+
       },
     );
   }
