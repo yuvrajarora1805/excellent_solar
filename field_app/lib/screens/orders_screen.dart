@@ -27,7 +27,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
 
   Future<void> _fetchOrders() async {
     try {
-      setState(() => _isLoading = true);
+      if (mounted) setState(() => _isLoading = true);
       String url = '$baseUrl/api/orders';
       if (_selectedTab != 'ALL') {
         url += '?order_type=$_selectedTab';
@@ -36,17 +36,21 @@ class _OrdersScreenState extends State<OrdersScreen> {
       final response = await ApiService.get(Uri.parse(url));
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        if (!mounted) return;
         setState(() {
           _orders = data['orders'] ?? [];
           _isLoading = false;
         });
       } else {
+        if (!mounted) return;
         setState(() => _isLoading = false);
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() => _isLoading = false);
     }
   }
+
 
   void _openCreateOrderModal() {
     showModalBottomSheet(

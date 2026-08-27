@@ -146,12 +146,16 @@ class _FieldDashboardScreenState extends State<FieldDashboardScreen> {
       final contentLength = response.contentLength ?? 0;
       final tempDir = await getTemporaryDirectory();
       final apkFile = File('${tempDir.path}/field_app_update.apk');
+      if (await apkFile.exists()) {
+        await apkFile.delete();
+      }
 
-      List<int> bytes = [];
+      final sink = apkFile.openWrite();
       int downloaded = 0;
 
+
       await for (var chunk in response.stream) {
-        bytes.addAll(chunk);
+        sink.add(chunk);
         downloaded += chunk.length;
         if (contentLength > 0 && dialogSetState != null) {
           dialogSetState!(() {
@@ -160,11 +164,13 @@ class _FieldDashboardScreenState extends State<FieldDashboardScreen> {
         }
       }
 
-      await apkFile.writeAsBytes(bytes);
+      await sink.flush();
+      await sink.close();
 
       if (mounted && Navigator.canPop(context)) {
         Navigator.pop(context); // Close progress dialog
       }
+
 
       // Invoke Android System Package Installer
       const channel = MethodChannel('com.excellentsolar.field_app/installer');
