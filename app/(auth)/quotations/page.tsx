@@ -246,7 +246,7 @@ function QuotationDetails({ quotation, onClose, onUpdateStatus }: any) {
           <Button size="sm" variant="outline" onClick={onClose}>Close</Button>
         </div>
       </div>
-      <div className="border rounded overflow-x-auto bg-white">
+      <div className="border rounded overflow-x-auto bg-white print-only">
         <SolarQuotationTemplate data={solarData} />
       </div>
     </div>
