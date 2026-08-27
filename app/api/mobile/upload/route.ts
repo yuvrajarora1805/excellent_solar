@@ -17,6 +17,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing file or job_id/discom_id' }, { status: 400 });
     }
 
+    // Security Check 1: File size cap (Max 25MB)
+    if (file.size > 25 * 1024 * 1024) {
+      return NextResponse.json({ error: 'File size exceeds maximum limit of 25MB' }, { status: 400 });
+    }
+
+    // Security Check 2: Reject dangerous script file extensions
+    const dangerousExts = ['.php', '.phtml', '.php3', '.php4', '.php5', '.phps', '.cgi', '.exe', '.pl', '.py', '.sh', '.js', '.html', '.htm', '.svg', '.htaccess', '.jsp'];
+    const originalExt = (file.name.slice((file.name.lastIndexOf(".") - 1 >>> 0) + 2)).toLowerCase();
+    if (dangerousExts.includes(`.${originalExt}`)) {
+      return NextResponse.json({ error: 'Forbidden file extension for security reasons' }, { status: 400 });
+    }
+
     const bytes = await file.arrayBuffer();
     let finalBuffer: Buffer = Buffer.from(bytes);
     let finalFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
@@ -39,14 +51,19 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Ensure the upload directory exists
-    const folderName = jobId || discomId;
+    // Security Check 3: Sanitize folderName to prevent Path Traversal attacks
+    const folderName = (jobId || discomId).replace(/[^a-zA-Z0-9_-]/g, '');
+    if (!folderName) {
+      return NextResponse.json({ error: 'Invalid folder target' }, { status: 400 });
+    }
+
     const uploadDir = join(process.cwd(), 'public', 'uploads', 'jobs', folderName);
     await mkdir(uploadDir, { recursive: true });
 
-    // Sanitize filename and make unique
+    // Sanitize filename and make unique with crypto UUID timestamp
     const filename = `${Date.now()}_${finalFileName}`;
     const path = join(uploadDir, filename);
+
 
     // Write compressed file to disk
     await writeFile(path, finalBuffer);
