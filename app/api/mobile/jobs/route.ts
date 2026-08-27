@@ -1,26 +1,51 @@
 import { NextResponse } from 'next/server';
-import { query } from '@/lib/db';
+import { query, queryOne } from '@/lib/db';
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const workerId = searchParams.get('worker_id');
+    const workerIdStr = searchParams.get('worker_id');
 
-    if (!workerId) {
+    if (!workerIdStr) {
       return NextResponse.json({ error: 'worker_id is required' }, { status: 400 });
     }
 
+    const workerId = parseInt(workerIdStr);
+
+    // Fetch user details to check role
+    const user = await queryOne<{ id: number; role: string }>('SELECT id, role FROM users WHERE id = ?', [workerId]);
+    const userRole = (user?.role || 'WORKER').toUpperCase();
+
+    // Query jobs user-specifically (Admins/Managers see all; Workers see assigned/created jobs)
     const sql = `
-      SELECT 
+      SELECT DISTINCT
         p.id, p.project_id, p.status, p.site_address, p.created_at, p.installation_date,
         c.name as customer_name, c.mobile
       FROM projects p
       JOIN customers c ON p.customer_id = c.id
+      LEFT JOIN site_surveys ss ON ss.project_id = p.id
+      LEFT JOIN installations inst ON inst.project_id = p.id
       WHERE p.status NOT IN ('PROJECT_COMPLETED')
+        AND (
+          ? = 'ADMIN'
+          OR ? = 'MANAGER'
+          OR p.created_by = ?
+          OR p.assigned_to = ?
+          OR ss.created_by = ?
+          OR inst.created_by = ?
+        )
       ORDER BY p.id DESC
     `;
     
-    const jobs = await query(sql) as any[];
+    const jobs = await query(sql, [
+      userRole,
+      userRole,
+      workerId,
+      workerId,
+      workerId,
+      workerId
+    ]) as any[];
+
     const sectionParam = searchParams.get('section');
 
     const formattedJobs = jobs.map(job => {

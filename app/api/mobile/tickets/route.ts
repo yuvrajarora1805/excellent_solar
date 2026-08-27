@@ -1,15 +1,22 @@
 import { NextResponse } from 'next/server';
-import { query } from '@/lib/db';
+import { query, queryOne } from '@/lib/db';
 
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
-    const workerId = searchParams.get('worker_id');
+    const workerIdStr = searchParams.get('worker_id');
 
-    if (!workerId) {
+    if (!workerIdStr) {
       return NextResponse.json({ error: 'worker_id is required' }, { status: 400 });
     }
 
+    const workerId = parseInt(workerIdStr);
+
+    // Fetch user details to check role
+    const user = await queryOne<{ id: number; role: string }>('SELECT id, role FROM users WHERE id = ?', [workerId]);
+    const userRole = (user?.role || 'WORKER').toUpperCase();
+
+    // Query tickets user-specifically
     const sql = `
       SELECT 
         t.id, t.ticket_number, t.issue_category, t.issue_type, t.priority, t.description, t.status, t.created_at, t.resolution,
@@ -17,10 +24,17 @@ export async function GET(request: Request) {
       FROM service_tickets t
       JOIN customers c ON t.customer_id = c.id
       WHERE t.status NOT IN ('CLOSED')
+        AND (
+          ? = 'ADMIN'
+          OR ? = 'MANAGER'
+          OR t.assigned_to = ?
+          OR t.created_by = ?
+          OR t.assigned_to IS NULL
+        )
       ORDER BY t.created_at DESC
     `;
     
-    const tickets = await query(sql) as any[];
+    const tickets = await query(sql, [userRole, userRole, workerId, workerId]) as any[];
 
     const formattedTickets = tickets.map(t => {
       const formattedDate = t.created_at ? new Date(t.created_at).toLocaleDateString('en-IN') : 'N/A';
