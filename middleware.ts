@@ -10,43 +10,6 @@ export const runtime = 'nodejs';
 // Routes that don't require authentication
 const publicRoutes = ['/login', '/api/auth', '/api/mobile/auth/login', '/api/mobile/app-version', '/downloads'];
 
-// Routes that require JWT API Key / Bearer Token for Mobile App or Web Session
-const mobileApiRoutes = ['/api/mobile', '/api/customers', '/api/orders', '/api/serial-numbers', '/api/inventory'];
-
-
-
-// Routes accessible by MARKETING
-const marketingRoutes = [
-  '/dashboard',
-  '/customers',
-  '/projects',
-  '/quotations',
-  '/survey',
-];
-
-// Routes accessible by INSTALLATION
-const installationRoutes = [
-  '/dashboard',
-  '/inventory',
-  '/installation',
-  '/service',
-];
-
-// Routes accessible by DISCOM operators
-const discomRoutes = [
-  '/dashboard',
-  '/discom',
-  '/documents',
-];
-
-// Admin-only routes
-const adminOnlyRoutes = [
-  '/system-templates',
-  '/users',
-  '/reports',
-  '/settings',
-];
-
 export default auth((req) => {
   const { pathname } = req.nextUrl;
   const isLoggedIn = !!req.auth;
@@ -62,32 +25,32 @@ export default auth((req) => {
     return NextResponse.next();
   }
 
-  // Check if route is mobile API (Requires Bearer Token or Web Session)
-  const isMobileApi = mobileApiRoutes.some((route) => pathname.startsWith(route));
-
-  if (isMobileApi) {
-    // Allow logged in web dashboard users
+  // Handle all API routes (/api/...)
+  if (pathname.startsWith('/api/')) {
+    // 1. Allow authenticated Web Session (NextAuth)
     if (isLoggedIn) {
       return NextResponse.next();
     }
 
+    // 2. Allow requests with valid Mobile Bearer JWT token
     const authHeader = req.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Unauthorized: Missing or invalid token' }, { status: 401 });
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.split(' ')[1];
+      try {
+        const JWT_SECRET = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET || 'fallback_secret_for_development';
+        jwt.verify(token, JWT_SECRET);
+        return NextResponse.next();
+      } catch (error) {
+        return NextResponse.json({ error: 'Unauthorized: Invalid token' }, { status: 401 });
+      }
     }
 
-    const token = authHeader.split(' ')[1];
-    try {
-      const JWT_SECRET = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET || 'fallback_secret_for_development';
-      jwt.verify(token, JWT_SECRET);
-      return NextResponse.next();
-    } catch (error) {
-      return NextResponse.json({ error: 'Unauthorized: Invalid token' }, { status: 401 });
-    }
+    return NextResponse.json({ error: 'Unauthorized: Access denied' }, { status: 401 });
   }
 
-  // Not logged in -> Redirect to login
+  // Not logged in web pages -> Redirect to login
   if (!isLoggedIn) {
+
     return NextResponse.redirect(new URL('/login', req.url));
   }
 
