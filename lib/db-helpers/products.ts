@@ -188,19 +188,46 @@ export const productDb = {
 
   // Get inventory stats
   getStats: async () => {
-    const totalProducts = await queryOne<{ count: number }>('SELECT COUNT(*) as count FROM products');
-    const totalStock = await queryOne<{ sum: number }>('SELECT COALESCE(SUM(current_stock), 0) as sum FROM products');
-    const totalSerials = await queryOne<{ count: number }>('SELECT COUNT(*) as count FROM product_serial_numbers');
-    const pendingPurchases = await queryOne<{ count: number }>('SELECT COUNT(*) as count FROM purchases WHERE status = "PENDING"');
-    const totalOrders = await queryOne<{ count: number }>('SELECT COUNT(*) as count FROM orders');
+    let totalProducts = 0;
+    let totalStock = 0;
+    let totalSerials = 0;
+    let pendingPurchases = 0;
+    let totalOrders = 0;
+
+    try {
+      const res = await queryOne<{ count: number }>('SELECT COUNT(*) as count FROM products');
+      totalProducts = res?.count || 0;
+    } catch (e) {}
+
+    try {
+      const res = await queryOne<{ sum: number }>('SELECT COALESCE(SUM(current_stock), 0) as sum FROM products');
+      totalStock = res?.sum || 0;
+    } catch (e) {}
+
+    try {
+      const res = await queryOne<{ count: number }>('SELECT COUNT(*) as count FROM product_serial_numbers');
+      totalSerials = res?.count || 0;
+      if (totalStock === 0) totalStock = totalSerials;
+    } catch (e) {}
+
+    try {
+      const res = await queryOne<{ count: number }>('SELECT COUNT(*) as count FROM purchases WHERE status = "PENDING"');
+      pendingPurchases = res?.count || 0;
+    } catch (e) {}
+
+    try {
+      const res = await queryOne<{ count: number }>('SELECT COUNT(*) as count FROM orders');
+      totalOrders = res?.count || 0;
+    } catch (e) {}
 
     return {
-      totalProducts: totalProducts?.count || 0,
-      totalStock: totalStock?.sum || totalSerials?.count || 0,
-      totalSerials: totalSerials?.count || 0,
-      pendingPurchases: pendingPurchases?.count || 0,
-      totalOrders: totalOrders?.count || 0,
+      totalProducts,
+      totalStock,
+      totalSerials,
+      pendingPurchases,
+      totalOrders,
     };
   },
+
 };
 
