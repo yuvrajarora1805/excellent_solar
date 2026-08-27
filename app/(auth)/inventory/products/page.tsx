@@ -93,9 +93,14 @@ export default function ProductsPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={() => setIsFtrOpen(true)} className="bg-green-600 hover:bg-green-700 text-white gap-2">
-            <Package className="w-4 h-4" />
-            Import FTR Solar Panels (OCR)
+          <Link href="/inventory/flasher-reports">
+            <Button className="bg-amber-600 hover:bg-amber-700 text-white font-bold gap-2">
+              <Package className="w-4 h-4" />
+              View Panel Serials & Flasher Details
+            </Button>
+          </Link>
+          <Button onClick={() => setIsFtrOpen(true)} variant="outline" className="gap-2">
+            Import FTR (OCR)
           </Button>
           <Link href="/inventory/products/new">
             <Button className="gap-2">
@@ -104,6 +109,7 @@ export default function ProductsPage() {
             </Button>
           </Link>
         </div>
+
       </div>
 
       <FTRImportModal
