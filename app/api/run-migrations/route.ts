@@ -8,6 +8,65 @@ export async function GET() {
     const results = [];
 
     await execute(`
+      CREATE TABLE IF NOT EXISTS orders (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        order_number VARCHAR(50) UNIQUE NOT NULL,
+        order_type ENUM('PROJECT', 'RETAIL') DEFAULT 'PROJECT',
+        customer_id INT,
+        customer_name VARCHAR(255) NOT NULL,
+        customer_mobile VARCHAR(20),
+        delivery_address TEXT,
+        vehicle_number VARCHAR(50),
+        driver_name VARCHAR(255),
+        driver_mobile VARCHAR(20),
+        vehicle_photo_path VARCHAR(500),
+        total_amount DECIMAL(12, 2) DEFAULT 0,
+        status ENUM('DRAFT', 'READY_FOR_DISPATCH', 'DISPATCHED', 'DELIVERED', 'CANCELLED') DEFAULT 'DRAFT',
+        created_by INT,
+        dispatched_at TIMESTAMP NULL,
+        delivered_at TIMESTAMP NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+    results.push('Created orders table');
+
+    await execute(`
+      CREATE TABLE IF NOT EXISTS order_items (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        order_id INT NOT NULL,
+        product_id INT NOT NULL,
+        quantity INT NOT NULL,
+        unit_price DECIMAL(10, 2) NOT NULL,
+        line_total DECIMAL(12, 2) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+    results.push('Created order_items table');
+
+    await execute(`
+      CREATE TABLE IF NOT EXISTS order_serials (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        order_id INT NOT NULL,
+        product_id INT NOT NULL,
+        serial_number VARCHAR(100) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+    results.push('Created order_serials table');
+
+    // Auto-seed default Solar Panel product BIN-21-615 if products table is empty
+    await execute(`
+      INSERT INTO products (id, product_code, name, category, unit, unit_price, current_stock)
+      SELECT 1, 'BIN-21-615', 'Solar Panel 540W/550W (BIN-21-615)', 'SOLAR_PANEL', 'Piece', 15000.00, 0
+      FROM DUAL
+      WHERE NOT EXISTS (SELECT 1 FROM products WHERE id = 1 OR product_code = 'BIN-21-615');
+    `);
+    results.push('Seeded default BIN-21-615 product');
+
+    await execute(`
       CREATE TABLE IF NOT EXISTS warehouses (
         id INT AUTO_INCREMENT PRIMARY KEY,
         code VARCHAR(50) UNIQUE NOT NULL,
@@ -26,6 +85,7 @@ export async function GET() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
     results.push('Created warehouses table');
+
 
     await execute(`
       CREATE TABLE IF NOT EXISTS product_serial_numbers (

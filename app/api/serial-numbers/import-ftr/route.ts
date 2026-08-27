@@ -7,13 +7,22 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { product_id, invoice_no, warehouse_id, modules, user_id } = body;
-    let targetProductId = product_id ? Number(product_id) : 1;
-
-    // Auto-resolve product by product_code BIN-21-615 if needed
-    if (!product_id) {
-      const prodRes = await queryOne<{ id: number }>('SELECT id FROM products WHERE product_code = "BIN-21-615" LIMIT 1');
-      if (prodRes?.id) targetProductId = prodRes.id;
+    // Auto-resolve or create default product BIN-21-615 in products table
+    let prodRes = await queryOne<{ id: number }>('SELECT id FROM products WHERE product_code = "BIN-21-615" LIMIT 1');
+    if (!prodRes) {
+      prodRes = await queryOne<{ id: number }>('SELECT id FROM products LIMIT 1');
     }
+    if (prodRes?.id) {
+      targetProductId = prodRes.id;
+    } else {
+      const newProdRes = await queryOne<{ id: number }>(
+        `INSERT INTO products (product_code, name, category, unit, unit_price, current_stock) 
+         VALUES ('BIN-21-615', 'Solar Panel 540W/550W (BIN-21-615)', 'SOLAR_PANEL', 'Piece', 15000.00, 0)`
+      );
+      const fetchedProd = await queryOne<{ id: number }>('SELECT id FROM products WHERE product_code = "BIN-21-615" LIMIT 1');
+      targetProductId = fetchedProd?.id || 1;
+    }
+
 
 
     if (!modules || !Array.isArray(modules)) {
