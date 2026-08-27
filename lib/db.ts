@@ -3,17 +3,20 @@ import { env } from 'process';
 
 // Database connection pool
 const pool = mysql.createPool({
-  host: env.MYSQL_HOST || 'localhost',
+  host: env.MYSQL_HOST || '127.0.0.1',
   port: parseInt(env.MYSQL_PORT || '3306'),
   user: env.MYSQL_USER || 'root',
   password: env.MYSQL_PASSWORD || '',
   database: env.MYSQL_DATABASE || 'excellent_solar',
+  socketPath: env.MYSQL_SOCKET || undefined,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
   enableKeepAlive: true,
   keepAliveInitialDelay: 0,
 });
+
+
 
 // Helper function to execute queries
 export async function query<T = any>(sql: string, params?: any[]): Promise<T[]> {
