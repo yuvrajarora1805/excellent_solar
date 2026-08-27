@@ -8,10 +8,11 @@ import jwt from 'jsonwebtoken';
 export const runtime = 'nodejs';
 
 // Routes that don't require authentication
-const publicRoutes = ['/login', '/api/auth', '/api/mobile', '/downloads'];
+const publicRoutes = ['/login', '/api/auth', '/api/mobile/auth/login', '/api/mobile/app-version', '/downloads'];
 
-// Routes that require JWT API Key for Mobile App
-const mobileApiRoutes = ['/api/mobile', '/api/inventory/products'];
+// Routes that require JWT API Key / Bearer Token for Mobile App or Web Session
+const mobileApiRoutes = ['/api/mobile', '/api/customers', '/api/orders', '/api/serial-numbers', '/api/inventory'];
+
 
 
 // Routes accessible by MARKETING

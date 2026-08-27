@@ -777,11 +777,13 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
   );
 
   late List<ScannedPanelItem> _scannedPanels;
+  final Set<String> _processingSerials = {};
 
   @override
   void initState() {
     super.initState();
     _scannedPanels = List.from(widget.initialScannedPanels);
+    _processingSerials.addAll(_scannedPanels.map((p) => p.serialNumber));
   }
 
   @override
@@ -794,13 +796,16 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
     for (final barcode in capture.barcodes) {
       final String? rawVal = barcode.rawValue?.trim();
       if (rawVal != null && rawVal.isNotEmpty) {
-        if (!_scannedPanels.any((p) => p.serialNumber == rawVal)) {
+        if (!_scannedPanels.any((p) => p.serialNumber == rawVal) && !_processingSerials.contains(rawVal)) {
+          _processingSerials.add(rawVal);
+
           // 1. Play Audio Beep Sound & Haptic Click Feedback
           SystemSound.play(SystemSoundType.click);
           HapticFeedback.mediumImpact();
 
           // 2. Perform Real-Time Live Inventory Match & Status Lookup
           ScannedPanelItem matchedItem = await _lookupInventoryStatus(rawVal);
+
 
           if (!mounted) return;
           setState(() {
@@ -1043,7 +1048,11 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
                                       ),
                                       IconButton(
                                         icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
-                                        onPressed: () => setState(() => _scannedPanels.removeAt(index)),
+                                        onPressed: () => setState(() {
+                                          _processingSerials.remove(_scannedPanels[index].serialNumber);
+                                          _scannedPanels.removeAt(index);
+                                        }),
+
                                       ),
                                     ],
                                   ),

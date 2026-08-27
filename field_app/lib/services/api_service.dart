@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+
 
 class ApiService {
   static Future<Map<String, String>> _getHeaders([Map<String, String>? extraHeaders]) async {
@@ -20,12 +22,15 @@ class ApiService {
   }
 
   static Future<http.Response> post(Uri url, {Map<String, String>? headers, Object? body}) async {
-    return await http.post(url, headers: await _getHeaders(headers), body: body);
+    final bodyData = (body is Map || body is List) ? jsonEncode(body) : body;
+    return await http.post(url, headers: await _getHeaders(headers), body: bodyData);
   }
 
   static Future<http.Response> put(Uri url, {Map<String, String>? headers, Object? body}) async {
-    return await http.put(url, headers: await _getHeaders(headers), body: body);
+    final bodyData = (body is Map || body is List) ? jsonEncode(body) : body;
+    return await http.put(url, headers: await _getHeaders(headers), body: bodyData);
   }
+
 
   static Future<http.MultipartRequest> multipartRequest(String method, Uri url) async {
     final request = http.MultipartRequest(method, url);
