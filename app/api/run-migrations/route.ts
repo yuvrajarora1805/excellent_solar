@@ -8,6 +8,52 @@ export async function GET() {
     const results = [];
 
     await execute(`
+      CREATE TABLE IF NOT EXISTS warehouses (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        code VARCHAR(50) UNIQUE NOT NULL,
+        name VARCHAR(255) NOT NULL,
+        warehouse_type VARCHAR(50) DEFAULT 'MAIN',
+        address TEXT,
+        city VARCHAR(100),
+        state VARCHAR(100),
+        pin_code VARCHAR(10),
+        gps_latitude DECIMAL(10, 8),
+        gps_longitude DECIMAL(11, 8),
+        manager_id INT,
+        status VARCHAR(50) DEFAULT 'ACTIVE',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+    results.push('Created warehouses table');
+
+    await execute(`
+      CREATE TABLE IF NOT EXISTS product_serial_numbers (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        product_id INT NOT NULL,
+        serial_number VARCHAR(100) NOT NULL,
+        warehouse_id INT,
+        current_location VARCHAR(50) DEFAULT 'WAREHOUSE',
+        project_id INT,
+        purchase_id INT,
+        installation_id INT,
+        manufacturing_date DATE,
+        warranty_expiry DATE,
+        purchase_price DECIMAL(10, 2),
+        remarks TEXT,
+        status VARCHAR(50) DEFAULT 'AVAILABLE',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY unique_serial (serial_number),
+        INDEX idx_product_id (product_id),
+        INDEX idx_warehouse_id (warehouse_id),
+        INDEX idx_current_location (current_location),
+        INDEX idx_status (status)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+    results.push('Created product_serial_numbers table');
+
+    await execute(`
       CREATE TABLE IF NOT EXISTS project_reservations (
         id INT AUTO_INCREMENT PRIMARY KEY,
         project_id INT NOT NULL,
@@ -22,6 +68,7 @@ export async function GET() {
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
     results.push('Created project_reservations table');
+
 
     await execute(`
       CREATE TABLE IF NOT EXISTS quotation_items (
