@@ -132,6 +132,38 @@ export async function GET() {
 
 
     await execute(`
+      CREATE TABLE IF NOT EXISTS quotations (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        quotation_number VARCHAR(50) UNIQUE NOT NULL,
+        project_id INT,
+        customer_id INT,
+        quotation_date DATE NOT NULL,
+        valid_until DATE,
+        system_type VARCHAR(100),
+        capacity_kw DECIMAL(10, 2),
+        system_template_id INT,
+        subtotal DECIMAL(12, 2) DEFAULT 0,
+        discount_amount DECIMAL(12, 2) DEFAULT 0,
+        discount_percentage DECIMAL(5, 2) DEFAULT 0,
+        gst_amount DECIMAL(12, 2) DEFAULT 0,
+        gst_percentage DECIMAL(5, 2) DEFAULT 18,
+        total_amount DECIMAL(12, 2) DEFAULT 0,
+        payment_schedule TEXT,
+        status ENUM('DRAFT','SENT','ACCEPTED','REJECTED','EXPIRED') DEFAULT 'DRAFT',
+        terms_conditions TEXT,
+        remarks TEXT,
+        created_by INT,
+        sent_at TIMESTAMP NULL,
+        accepted_at TIMESTAMP NULL,
+        rejected_at TIMESTAMP NULL,
+        rejection_reason TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+    results.push('Created quotations table');
+
+    await execute(`
       CREATE TABLE IF NOT EXISTS quotation_items (
         id INT AUTO_INCREMENT PRIMARY KEY,
         quotation_id INT NOT NULL,
