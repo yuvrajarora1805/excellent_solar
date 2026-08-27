@@ -16,9 +16,10 @@ export async function POST(req: NextRequest) {
       targetProductId = prodRes.id;
     } else {
       const newProdRes = await queryOne<{ id: number }>(
-        `INSERT INTO products (product_code, name, category, unit, unit_price, current_stock) 
-         VALUES ('BIN-21-615', 'Solar Panel 540W/550W (BIN-21-615)', 'SOLAR_PANEL', 'Piece', 15000.00, 0)`
+        `INSERT INTO products (product_code, name, category, unit, current_stock) 
+         VALUES ('BIN-21-615', 'Solar Panel 540W/550W (BIN-21-615)', 'SOLAR_PANEL', 'Piece', 0)`
       );
+
       const fetchedProd = await queryOne<{ id: number }>('SELECT id FROM products WHERE product_code = "BIN-21-615" LIMIT 1');
       targetProductId = fetchedProd?.id || 1;
     }

@@ -59,12 +59,13 @@ export async function GET() {
 
     // Auto-seed default Solar Panel product BIN-21-615 if products table is empty
     await execute(`
-      INSERT INTO products (id, product_code, name, category, unit, unit_price, current_stock)
-      SELECT 1, 'BIN-21-615', 'Solar Panel 540W/550W (BIN-21-615)', 'SOLAR_PANEL', 'Piece', 15000.00, 0
+      INSERT INTO products (id, product_code, name, category, unit, current_stock)
+      SELECT 1, 'BIN-21-615', 'Solar Panel 540W/550W (BIN-21-615)', 'SOLAR_PANEL', 'Piece', 0
       FROM DUAL
       WHERE NOT EXISTS (SELECT 1 FROM products WHERE id = 1 OR product_code = 'BIN-21-615');
     `);
     results.push('Seeded default BIN-21-615 product');
+
 
     await execute(`
       CREATE TABLE IF NOT EXISTS warehouses (
