@@ -139,9 +139,11 @@ export default function NewUserPage() {
                     disabled={loading}
                   >
                     <option value="ADMIN">Admin</option>
-                    <option value="MARKETING">Marketing</option>
+                    <option value="ORDER_MANAGER">Order & Dispatch Manager</option>
+                    <option value="MARKETING">Marketing / Sales</option>
                     <option value="INSTALLATION">Installation</option>
                     <option value="DISCOM">DISCOM</option>
+
                   </select>
                 </div>
                 <div>

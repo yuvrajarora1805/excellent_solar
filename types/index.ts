@@ -1,10 +1,12 @@
 // User Roles
 export enum Role {
   ADMIN = 'ADMIN',
+  ORDER_MANAGER = 'ORDER_MANAGER',
   MARKETING = 'MARKETING',
   INSTALLATION = 'INSTALLATION',
   DISCOM = 'DISCOM',
 }
+
 
 // User
 export interface User {

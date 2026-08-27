@@ -9,22 +9,23 @@ import { useSession } from 'next-auth/react';
 
 // Navigation items
 const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: 'dashboard', roles: ['ADMIN', 'MARKETING', 'INSTALLATION', 'DISCOM'] },
-  { name: 'Customers', href: '/customers', icon: 'groups', roles: ['ADMIN', 'MARKETING'] },
+  { name: 'Dashboard', href: '/dashboard', icon: 'dashboard', roles: ['ADMIN', 'ORDER_MANAGER', 'MARKETING', 'INSTALLATION', 'DISCOM'] },
+  { name: 'Customers', href: '/customers', icon: 'groups', roles: ['ADMIN', 'ORDER_MANAGER', 'MARKETING'] },
   { name: 'Site Survey', href: '/survey', icon: 'assignment_turned_in', roles: ['ADMIN', 'MARKETING'] },
   { name: 'Projects', href: '/projects', icon: 'folder_open', roles: ['ADMIN', 'MARKETING'] },
-  { name: 'Quotations', href: '/quotations', icon: 'description', roles: ['ADMIN', 'MARKETING'] },
-  { name: 'Orders & Dispatch', href: '/orders', icon: 'local_shipping', roles: ['ADMIN', 'MARKETING', 'INSTALLATION', 'DISCOM'] },
+  { name: 'Quotations', href: '/quotations', icon: 'description', roles: ['ADMIN', 'ORDER_MANAGER', 'MARKETING'] },
+  { name: 'Orders & Dispatch', href: '/orders', icon: 'local_shipping', roles: ['ADMIN', 'ORDER_MANAGER', 'MARKETING', 'INSTALLATION', 'DISCOM'] },
   { name: 'DISCOM', href: '/discom', icon: 'account_balance', roles: ['ADMIN', 'DISCOM'] },
 
-  { name: 'Inventory', href: '/inventory', icon: 'inventory_2', roles: ['ADMIN', 'INSTALLATION'] },
+  { name: 'Inventory', href: '/inventory', icon: 'inventory_2', roles: ['ADMIN', 'ORDER_MANAGER', 'INSTALLATION'] },
   { name: 'Installation', href: '/installation', icon: 'engineering', roles: ['ADMIN', 'INSTALLATION'] },
   { name: 'Service', href: '/service', icon: 'support_agent', roles: ['ADMIN', 'INSTALLATION'] },
   { name: 'System Templates', href: '/system-templates', icon: 'settings', roles: ['ADMIN'] },
-  { name: 'Reports', href: '/reports', icon: 'bar_chart', roles: ['ADMIN', 'DISCOM', 'MARKETING'] },
+  { name: 'Reports', href: '/reports', icon: 'bar_chart', roles: ['ADMIN', 'ORDER_MANAGER', 'DISCOM', 'MARKETING'] },
   { name: 'Users', href: '/users', icon: 'people', roles: ['ADMIN'] },
   { name: 'Settings', href: '/settings', icon: 'settings_applications', roles: ['ADMIN'] },
 ];
+
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
