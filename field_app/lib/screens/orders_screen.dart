@@ -350,24 +350,78 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
     }
   }
 
-  void _addBarcodeManual() {
+  bool _isCheckingManual = false;
+
+  Future<void> _addBarcodeManual() async {
     final code = _barcodeInputController.text.trim();
-    if (code.isNotEmpty && !_scannedPanels.any((p) => p.serialNumber == code)) {
-      setState(() {
-        _scannedPanels.add(
-          ScannedPanelItem(
+    if (code.isEmpty) return;
+
+    if (_scannedPanels.any((p) => p.serialNumber == code)) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('⚠️ Serial Number $code is already added!')),
+      );
+      return;
+    }
+
+    try {
+      setState(() => _isCheckingManual = true);
+
+      // Perform Real-Time Live MySQL Inventory Stock Lookup
+      final response = await ApiService.get(Uri.parse('$baseUrl/api/serial-numbers?search=$code'));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final List<dynamic> list = data is List ? data : (data['serials'] ?? []);
+
+        if (list.isNotEmpty) {
+          final item = list.first;
+          final String modelStr = item['model_number'] ?? item['product_code'] ?? item['model'] ?? 'BIN-21-615';
+          final String nameStr = item['product_name'] ?? 'Waaree TopCon 615W Solar Panel';
+
+          final matchedItem = ScannedPanelItem(
             serialNumber: code,
             isMatched: true,
-            status: 'AVAILABLE',
-            productName: 'Waaree TopCon 615W Panel',
-            modelNumber: 'BIN-21-615',
-            remarks: 'Manually Entered Serial',
-          ),
-        );
-        _barcodeInputController.clear();
-      });
+            status: item['status'] ?? 'AVAILABLE',
+            productName: nameStr,
+            modelNumber: modelStr,
+            remarks: item['remarks'] ?? 'Matched in MySQL Stock',
+          );
+
+          if (!mounted) return;
+          setState(() {
+            _scannedPanels.insert(0, matchedItem);
+            _barcodeInputController.clear();
+            _isCheckingManual = false;
+          });
+
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('✓ Matched Stock: Model $modelStr ($code)'),
+              backgroundColor: Colors.green.shade800,
+              duration: const Duration(milliseconds: 1400),
+            ),
+          );
+          return;
+        }
+      }
+
+      // Not found in inventory stock
+      if (!mounted) return;
+      setState(() => _isCheckingManual = false);
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('❌ Serial Number $code NOT found in Stock Inventory!'),
+          backgroundColor: Colors.red.shade800,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } catch (e) {
+      if (mounted) setState(() => _isCheckingManual = false);
     }
   }
+
 
   Future<void> _submitOrder(bool dispatchNow) async {
     if (_customerNameController.text.trim().isEmpty) {
@@ -634,9 +688,12 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
                             ),
                             const SizedBox(width: 8),
                             OutlinedButton(
-                              onPressed: _addBarcodeManual,
-                              child: const Text('Add Manual'),
+                              onPressed: _isCheckingManual ? null : _addBarcodeManual,
+                              child: _isCheckingManual
+                                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                                  : const Text('Add Manual'),
                             ),
+
                           ],
                         ),
 
@@ -714,30 +771,43 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
                   Row(
                     children: [
                       Expanded(
+                        flex: 35,
                         child: OutlinedButton(
-                          style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14)),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          ),
                           onPressed: _isSubmitting ? null : () => _submitOrder(false),
-                          child: const Text('Save Draft', style: TextStyle(fontWeight: FontWeight.bold)),
+                          child: const FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text('Save Draft', style: TextStyle(fontWeight: FontWeight.bold)),
+                          ),
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 10),
                       Expanded(
+                        flex: 65,
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.green.shade700,
                             foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 6),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                             elevation: 3,
                           ),
                           onPressed: _isSubmitting ? null : () => _submitOrder(true),
-                          child: Text(
-                            _isSubmitting ? 'Syncing...' : '🚀 Dispatch & Sync Stock',
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              _isSubmitting ? 'Syncing...' : '🚀 Dispatch & Sync Stock',
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                            ),
                           ),
                         ),
                       ),
                     ],
                   ),
+
                 ],
               ),
             ),

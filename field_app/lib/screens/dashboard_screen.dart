@@ -113,25 +113,52 @@ class _FieldDashboardScreenState extends State<FieldDashboardScreen> {
         builder: (context, setState) {
           dialogSetState = setState;
           return AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             title: const Row(
               children: [
                 Icon(Icons.downloading, color: Colors.blue),
                 SizedBox(width: 8),
-                Text('Downloading Update...'),
-              ],
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                LinearProgressIndicator(value: progress > 0 ? progress : null, backgroundColor: Colors.grey.shade200, color: Colors.blue),
-                const SizedBox(height: 12),
-                Text(
-                  progress > 0 ? '${(progress * 100).toInt()}% downloaded' : 'Starting download...',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                Expanded(
+                  child: Text(
+                    'Downloading Update...',
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
                 ),
               ],
             ),
+            content: Container(
+              width: double.maxFinite,
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: LinearProgressIndicator(
+                      value: progress > 0 ? progress : null,
+                      backgroundColor: Colors.grey.shade200,
+                      color: Colors.blue.shade700,
+                      minHeight: 10,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      progress > 0
+                          ? '${(progress * 100).toInt()}% downloaded • Installing v1.0.2...'
+                          : 'Connecting & Starting download...',
+                      maxLines: 1,
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.grey.shade800),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           );
+
         },
       ),
     );

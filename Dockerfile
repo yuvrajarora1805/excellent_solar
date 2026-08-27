@@ -25,8 +25,8 @@ RUN BUILD_STANDALONE=true npm run build
 FROM base AS runner
 WORKDIR /app
 
-# Install native dependencies for Sharp image compression
-RUN apk add --no-cache libc6-compat vips
+# Install native dependencies for Sharp image compression & Python3 for OCR script
+RUN apk add --no-cache libc6-compat vips python3 py3-pip
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
@@ -35,7 +35,7 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
 # Set the correct permission for prerender cache & uploads directory
-RUN mkdir -p .next public/uploads/jobs
+RUN mkdir -p .next public/uploads/jobs public/uploads/ocr
 RUN chown -R nextjs:nodejs .next public/uploads
 
 # Automatically leverage output traces to reduce image size
@@ -43,6 +43,8 @@ RUN chown -R nextjs:nodejs .next public/uploads
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
+
 
 
 USER nextjs

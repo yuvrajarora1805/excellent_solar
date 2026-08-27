@@ -8,7 +8,8 @@ import jwt from 'jsonwebtoken';
 export const runtime = 'nodejs';
 
 // Routes that don't require authentication
-const publicRoutes = ['/login', '/api/auth', '/api/mobile/auth/login', '/api/mobile/app-version', '/downloads'];
+const publicRoutes = ['/login', '/api/auth', '/api/mobile/auth/login', '/api/mobile/app-version', '/downloads', '/api/ocr'];
+
 
 export default auth((req) => {
   const { pathname } = req.nextUrl;
