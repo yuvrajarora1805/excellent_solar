@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { TrendingUp, TrendingDown, Package } from 'lucide-react';
@@ -50,10 +52,19 @@ export default function StockPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Stock Management</h1>
-        <p className="text-slate-600 dark:text-slate-400 mt-1">View and manage inventory stock levels</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Stock Management</h1>
+          <p className="text-slate-600 dark:text-slate-400 mt-1">View and manage inventory stock levels</p>
+        </div>
+        <Link href="/inventory/stock/adjust">
+          <Button>
+            <TrendingUp className="w-4 h-4 mr-2" />
+            Adjust Stock
+          </Button>
+        </Link>
       </div>
+
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card>

@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, ArrowLeft, Building2, Phone, Mail, MapPin } from 'lucide-react';
+import { Plus, ArrowLeft, Building2, Phone, Mail, MapPin, Edit } from 'lucide-react';
+
 
 interface Supplier {
   id: number;
@@ -79,14 +80,22 @@ export default function SuppliersPage() {
               <CardHeader className="pb-2">
                 <CardTitle className="text-lg flex justify-between items-center">
                   <span>{supplier.name}</span>
-                  <span className="text-xs px-2 py-1 rounded bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
-                    {supplier.status}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs px-2 py-1 rounded bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                      {supplier.status}
+                    </span>
+                    <Link href={`/inventory/suppliers/${supplier.id}/edit`}>
+                      <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                        <Edit className="w-3.5 h-3.5" />
+                      </Button>
+                    </Link>
+                  </div>
                 </CardTitle>
                 {supplier.contact_person && (
                   <p className="text-sm text-slate-500 font-medium">Contact: {supplier.contact_person}</p>
                 )}
               </CardHeader>
+
               <CardContent className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
                 {supplier.mobile && (
                   <div className="flex items-center gap-2">

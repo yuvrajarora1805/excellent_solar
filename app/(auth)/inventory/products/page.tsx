@@ -5,7 +5,8 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { Plus, Search, AlertCircle, Edit, Trash2, Package, TrendingUp, TrendingDown } from 'lucide-react';
+import { Plus, Search, AlertCircle, Edit, Eye, Trash2, Package, TrendingUp, TrendingDown } from 'lucide-react';
+
 
 interface Product {
   id: number;
@@ -238,6 +239,12 @@ export default function ProductsPage() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end gap-2">
+                        <Link href={`/inventory/products/${product.id}`}>
+                          <Button variant="ghost" size="sm" className="gap-2">
+                            <Eye className="w-4 h-4" />
+                            View
+                          </Button>
+                        </Link>
                         <Link href={`/inventory/products/${product.id}/edit`}>
                           <Button variant="ghost" size="sm" className="gap-2">
                             <Edit className="w-4 h-4" />
@@ -248,6 +255,7 @@ export default function ProductsPage() {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleDelete(product.id)}
+
                           className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 gap-2"
                         >
                           <Trash2 className="w-4 h-4" />
