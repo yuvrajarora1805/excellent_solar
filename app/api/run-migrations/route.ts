@@ -130,10 +130,17 @@ export async function GET() {
       ADD COLUMN customer_feedback TEXT
     `);
 
+    await safeAlter('projects', `
+      ALTER TABLE projects 
+      ADD COLUMN assigned_to INT NULL,
+      ADD COLUMN installation_date DATE NULL
+    `);
+
     await safeAlter('products', `
       ALTER TABLE products 
       ADD COLUMN reserved_stock INT DEFAULT 0
     `);
+
 
     await safeAlter('quotations', `
       ALTER TABLE quotations 

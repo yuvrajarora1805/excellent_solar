@@ -16,35 +16,66 @@ export async function GET(request: Request) {
     const user = await queryOne<{ id: number; role: string }>('SELECT id, role FROM users WHERE id = ?', [workerId]);
     const userRole = (user?.role || 'WORKER').toUpperCase();
 
-    // Query jobs user-specifically (Admins/Managers see all; Workers see assigned/created jobs)
-    const sql = `
-      SELECT DISTINCT
-        p.id, p.project_id, p.status, p.site_address, p.created_at, p.installation_date,
-        c.name as customer_name, c.mobile
-      FROM projects p
-      JOIN customers c ON p.customer_id = c.id
-      LEFT JOIN site_surveys ss ON ss.project_id = p.id
-      LEFT JOIN installations inst ON inst.project_id = p.id
-      WHERE p.status NOT IN ('PROJECT_COMPLETED')
-        AND (
-          ? = 'ADMIN'
-          OR ? = 'MANAGER'
-          OR p.created_by = ?
-          OR p.assigned_to = ?
-          OR ss.created_by = ?
-          OR inst.created_by = ?
-        )
-      ORDER BY p.id DESC
-    `;
-    
-    const jobs = await query(sql, [
-      userRole,
-      userRole,
-      workerId,
-      workerId,
-      workerId,
-      workerId
-    ]) as any[];
+    // Query jobs user-specifically with fallback if assigned_to column is pending migration
+    let jobs: any[] = [];
+    try {
+      const sql = `
+        SELECT DISTINCT
+          p.id, p.project_id, p.status, p.site_address, p.created_at, p.installation_date,
+          c.name as customer_name, c.mobile
+        FROM projects p
+        JOIN customers c ON p.customer_id = c.id
+        LEFT JOIN site_surveys ss ON ss.project_id = p.id
+        LEFT JOIN installations inst ON inst.project_id = p.id
+        WHERE p.status NOT IN ('PROJECT_COMPLETED')
+          AND (
+            ? = 'ADMIN'
+            OR ? = 'MANAGER'
+            OR p.created_by = ?
+            OR p.assigned_to = ?
+            OR ss.created_by = ?
+            OR inst.created_by = ?
+          )
+        ORDER BY p.id DESC
+      `;
+      
+      jobs = await query(sql, [
+        userRole,
+        userRole,
+        workerId,
+        workerId,
+        workerId,
+        workerId
+      ]) as any[];
+    } catch (dbErr: any) {
+      // Fallback query if assigned_to column does not exist yet in legacy MySQL schema
+      const fallbackSql = `
+        SELECT DISTINCT
+          p.id, p.project_id, p.status, p.site_address, p.created_at,
+          c.name as customer_name, c.mobile
+        FROM projects p
+        JOIN customers c ON p.customer_id = c.id
+        LEFT JOIN site_surveys ss ON ss.project_id = p.id
+        LEFT JOIN installations inst ON inst.project_id = p.id
+        WHERE p.status NOT IN ('PROJECT_COMPLETED')
+          AND (
+            ? = 'ADMIN'
+            OR ? = 'MANAGER'
+            OR p.created_by = ?
+            OR ss.created_by = ?
+            OR inst.created_by = ?
+          )
+        ORDER BY p.id DESC
+      `;
+      jobs = await query(fallbackSql, [
+        userRole,
+        userRole,
+        workerId,
+        workerId,
+        workerId
+      ]) as any[];
+    }
+
 
     const sectionParam = searchParams.get('section');
 
