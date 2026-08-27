@@ -3,31 +3,6 @@ import { installationDb } from '@/lib/db-helpers/installation';
 import { reservationDb } from '@/lib/db-helpers/reservations';
 import { projectDb } from '@/lib/db-helpers/projects';
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const { id: idStr } = await params;
-    const id = parseInt(idStr);
-    const installation = await installationDb.findById(id);
-    if (!installation) {
-      return NextResponse.json({ error: 'Installation not found' }, { status: 404 });
-    }
-
-    let reservations: any[] = [];
-    try {
-      reservations = await reservationDb.findByProject(installation.project_id as number);
-    } catch {
-      // reservations optional
-    }
-
-    return NextResponse.json({ ...installation, reservations });
-  } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch installation' }, { status: 500 });
-  }
-}
-
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -67,7 +42,7 @@ export async function POST(
 
     return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
   } catch (error) {
-    console.error('Failed to update installation:', error);
-    return NextResponse.json({ error: 'Failed to update installation' }, { status: 500 });
+    console.error('Failed to verify installation:', error);
+    return NextResponse.json({ error: 'Failed to verify installation' }, { status: 500 });
   }
 }

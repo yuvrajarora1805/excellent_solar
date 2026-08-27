@@ -3,23 +3,6 @@ import { siteSurveyDb } from '@/lib/db-helpers/site-survey';
 import { projectDb } from '@/lib/db-helpers/projects';
 import { query } from '@/lib/db';
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const { id: idStr } = await params;
-    const id = parseInt(idStr);
-    const survey = await siteSurveyDb.findById(id);
-    if (!survey) {
-      return NextResponse.json({ error: 'Survey not found' }, { status: 404 });
-    }
-    return NextResponse.json(survey);
-  } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch survey' }, { status: 500 });
-  }
-}
-
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -63,7 +46,7 @@ export async function POST(
 
     return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
   } catch (error) {
-    console.error('Failed to update survey:', error);
-    return NextResponse.json({ error: 'Failed to update survey' }, { status: 500 });
+    console.error('Failed to verify survey:', error);
+    return NextResponse.json({ error: 'Failed to verify survey' }, { status: 500 });
   }
 }
