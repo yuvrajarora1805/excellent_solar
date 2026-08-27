@@ -1,11 +1,28 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../services/api_service.dart';
 import '../main.dart' show baseUrl;
+
+class ScannedPanelItem {
+  final String serialNumber;
+  final bool isMatched;
+  final String status;
+  final String productName;
+  final String remarks;
+
+  ScannedPanelItem({
+    required this.serialNumber,
+    required this.isMatched,
+    required this.status,
+    required this.productName,
+    required this.remarks,
+  });
+}
 
 class OrdersScreen extends StatefulWidget {
   const OrdersScreen({super.key});
@@ -244,7 +261,7 @@ class CreateOrderBottomSheet extends StatefulWidget {
 
 class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
   String _orderType = 'PROJECT';
-  int? _selectedCustomerId;
+  String? _selectedCustomerIdStr;
   List<dynamic> _customersList = [];
   bool _loadingCustomers = false;
 
@@ -255,7 +272,7 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
   final _driverNameController = TextEditingController();
   final _barcodeInputController = TextEditingController();
 
-  List<String> _scannedBarcodes = [];
+  List<ScannedPanelItem> _scannedPanels = [];
   File? _vehiclePhoto;
   bool _isSubmitting = false;
 
@@ -287,12 +304,12 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
     }
   }
 
-  void _onCustomerSelected(int? custId) {
+  void _onCustomerSelected(String? custIdStr) {
     setState(() {
-      _selectedCustomerId = custId;
-      if (custId != null) {
+      _selectedCustomerIdStr = custIdStr;
+      if (custIdStr != null) {
         final cust = _customersList.firstWhere(
-          (c) => (int.tryParse(c['id'].toString()) ?? 0) == custId,
+          (c) => c['id'].toString() == custIdStr,
           orElse: () => null,
         );
         if (cust != null) {
@@ -305,18 +322,18 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
   }
 
   Future<void> _openMultiCameraScanner() async {
-    final List<String>? results = await Navigator.push(
+    final List<ScannedPanelItem>? results = await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => MultiCameraBarcodeScannerView(
-          initialScannedBarcodes: List.from(_scannedBarcodes),
+          initialScannedPanels: List.from(_scannedPanels),
         ),
       ),
     );
 
     if (results != null) {
       setState(() {
-        _scannedBarcodes = results;
+        _scannedPanels = results;
       });
     }
   }
@@ -333,9 +350,17 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
 
   void _addBarcodeManual() {
     final code = _barcodeInputController.text.trim();
-    if (code.isNotEmpty && !_scannedBarcodes.contains(code)) {
+    if (code.isNotEmpty && !_scannedPanels.any((p) => p.serialNumber == code)) {
       setState(() {
-        _scannedBarcodes.add(code);
+        _scannedPanels.add(
+          ScannedPanelItem(
+            serialNumber: code,
+            isMatched: true,
+            status: 'AVAILABLE',
+            productName: 'Solar Panel (Manual)',
+            remarks: 'Manually Entered Serial',
+          ),
+        );
         _barcodeInputController.clear();
       });
     }
@@ -350,18 +375,18 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
     try {
       setState(() => _isSubmitting = true);
 
-      final serialsList = _scannedBarcodes.map((b) => {'product_id': 1, 'serial_number': b}).toList();
+      final serialsList = _scannedPanels.map((p) => {'product_id': 1, 'serial_number': p.serialNumber}).toList();
       final body = {
         'order_type': _orderType,
-        'customer_id': _selectedCustomerId,
+        'customer_id': _selectedCustomerIdStr != null ? int.tryParse(_selectedCustomerIdStr!) : null,
         'customer_name': _customerNameController.text.trim(),
         'customer_mobile': _customerMobileController.text.trim(),
         'delivery_address': _deliveryAddressController.text.trim(),
         'vehicle_number': _vehicleNumberController.text.trim(),
         'driver_name': _driverNameController.text.trim(),
-        'total_amount': _scannedBarcodes.length * 23500,
+        'total_amount': _scannedPanels.length * 23500,
         'items': [
-          {'product_id': 1, 'quantity': _scannedBarcodes.isNotEmpty ? _scannedBarcodes.length : 1, 'unit_price': 23500}
+          {'product_id': 1, 'quantity': _scannedPanels.isNotEmpty ? _scannedPanels.length : 1, 'unit_price': 23500}
         ],
         'serials': serialsList,
         'dispatchImmediately': dispatchNow,
@@ -392,10 +417,10 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: MediaQuery.of(context).size.height * 0.9,
+      height: MediaQuery.of(context).size.height * 0.92,
       decoration: const BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       padding: const EdgeInsets.all(16),
       child: Column(
@@ -408,114 +433,184 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
               IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
             ],
           ),
-          const Divider(),
+          const Divider(height: 1),
+          const SizedBox(height: 12),
           Expanded(
             child: SingleChildScrollView(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Order Type Toggle
+                  // Order Type Segmented Toggle
                   Row(
                     children: [
                       Expanded(
                         child: OutlinedButton(
                           style: OutlinedButton.styleFrom(
                             backgroundColor: _orderType == 'PROJECT' ? Colors.blue.shade50 : Colors.white,
-                            side: BorderSide(color: _orderType == 'PROJECT' ? Colors.blue : Colors.grey.shade300),
+                            side: BorderSide(color: _orderType == 'PROJECT' ? Colors.blue.shade700 : Colors.grey.shade300, width: 1.5),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
                           onPressed: () => setState(() => _orderType = 'PROJECT'),
-                          child: const Text('Customer Project'),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.folder_shared, size: 18, color: _orderType == 'PROJECT' ? Colors.blue.shade800 : Colors.grey),
+                              const SizedBox(width: 6),
+                              Text('Customer Project', style: TextStyle(fontWeight: FontWeight.bold, color: _orderType == 'PROJECT' ? Colors.blue.shade800 : Colors.black87)),
+                            ],
+                          ),
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 10),
                       Expanded(
                         child: OutlinedButton(
                           style: OutlinedButton.styleFrom(
                             backgroundColor: _orderType == 'RETAIL' ? Colors.teal.shade50 : Colors.white,
-                            side: BorderSide(color: _orderType == 'RETAIL' ? Colors.teal : Colors.grey.shade300),
+                            side: BorderSide(color: _orderType == 'RETAIL' ? Colors.teal.shade700 : Colors.grey.shade300, width: 1.5),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
                           onPressed: () => setState(() => _orderType = 'RETAIL'),
-                          child: const Text('Retail OTC Sale'),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.storefront, size: 18, color: _orderType == 'RETAIL' ? Colors.teal.shade800 : Colors.grey),
+                              const SizedBox(width: 6),
+                              Text('Retail OTC Sale', style: TextStyle(fontWeight: FontWeight.bold, color: _orderType == 'RETAIL' ? Colors.teal.shade800 : Colors.black87)),
+                            ],
+                          ),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 16),
 
-                  // Customer Project Selection Dropdown
+                  // Registered Customer Dropdown
                   if (_orderType == 'PROJECT') ...[
                     _loadingCustomers
-                        ? const Center(child: Padding(padding: EdgeInsets.all(8.0), child: CircularProgressIndicator()))
-                        : DropdownButtonFormField<int>(
-                            decoration: const InputDecoration(
-                              labelText: 'Select Registered Customer / Project *',
-                              border: OutlineInputBorder(),
-                              isDense: true,
+                        ? const Center(child: Padding(padding: EdgeInsets.all(12.0), child: CircularProgressIndicator()))
+                        : Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.purple.shade50,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.purple.shade200),
                             ),
-                            value: _selectedCustomerId,
-                            items: _customersList.map<DropdownMenuItem<int>>((c) {
-                              final int custId = int.tryParse(c['id'].toString()) ?? 0;
-                              return DropdownMenuItem<int>(
-                                value: custId,
-                                child: Text('${c['name']} (${c['mobile'] ?? ''})', overflow: TextOverflow.ellipsis),
-                              );
-                            }).toList(),
-                            onChanged: _onCustomerSelected,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Row(
+                                  children: [
+                                    Icon(Icons.person_search, size: 18, color: Colors.purple),
+                                    SizedBox(width: 6),
+                                    Text('Select Registered Customer / Project', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.purple)),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                DropdownButtonFormField<String>(
+                                  decoration: const InputDecoration(
+                                    fillColor: Colors.white,
+                                    filled: true,
+                                    border: OutlineInputBorder(),
+                                    isDense: true,
+                                    hintText: '-- Select Customer --',
+                                  ),
+                                  value: _selectedCustomerIdStr,
+                                  items: _customersList.map<DropdownMenuItem<String>>((c) {
+                                    final String idStr = c['id'].toString();
+                                    return DropdownMenuItem<String>(
+                                      value: idStr,
+                                      child: Text('${c['name']} (${c['mobile'] ?? ''}) - ${c['city'] ?? ''}', overflow: TextOverflow.ellipsis),
+                                    );
+                                  }).toList(),
+                                  onChanged: _onCustomerSelected,
+                                ),
+                              ],
+                            ),
                           ),
                     const SizedBox(height: 12),
                   ],
 
-                  // Customer Details Form Fields
-                  TextField(
-                    controller: _customerNameController,
-                    decoration: const InputDecoration(labelText: 'Customer / Buyer Name *', border: OutlineInputBorder()),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _customerMobileController,
-                    keyboardType: TextInputType.phone,
-                    decoration: const InputDecoration(labelText: 'Mobile Phone', border: OutlineInputBorder()),
-                  ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _deliveryAddressController,
-                    decoration: const InputDecoration(labelText: 'Delivery / Installation Address', border: OutlineInputBorder()),
+                  // Customer Details Form Fields Card
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey.shade300),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Customer & Buyer Details', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                        const SizedBox(height: 10),
+                        TextField(
+                          controller: _customerNameController,
+                          decoration: const InputDecoration(labelText: 'Customer / Buyer Name *', border: OutlineInputBorder(), fillColor: Colors.white, filled: true),
+                        ),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: _customerMobileController,
+                          keyboardType: TextInputType.phone,
+                          decoration: const InputDecoration(labelText: 'Mobile Phone', border: OutlineInputBorder(), fillColor: Colors.white, filled: true),
+                        ),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: _deliveryAddressController,
+                          decoration: const InputDecoration(labelText: 'Delivery / Installation Address', border: OutlineInputBorder(), fillColor: Colors.white, filled: true),
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 16),
 
-                  // Live Multi-Camera Barcode Scanner Section
+                  // 1D Barcode Scanner Section
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
                       color: Colors.blue.shade50,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: Colors.blue.shade200),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.blue.shade300),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
+
                           children: [
-                            const Text('Scan Solar Panel Barcodes', style: TextStyle(fontWeight: FontWeight.bold)),
-                            Text('${_scannedBarcodes.length} Panels Scanned', style: TextStyle(color: Colors.blue.shade900, fontWeight: FontWeight.bold)),
+                            const Row(
+                              children: [
+                                Icon(Icons.qr_code_scanner, color: Colors.blue, size: 20),
+                                SizedBox(width: 6),
+                                Text('Scan 1D Solar Panel Barcodes', style: TextStyle(fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(color: Colors.blue.shade700, borderRadius: BorderRadius.circular(12)),
+                              child: Text('${_scannedPanels.length} Panels', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
+                            ),
                           ],
                         ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 12),
 
-                        // Multi-Scan Camera Launcher Button
+                        // Prominent 1D Scanner Button
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton.icon(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue.shade700,
+                              backgroundColor: Colors.blue.shade800,
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              elevation: 2,
                             ),
                             onPressed: _openMultiCameraScanner,
-                            icon: const Icon(Icons.qr_code_scanner, color: Colors.white),
-                            label: Text('Open Multi-Barcode Camera Scanner (${_scannedBarcodes.length})', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                            icon: const Icon(Icons.camera_alt, color: Colors.white),
+                            label: Text(
+                              'Open 1D Barcode Camera Scanner (${_scannedPanels.length})',
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                            ),
                           ),
                         ),
                         const SizedBox(height: 10),
@@ -543,16 +638,18 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
                           ],
                         ),
 
-                        if (_scannedBarcodes.isNotEmpty) ...[
-                          const SizedBox(height: 10),
+                        if (_scannedPanels.isNotEmpty) ...[
+                          const SizedBox(height: 12),
+                          const Text('Attached Solar Panels:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.blue)),
+                          const SizedBox(height: 6),
                           Wrap(
                             spacing: 6,
-                            runSpacing: 4,
-                            children: _scannedBarcodes
-                                .map((b) => Chip(
+                            runSpacing: 6,
+                            children: _scannedPanels
+                                .map((p) => Chip(
                                       avatar: const Icon(Icons.check_circle, size: 16, color: Colors.green),
-                                      label: Text(b, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                                      onDeleted: () => setState(() => _scannedBarcodes.remove(b)),
+                                      label: Text(p.serialNumber, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                      onDeleted: () => setState(() => _scannedPanels.remove(p)),
                                     ))
                                 .toList(),
                           ),
@@ -562,41 +659,79 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Vehicle Details
-                  TextField(
-                    controller: _vehicleNumberController,
-                    decoration: const InputDecoration(labelText: 'Vehicle Number (e.g. PB-04-AB-1234)', border: OutlineInputBorder()),
+                  // Vehicle Details Card
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.amber.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.amber.shade300),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Row(
+                          children: [
+                            Icon(Icons.directions_bus, size: 18, color: Colors.amber),
+                            SizedBox(width: 6),
+                            Text('Dispatch Vehicle & Driver Details', style: TextStyle(fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        TextField(
+                          controller: _vehicleNumberController,
+                          decoration: const InputDecoration(labelText: 'Vehicle Number (e.g. PB-04-AB-1234)', border: OutlineInputBorder(), fillColor: Colors.white, filled: true),
+                        ),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: _driverNameController,
+                          decoration: const InputDecoration(labelText: 'Driver Name', border: OutlineInputBorder(), fillColor: Colors.white, filled: true),
+                        ),
+                        const SizedBox(height: 10),
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                            onPressed: _takeVehiclePhoto,
+                            icon: Icon(_vehiclePhoto == null ? Icons.camera_alt : Icons.check_circle, color: _vehiclePhoto == null ? Colors.amber.shade900 : Colors.green),
+                            label: Text(
+                              _vehiclePhoto == null ? 'Capture Vehicle Photo Proof' : 'Vehicle Photo Captured ✓',
+                              style: TextStyle(fontWeight: FontWeight.bold, color: _vehiclePhoto == null ? Colors.amber.shade900 : Colors.green.shade800),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 8),
-                  TextField(
-                    controller: _driverNameController,
-                    decoration: const InputDecoration(labelText: 'Driver Name', border: OutlineInputBorder()),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Vehicle Photo Capture
-                  OutlinedButton.icon(
-                    onPressed: _takeVehiclePhoto,
-                    icon: Icon(_vehiclePhoto == null ? Icons.camera_alt : Icons.check_circle, color: _vehiclePhoto == null ? Colors.blue : Colors.green),
-                    label: Text(_vehiclePhoto == null ? 'Capture Vehicle Photo Proof' : 'Vehicle Photo Captured ✓'),
-                  ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 24),
 
                   // Action Buttons
                   Row(
                     children: [
                       Expanded(
                         child: OutlinedButton(
+                          style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14)),
                           onPressed: _isSubmitting ? null : () => _submitOrder(false),
-                          child: const Text('Save Draft'),
+                          child: const Text('Save Draft', style: TextStyle(fontWeight: FontWeight.bold)),
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(backgroundColor: Colors.green.shade700, foregroundColor: Colors.white),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green.shade700,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            elevation: 3,
+                          ),
                           onPressed: _isSubmitting ? null : () => _submitOrder(true),
-                          child: Text(_isSubmitting ? 'Syncing...' : 'Dispatch & Sync Stock'),
+                          child: Text(
+                            _isSubmitting ? 'Syncing...' : '🚀 Dispatch & Sync Stock',
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                          ),
                         ),
                       ),
                     ],
@@ -612,14 +747,14 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
 }
 
 // ============================================================================
-// CONTINUOUS MULTI-BARCODE SCANNER SCREEN (TOP: CAMERA | BOTTOM: INVENTORY LIST)
+// CONTINUOUS 1D MULTI-BARCODE SCANNER VIEW WITH LIVE INVENTORY MATCHING & BEEP SOUND
 // ============================================================================
 class MultiCameraBarcodeScannerView extends StatefulWidget {
-  final List<String> initialScannedBarcodes;
+  final List<ScannedPanelItem> initialScannedPanels;
 
   const MultiCameraBarcodeScannerView({
     super.key,
-    required this.initialScannedBarcodes,
+    required this.initialScannedPanels,
   });
 
   @override
@@ -627,16 +762,26 @@ class MultiCameraBarcodeScannerView extends StatefulWidget {
 }
 
 class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScannerView> {
+  // Restrict MobileScanner strictly to 1D Barcodes only (Ignores 2D QR codes)
   final MobileScannerController _controller = MobileScannerController(
     detectionSpeed: DetectionSpeed.noDuplicates,
+    formats: const [
+      BarcodeFormat.code128,
+      BarcodeFormat.code39,
+      BarcodeFormat.code93,
+      BarcodeFormat.itf,
+      BarcodeFormat.ean13,
+      BarcodeFormat.upcA,
+      BarcodeFormat.codabar,
+    ],
   );
 
-  late List<String> _scannedBarcodes;
+  late List<ScannedPanelItem> _scannedPanels;
 
   @override
   void initState() {
     super.initState();
-    _scannedBarcodes = List.from(widget.initialScannedBarcodes);
+    _scannedPanels = List.from(widget.initialScannedPanels);
   }
 
   @override
@@ -645,22 +790,34 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
     super.dispose();
   }
 
-  void _onBarcodeDetected(BarcodeCapture capture) {
+  Future<void> _onBarcodeDetected(BarcodeCapture capture) async {
     for (final barcode in capture.barcodes) {
       final String? rawVal = barcode.rawValue?.trim();
       if (rawVal != null && rawVal.isNotEmpty) {
-        if (!_scannedBarcodes.contains(rawVal)) {
+        if (!_scannedPanels.any((p) => p.serialNumber == rawVal)) {
+          // 1. Play Audio Beep Sound & Haptic Click Feedback
+          SystemSound.play(SystemSoundType.click);
+          HapticFeedback.mediumImpact();
+
+          // 2. Perform Real-Time Live Inventory Match & Status Lookup
+          ScannedPanelItem matchedItem = await _lookupInventoryStatus(rawVal);
+
+          if (!mounted) return;
           setState(() {
-            _scannedBarcodes.insert(0, rawVal);
+            _scannedPanels.insert(0, matchedItem);
           });
 
-          // Play visual toast confirmation
+          // 3. Display Toast Confirmation
           ScaffoldMessenger.of(context).hideCurrentSnackBar();
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('✓ Scanned & Matched: $rawVal'),
-              backgroundColor: Colors.green.shade700,
-              duration: const Duration(milliseconds: 1200),
+              content: Text(
+                matchedItem.isMatched
+                    ? '✓ Matched in Stock: $rawVal (${matchedItem.status})'
+                    : '⚡ New Panel: $rawVal (Will Auto-Register)',
+              ),
+              backgroundColor: matchedItem.isMatched ? Colors.green.shade800 : Colors.amber.shade900,
+              duration: const Duration(milliseconds: 1400),
             ),
           );
         }
@@ -668,12 +825,42 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
     }
   }
 
+  Future<ScannedPanelItem> _lookupInventoryStatus(String serial) async {
+    try {
+      final response = await ApiService.get(Uri.parse('$baseUrl/api/serial-numbers?search=$serial'));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final List<dynamic> list = data is List ? data : (data['serials'] ?? []);
+        if (list.isNotEmpty) {
+          final item = list.first;
+          return ScannedPanelItem(
+            serialNumber: serial,
+            isMatched: true,
+            status: item['status'] ?? 'AVAILABLE',
+            productName: item['product_name'] ?? 'Waaree 615W Solar Panel',
+            remarks: item['remarks'] ?? 'Matched in MySQL Stock',
+          );
+        }
+      }
+    } catch (e) {
+      // Fallback
+    }
+
+    return ScannedPanelItem(
+      serialNumber: serial,
+      isMatched: false,
+      status: 'AVAILABLE',
+      productName: 'Waaree TopCon 615W Panel',
+      remarks: 'Will register on dispatch',
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Continuous Multi-Panel Scanner (${_scannedBarcodes.length})',
+          '1D Barcode Panel Scanner (${_scannedPanels.length})',
           style: GoogleFonts.hankenGrotesk(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.black,
@@ -696,7 +883,7 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
       backgroundColor: Colors.black,
       body: Column(
         children: [
-          // TOP 45%: LIVE CAMERA VIEWFINDER
+          // TOP 45%: 1D CAMERA VIEWFINDER
           Expanded(
             flex: 45,
             child: Stack(
@@ -706,11 +893,11 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
                   onDetect: _onBarcodeDetected,
                 ),
 
-                // Green Target Crosshair Box
+                // Green Target Crosshair Box (1D Barcode Spec)
                 Center(
                   child: Container(
-                    width: 280,
-                    height: 140,
+                    width: 300,
+                    height: 120,
                     decoration: BoxDecoration(
                       border: Border.all(color: Colors.greenAccent, width: 3),
                       borderRadius: BorderRadius.circular(12),
@@ -729,13 +916,13 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                     decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.7),
+                      color: Colors.black.withValues(alpha: 0.75),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: const Text(
-                      'Keep scanning panel barcodes continuous in one go!',
+                      '📷 1D Barcodes Only (Code 128 / Code 39) - QR Codes Ignored',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11),
                     ),
                   ),
                 ),
@@ -743,13 +930,13 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
             ),
           ),
 
-          // BOTTOM 55%: SCANNED BARCODES & INVENTORY MATCHED LIST
+          // BOTTOM 55%: REAL-TIME SCANNED INVENTORY MATCHED LIST
           Expanded(
             flex: 55,
             child: Container(
               decoration: const BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
               ),
               child: Column(
                 children: [
@@ -758,24 +945,24 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     decoration: BoxDecoration(
                       color: Colors.grey.shade100,
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Row(
                           children: [
-                            const Icon(Icons.inventory_2, size: 18, color: Colors.green),
+                            const Icon(Icons.verified, size: 18, color: Colors.green),
                             const SizedBox(width: 6),
                             Text(
-                              'Scanned Serial Numbers (${_scannedBarcodes.length})',
+                              'Live Inventory Matched (${_scannedPanels.length})',
                               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                             ),
                           ],
                         ),
-                        if (_scannedBarcodes.isNotEmpty)
+                        if (_scannedPanels.isNotEmpty)
                           TextButton(
-                            onPressed: () => setState(() => _scannedBarcodes.clear()),
+                            onPressed: () => setState(() => _scannedPanels.clear()),
                             child: const Text('Clear All', style: TextStyle(color: Colors.red, fontSize: 12)),
                           ),
                       ],
@@ -784,7 +971,7 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
 
                   // Scanned Barcodes List View
                   Expanded(
-                    child: _scannedBarcodes.isEmpty
+                    child: _scannedPanels.isEmpty
                         ? Center(
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -792,7 +979,7 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
                                 Icon(Icons.qr_code_scanner, size: 48, color: Colors.grey.shade400),
                                 const SizedBox(height: 8),
                                 Text(
-                                  'Point camera at solar panel barcodes',
+                                  'Point camera at 1D Solar Panel Barcode Sticker',
                                   style: TextStyle(color: Colors.grey.shade600, fontWeight: FontWeight.bold),
                                 ),
                               ],
@@ -800,29 +987,35 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
                           )
                         : ListView.builder(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            itemCount: _scannedBarcodes.length,
+                            itemCount: _scannedPanels.length,
                             itemBuilder: (context, index) {
-                              final serial = _scannedBarcodes[index];
+                              final panel = _scannedPanels[index];
+                              final isAvailable = panel.status == 'AVAILABLE';
+
                               return Card(
                                 margin: const EdgeInsets.only(bottom: 8),
                                 elevation: 0,
-                                color: Colors.green.shade50,
+                                color: panel.isMatched ? Colors.green.shade50 : Colors.amber.shade50,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(10),
-                                  side: BorderSide(color: Colors.green.shade300),
+                                  side: BorderSide(color: panel.isMatched ? Colors.green.shade300 : Colors.amber.shade300),
                                 ),
                                 child: Padding(
                                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                                   child: Row(
                                     children: [
-                                      const Icon(Icons.check_circle, color: Colors.green, size: 20),
+                                      Icon(
+                                        panel.isMatched ? Icons.check_circle : Icons.electric_bolt,
+                                        color: panel.isMatched ? Colors.green.shade700 : Colors.amber.shade900,
+                                        size: 22,
+                                      ),
                                       const SizedBox(width: 10),
                                       Expanded(
                                         child: Column(
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
                                             Text(
-                                              serial,
+                                              panel.serialNumber,
                                               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, fontFamily: 'monospace'),
                                             ),
                                             const SizedBox(height: 2),
@@ -831,12 +1024,16 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
                                                 Container(
                                                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                                   decoration: BoxDecoration(
-                                                    color: Colors.green.shade700,
+                                                    color: panel.isMatched
+                                                        ? (isAvailable ? Colors.green.shade700 : Colors.red.shade700)
+                                                        : Colors.amber.shade800,
                                                     borderRadius: BorderRadius.circular(4),
                                                   ),
-                                                  child: const Text(
-                                                    'Matched in Stock (AVAILABLE)',
-                                                    style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                                                  child: Text(
+                                                    panel.isMatched
+                                                        ? '✓ MATCHED IN STOCK (${panel.status})'
+                                                        : '⚡ NEW PANEL (AUTO-REGISTER)',
+                                                    style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
                                                   ),
                                                 ),
                                               ],
@@ -846,7 +1043,7 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
                                       ),
                                       IconButton(
                                         icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
-                                        onPressed: () => setState(() => _scannedBarcodes.removeAt(index)),
+                                        onPressed: () => setState(() => _scannedPanels.removeAt(index)),
                                       ),
                                     ],
                                   ),
@@ -869,11 +1066,11 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
                         onPressed: () {
-                          Navigator.pop(context, _scannedBarcodes);
+                          Navigator.pop(context, _scannedPanels);
                         },
                         icon: const Icon(Icons.check_circle_outline, color: Colors.white),
                         label: Text(
-                          'Confirm & Attach (${_scannedBarcodes.length}) Panels',
+                          'Confirm & Attach (${_scannedPanels.length}) Panels',
                           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                         ),
                       ),
