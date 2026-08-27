@@ -82,9 +82,12 @@ class _FieldDashboardScreenState extends State<FieldDashboardScreen> {
                     final String? apkUrl = data['apk_url'];
                     if (apkUrl != null && apkUrl.isNotEmpty) {
                       final uri = Uri.parse(apkUrl);
-                      if (await canLaunchUrl(uri)) {
-                        await launchUrl(uri, mode: LaunchMode.externalApplication);
-                      } else {
+                      try {
+                        final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+                        if (!launched) {
+                          await launchUrl(uri, mode: LaunchMode.platformDefault);
+                        }
+                      } catch (e) {
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(content: Text('Could not open APK download link: $apkUrl')),
@@ -95,6 +98,7 @@ class _FieldDashboardScreenState extends State<FieldDashboardScreen> {
                   },
                   child: const Text('Update Now'),
                 ),
+
 
               ],
             ),
