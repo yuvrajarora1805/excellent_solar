@@ -189,10 +189,10 @@ function QuotationDetails({ quotation, onClose, onUpdateStatus }: any) {
   const materials = items.length > 0
     ? items.map((item: any, idx: number) => ({
         sr_no: idx + 1,
-        material: (item.description || item.product_name || '').toUpperCase(),
+        material: (item.product_name || item.description || '').toUpperCase(),
         quantity: String(item.quantity || ''),
-        brand: item.unit || '',
-        description: item.unit_price > 0 ? `₹${Number(item.unit_price).toLocaleString('en-IN')}` : '',
+        brand: item.product?.brand || 'N/A',
+        description: item.product?.description || '',
       }))
     : undefined;
 

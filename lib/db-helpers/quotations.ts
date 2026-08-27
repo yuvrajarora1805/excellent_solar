@@ -69,7 +69,7 @@ export const quotationDb = {
 
     // Get items
     const items = await query<any>(
-      `SELECT qi.*, p.name as product_name, p.product_code
+      `SELECT qi.*, p.name as product_name, p.product_code, p.brand as product_brand, p.description as product_description
        FROM quotation_items qi
        LEFT JOIN products p ON qi.product_id = p.id
        WHERE qi.quotation_id = ?
@@ -81,7 +81,7 @@ export const quotationDb = {
       ...quotation,
       items: items.map(i => ({
         ...i,
-        product: i.product_id ? { id: i.product_id, name: i.product_name, product_code: i.product_code } : undefined,
+        product: i.product_id ? { id: i.product_id, name: i.product_name, product_code: i.product_code, brand: i.product_brand, description: i.product_description } : undefined,
       })),
     };
   },
