@@ -358,11 +358,15 @@ class _DiscomDetailScreenState extends State<DiscomDetailScreen> {
   }
 
   Widget _buildDocCard(String title, String docTypeKey, List<dynamic> allUploadedDocs) {
-    // Find documents matching this docTypeKey / title
+    // Find documents matching this docTypeKey
     final matchingDocs = allUploadedDocs.where((d) {
+      if (d['document_type'] != null && d['document_type'].toString().isNotEmpty) {
+        return d['document_type'] == docTypeKey;
+      }
       final name = (d['document_type_name'] ?? d['file_name'] ?? '').toString().toLowerCase();
       final target = title.toLowerCase();
-      return name.contains(target) || target.contains(name);
+      // Fallback for older uploads
+      return name == target || name == docTypeKey.replaceAll('_', ' ').toLowerCase();
     }).toList();
 
     bool isUploaded = matchingDocs.isNotEmpty;

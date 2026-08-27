@@ -39,3 +39,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# mobile app build artifacts
+field_app/android/build/
+field_app/build/
+.flutter-plugins
+.flutter-plugins-dependencies
+

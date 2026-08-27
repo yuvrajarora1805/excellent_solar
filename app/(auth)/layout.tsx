@@ -11,7 +11,7 @@ import { useSession } from 'next-auth/react';
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: 'dashboard', roles: ['ADMIN', 'MARKETING', 'INSTALLATION', 'DISCOM'] },
   { name: 'Customers', href: '/customers', icon: 'groups', roles: ['ADMIN', 'MARKETING'] },
-  { name: 'Site Survey', href: '/survey', icon: 'assignment_turned_in', roles: ['ADMIN', 'INSTALLATION'] },
+  { name: 'Site Survey', href: '/survey', icon: 'assignment_turned_in', roles: ['ADMIN', 'MARKETING'] },
   { name: 'Projects', href: '/projects', icon: 'folder_open', roles: ['ADMIN', 'MARKETING'] },
   { name: 'Quotations', href: '/quotations', icon: 'description', roles: ['ADMIN', 'MARKETING'] },
   { name: 'DISCOM', href: '/discom', icon: 'account_balance', roles: ['ADMIN', 'DISCOM'] },

@@ -15,17 +15,22 @@ subprojects {
     val newSubprojectBuildDir: Directory = newBuildDir.dir(project.name)
     project.layout.buildDirectory.value(newSubprojectBuildDir)
 }
-subprojects {
-    project.evaluationDependsOn(":app")
-}
 
-// Force all Android library plugins to compileSdk 36
-allprojects {
-    plugins.withId("com.android.library") {
-        extensions.getByType(com.android.build.gradle.LibraryExtension::class).apply {
-            compileSdk = 36
+// Force all Android library plugins to compileSdk 36 before evaluation
+subprojects {
+    afterEvaluate {
+        if (project.hasProperty("android")) {
+            val androidExt = project.extensions.findByName("android")
+            if (androidExt != null) {
+                val baseExt = androidExt as? com.android.build.gradle.BaseExtension
+                baseExt?.compileSdkVersion(36)
+            }
         }
     }
+}
+
+subprojects {
+    project.evaluationDependsOn(":app")
 }
 
 tasks.register<Delete>("clean") {

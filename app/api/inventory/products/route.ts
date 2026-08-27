@@ -79,3 +79,40 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Failed to fetch products' }, { status: 500 });
   }
 }
+
+// POST /api/inventory/products - Create a new product
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const { product_code, name, category, brand, model, specification, unit, minimum_stock, current_stock } = body;
+
+    if (!product_code || !name || !category) {
+      return NextResponse.json({ error: 'Product code, name, and category are required' }, { status: 400 });
+    }
+
+    const insertRes: any = await query(
+      `INSERT INTO products (product_code, name, category, brand, model, specification, unit, minimum_stock, current_stock, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Active')`,
+      [
+        product_code,
+        name,
+        category,
+        brand || null,
+        model || null,
+        specification || null,
+        unit || 'Piece',
+        Number(minimum_stock) || 0,
+        Number(current_stock) || 0,
+      ]
+    );
+
+    return NextResponse.json({ id: insertRes.insertId, ...body }, { status: 201 });
+  } catch (error: any) {
+    console.error('Error creating product:', error);
+    if (error.code === 'ER_DUP_ENTRY') {
+      return NextResponse.json({ error: 'Product code already exists' }, { status: 400 });
+    }
+    return NextResponse.json({ error: 'Failed to create product' }, { status: 500 });
+  }
+}
+

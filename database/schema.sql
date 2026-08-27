@@ -358,6 +358,8 @@ CREATE TABLE IF NOT EXISTS site_survey_photos (
   longitude DECIMAL(11, 8),
 
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  status ENUM('PENDING', 'APPROVED', 'REJECTED') DEFAULT 'PENDING',
+  rejection_reason TEXT,
 
   FOREIGN KEY (site_survey_id) REFERENCES site_surveys(id) ON DELETE CASCADE,
 

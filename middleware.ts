@@ -19,12 +19,12 @@ const marketingRoutes = [
   '/customers',
   '/projects',
   '/quotations',
+  '/survey',
 ];
 
 // Routes accessible by INSTALLATION
 const installationRoutes = [
   '/dashboard',
-  '/survey',
   '/inventory',
   '/installation',
   '/service',

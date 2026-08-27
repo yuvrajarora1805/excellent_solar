@@ -18,7 +18,26 @@ export async function POST(req: NextRequest) {
     }
 
     const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
+    let finalBuffer: Buffer = Buffer.from(bytes);
+    let finalFileName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+    let mimeType = file.type;
+
+    // Server-side Image Compression for uploads (compress to WebP/JPEG)
+    if (file.type.startsWith('image/')) {
+      try {
+        const sharp = (await import('sharp')).default;
+        finalBuffer = await sharp(Buffer.from(bytes))
+          .resize({ width: 1600, height: 1600, fit: 'inside', withoutEnlargement: true })
+          .webp({ quality: 80 })
+          .toBuffer();
+
+        
+        finalFileName = finalFileName.replace(/\.[^/.]+$/, "") + ".webp";
+        mimeType = 'image/webp';
+      } catch (err) {
+        console.warn('Sharp image compression fallback:', err);
+      }
+    }
 
     // Ensure the upload directory exists
     const folderName = jobId || discomId;
@@ -26,16 +45,16 @@ export async function POST(req: NextRequest) {
     await mkdir(uploadDir, { recursive: true });
 
     // Sanitize filename and make unique
-    const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-    const filename = `${Date.now()}_${sanitizedName}`;
+    const filename = `${Date.now()}_${finalFileName}`;
     const path = join(uploadDir, filename);
 
-    // Write file to disk
-    await writeFile(path, buffer);
+    // Write compressed file to disk
+    await writeFile(path, finalBuffer);
 
     const publicUrl = `/uploads/jobs/${folderName}/${filename}`;
 
     const { query } = await import('@/lib/db');
+
     
     // Check if this is a DISCOM document upload
     if (discomId) {
@@ -65,7 +84,7 @@ export async function POST(req: NextRequest) {
 
       await query(
         'INSERT INTO documents (discom_application_id, document_type_id, file_name, file_path, file_size, mime_type, status, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-        [discomId, docTypeId, file.name, publicUrl, file.size, file.type, 'PENDING', 1]
+        [discomId, docTypeId, finalFileName, publicUrl, finalBuffer.length, mimeType, 'PENDING', 1]
       );
       
       // Update checklist to reflect it's uploaded
@@ -89,7 +108,7 @@ export async function POST(req: NextRequest) {
           
           await query(
             'INSERT INTO site_survey_photos (site_survey_id, category, file_name, file_path, file_size, mime_type) VALUES (?, ?, ?, ?, ?, ?)',
-            [surveys[0].id, documentType || 'GENERAL', file.name, publicUrl, file.size, file.type]
+            [surveys[0].id, documentType || 'GENERAL', finalFileName, publicUrl, finalBuffer.length, mimeType]
           );
         } else {
           let installs = await query('SELECT id FROM installations WHERE project_id = ?', [jobId]) as any[];
@@ -100,11 +119,12 @@ export async function POST(req: NextRequest) {
           
           await query(
             'INSERT INTO installation_photos (installation_id, category, file_name, file_path, file_size, mime_type) VALUES (?, ?, ?, ?, ?, ?)',
-            [installs[0].id, documentType || 'GENERAL', file.name, publicUrl, file.size, file.type]
+            [installs[0].id, documentType || 'GENERAL', finalFileName, publicUrl, finalBuffer.length, mimeType]
           );
         }
       }
     }
+
     
     return NextResponse.json({ 
       success: true, 
