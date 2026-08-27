@@ -240,8 +240,15 @@
   body {
     background-color: white !important;
   }
-  .app-shell, .app-sidebar, .app-header, .app-footer, [data-radix-focus-guard] {
+  .app-sidebar, .app-header, .app-footer, [data-radix-focus-guard] {
     display: none !important;
+  }
+  .app-shell, .app-main-wrapper, .app-content {
+    display: block !important;
+    height: auto !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
   div[role="dialog"] {
     position: relative !important;
