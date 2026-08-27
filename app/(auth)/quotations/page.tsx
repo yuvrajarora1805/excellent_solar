@@ -224,15 +224,12 @@ function QuotationsPageContent() {
           <p className="text-body-md text-on-surface-variant mt-1">Manage solar system quotations for customers using Excellent Solar pattern</p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={() => setIsOcrModalOpen(true)} className="bg-amber-600 hover:bg-amber-700 text-white flex items-center gap-2">
-            <span className="material-symbols-outlined">center_focus_weak</span>
-            Import Quotation PDF (OCR)
-          </Button>
           <Button onClick={() => setIsCreateOpen(true)} className="btn-primary flex items-center gap-2">
             <span className="material-symbols-outlined">description</span>
             New Quotation
           </Button>
         </div>
+
       </div>
 
       {/* OCR Quotation Modal */}
