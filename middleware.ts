@@ -8,10 +8,11 @@ import jwt from 'jsonwebtoken';
 export const runtime = 'nodejs';
 
 // Routes that don't require authentication
-const publicRoutes = ['/login', '/api/auth', '/api/mobile/auth/login'];
+const publicRoutes = ['/login', '/api/auth', '/api/mobile', '/downloads'];
 
 // Routes that require JWT API Key for Mobile App
 const mobileApiRoutes = ['/api/mobile', '/api/inventory/products'];
+
 
 // Routes accessible by MARKETING
 const marketingRoutes = [
@@ -120,6 +121,7 @@ export const config = {
      * - favicon.ico (favicon file)
      * - public files (public folder)
      */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|apk|pdf)$).*)',
   ],
 };
+
