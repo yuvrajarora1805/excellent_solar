@@ -199,7 +199,7 @@ function QuotationDetails({ quotation, onClose, onUpdateStatus }: any) {
   const capacityKw = Number(quotation.capacity_kw || 0);
   const totalAmount = Number(quotation.total_amount || 0);
   const totalCost = totalAmount > 0
-    ? `${(totalAmount / 100000).toLocaleString('en-IN', { maximumFractionDigits: 2 })} Lakh/-`
+    ? `${totalAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}/-`
     : '';
   const ratePerWatt = capacityKw > 0 && totalAmount > 0
     ? `${(totalAmount / (capacityKw * 1000)).toFixed(2)}/-`
