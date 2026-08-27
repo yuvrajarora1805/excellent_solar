@@ -10,13 +10,9 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'worker_id is required' }, { status: 400 });
     }
 
-    // Since we didn't add assigned_to to projects, we'll mock the assignment for now
-    // In a real scenario: 'SELECT p.*, c.name as customer_name, c.address ... FROM projects p JOIN customers c ON p.customer_id = c.id WHERE p.assigned_to = ?'
-    
-    // We'll just return all active projects/jobs to demonstrate the mobile app integration
     const sql = `
       SELECT 
-        p.id, p.project_id, p.status, p.site_address,
+        p.id, p.project_id, p.status, p.site_address, p.created_at, p.installation_date,
         c.name as customer_name, c.mobile
       FROM projects p
       JOIN customers c ON p.customer_id = c.id
@@ -25,7 +21,6 @@ export async function GET(request: Request) {
     `;
     
     const jobs = await query(sql) as any[];
-
     const sectionParam = searchParams.get('section');
 
     const formattedJobs = jobs.map(job => {
@@ -76,6 +71,10 @@ export async function GET(request: Request) {
           section = 'OTHER';
       }
 
+      const createdDate = job.created_at ? new Date(job.created_at).toLocaleDateString('en-IN') : 'N/A';
+      const installDate = job.installation_date ? new Date(job.installation_date).toLocaleDateString('en-IN') : null;
+      const formattedDate = installDate ? `Install Date: ${installDate}` : `Assigned: ${createdDate}`;
+
       return {
         id: job.id,
         job_id: job.project_id,
@@ -87,18 +86,19 @@ export async function GET(request: Request) {
         is_survey: isSurvey,
         is_actionable: isActionable,
         status: job.status,
+        date: formattedDate,
+        created_at: createdDate,
+        installation_date: installDate,
         priority: 'High'
       };
     });
 
-    // Optional section filter
     let finalJobs = formattedJobs;
     if (sectionParam) {
       finalJobs = formattedJobs.filter(j => j.section === sectionParam.toUpperCase());
     }
 
     return NextResponse.json({ success: true, jobs: finalJobs });
-
 
   } catch (error) {
     console.error('Error fetching jobs:', error);

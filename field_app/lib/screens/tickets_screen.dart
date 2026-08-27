@@ -354,6 +354,18 @@ class _MyTicketsListScreenState extends State<MyTicketsListScreen> {
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                             ),
+                            const SizedBox(height: 6),
+                            Row(
+                              children: [
+                                const Icon(Icons.calendar_today, size: 13, color: Colors.grey),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Date: ${t['date'] ?? t['created_at'] ?? 'N/A'}',
+                                  style: TextStyle(color: Colors.grey.shade700, fontSize: 12, fontWeight: FontWeight.w500),
+                                ),
+                              ],
+                            ),
+
                             const SizedBox(height: 12),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
