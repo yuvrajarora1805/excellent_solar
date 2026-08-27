@@ -70,12 +70,18 @@ export default function SystemTemplatesPage() {
     if (!confirm('Are you sure you want to delete this template?')) return;
 
     try {
-      await fetch(`/api/system-templates/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/system-templates/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setTemplates(prev => prev.filter(t => t.id !== id));
+      } else {
+        alert('Failed to delete template.');
+      }
       await fetchTemplates();
     } catch (error) {
       console.error('Error deleting template:', error);
     }
   };
+
 
   const columns = [
     {

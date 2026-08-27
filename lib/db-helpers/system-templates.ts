@@ -148,8 +148,10 @@ export const systemTemplateDb = {
 
   // Delete template
   delete: async (id: number): Promise<number> => {
+    await execute('DELETE FROM system_template_items WHERE system_template_id = ?', [id]);
     return execute('DELETE FROM system_templates WHERE id = ?', [id]);
   },
+
 
   // Add item to template
   addItem: async (templateId: number, item: Omit<SystemTemplateItem, 'id' | 'system_template_id' | 'created_at'>): Promise<number> => {
