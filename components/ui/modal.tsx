@@ -33,10 +33,10 @@ export function Modal({ isOpen, onClose, title, children, size = 'md', className
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center print:static print:block print:inset-auto">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm print:hidden"
         onClick={onClose}
       />
 
@@ -44,14 +44,14 @@ export function Modal({ isOpen, onClose, title, children, size = 'md', className
       <div
         className={cn(
           'relative w-full mx-4 bg-white dark:bg-slate-900 rounded-lg shadow-xl',
-          'max-h-[90vh] overflow-hidden flex flex-col',
+          'max-h-[90vh] overflow-hidden flex flex-col print:max-h-none print:overflow-visible print:shadow-none print:m-0 print:w-full print:bg-transparent',
           sizes[size],
           className
         )}
       >
         {/* Header */}
         {title && (
-          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-700 print:hidden">
             <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{title}</h2>
             <button
               onClick={onClose}
@@ -63,7 +63,7 @@ export function Modal({ isOpen, onClose, title, children, size = 'md', className
         )}
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto px-6 py-4">
+        <div className="flex-1 overflow-y-auto px-6 py-4 print:overflow-visible print:p-0">
           {children}
         </div>
       </div>

@@ -223,7 +223,7 @@ function QuotationDetails({ quotation, onClose, onUpdateStatus }: any) {
   };
 
   return (
-    <div className="space-y-4 max-h-[85vh] overflow-y-auto pr-1">
+    <div className="space-y-4 max-h-[85vh] overflow-y-auto pr-1 print:max-h-none print:overflow-visible">
       <div className="flex items-center justify-between print:hidden gap-2 pb-3 border-b border-outline-variant">
         <span className={`text-xs px-3 py-1 rounded-full font-bold ${
           quotation.status === 'ACCEPTED' ? 'bg-green-100 text-green-800' :

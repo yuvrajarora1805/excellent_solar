@@ -92,23 +92,25 @@ export const SolarQuotationTemplate: React.FC<{ data: Partial<SolarQuotationData
       <table className="w-full border-collapse border border-black mb-2 text-[11px]">
         <thead>
           <tr className="bg-[#6b9e38] text-black font-extrabold border-b border-black text-center">
-            <th className="border border-black p-1.5 w-10">Sr No.</th>
-            <th className="border border-black p-1.5 text-center w-48">MATERIAL DETAIL</th>
-            <th className="border border-black p-1.5 w-16 leading-tight text-[10px]">
-              QUANTI<br />TY
+            <th className="border border-black p-1.5 w-[8%]">Sr No.</th>
+            <th className="border border-black p-1.5 text-center w-[35%]">MATERIAL DETAIL</th>
+            <th className="border border-black p-0 w-[8%] leading-tight text-[10px] align-middle">
+              <div className="flex items-center justify-center h-[50px]">
+                <span className="-rotate-90 inline-block tracking-widest whitespace-nowrap">QUANTITY</span>
+              </div>
             </th>
-            <th className="border border-black p-1.5 text-center w-36">BRAND</th>
-            <th className="border border-black p-1.5 text-center">Description</th>
+            <th className="border border-black p-1.5 text-center w-[25%]">BRAND</th>
+            <th className="border border-black p-1.5 text-center w-[24%]">Description</th>
           </tr>
         </thead>
         <tbody>
           {materials.map((m, idx) => (
-            <tr key={idx} className="border-b border-black text-center font-bold">
+            <tr key={idx} className={`border-b border-black text-center font-bold ${idx % 2 === 0 ? 'bg-[#ffffe0]' : 'bg-white'}`}>
               <td className="border border-black p-1.5 font-normal">{m.sr_no || idx + 1}</td>
               <td className="border border-black p-1.5 text-left font-black italic uppercase">{m.material}</td>
               <td className="border border-black p-1.5 font-extrabold uppercase">{m.quantity}</td>
               <td className="border border-black p-1.5 uppercase font-extrabold">{m.brand}</td>
-              <td className="border border-black p-1.5 uppercase text-left font-extrabold">{m.description}</td>
+              <td className="border border-black p-1.5 uppercase text-center font-extrabold">{m.description}</td>
             </tr>
           ))}
         </tbody>
