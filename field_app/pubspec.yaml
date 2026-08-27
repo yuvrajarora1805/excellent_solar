@@ -46,6 +46,8 @@ dependencies:
   file_picker: ^8.1.4
   image: ^4.9.2
   url_launcher: ^6.3.1
+  mobile_scanner: ^5.2.3
+
 
 
 dev_dependencies:

@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 import '../services/api_service.dart';
 import '../main.dart' show baseUrl;
 
@@ -74,7 +75,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _openCreateOrderModal,
         backgroundColor: Colors.blue.shade700,
-        icon: const Icon(Icons.add, color: Colors.white),
+        icon: const Icon(Icons.camera_alt, color: Colors.white),
         label: const Text('New Order (Scan)', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
       ),
       body: Column(
@@ -137,7 +138,6 @@ class _OrdersScreenState extends State<OrdersScreen> {
                                         order['order_number'] ?? '#ORD',
                                         style: TextStyle(
                                           fontWeight: FontWeight.w900,
-
                                           fontSize: 16,
                                           color: Colors.blue.shade800,
                                         ),
@@ -165,7 +165,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                                     order['customer_name'] ?? 'Customer',
                                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                                   ),
-                                  if (order['customer_mobile'] != null && order['customer_mobile'].isNotEmpty)
+                                  if (order['customer_mobile'] != null && order['customer_mobile'].toString().isNotEmpty)
                                     Text('Mobile: ${order['customer_mobile']}', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
                                   const SizedBox(height: 8),
                                   Row(
@@ -202,7 +202,6 @@ class _OrdersScreenState extends State<OrdersScreen> {
                                       Text(
                                         '₹${(order['total_amount'] ?? 0).toString()}',
                                         style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Colors.black87),
-
                                       ),
                                     ],
                                   ),
@@ -241,9 +240,14 @@ class CreateOrderBottomSheet extends StatefulWidget {
 }
 
 class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
-  String _orderType = 'RETAIL';
+  String _orderType = 'PROJECT';
+  int? _selectedCustomerId;
+  List<dynamic> _customersList = [];
+  bool _loadingCustomers = false;
+
   final _customerNameController = TextEditingController();
   final _customerMobileController = TextEditingController();
+  final _deliveryAddressController = TextEditingController();
   final _vehicleNumberController = TextEditingController();
   final _driverNameController = TextEditingController();
   final _barcodeInputController = TextEditingController();
@@ -251,6 +255,77 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
   List<String> _scannedBarcodes = [];
   File? _vehiclePhoto;
   bool _isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchCustomers();
+  }
+
+  Future<void> _fetchCustomers() async {
+    try {
+      setState(() => _loadingCustomers = true);
+      final response = await ApiService.get(Uri.parse('$baseUrl/api/customers?limit=100'));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() {
+          _customersList = data['customers'] ?? data ?? [];
+          _loadingCustomers = false;
+        });
+      } else {
+        setState(() => _loadingCustomers = false);
+      }
+    } catch (e) {
+      setState(() => _loadingCustomers = false);
+    }
+  }
+
+  void _onCustomerSelected(int? custId) {
+    setState(() {
+      _selectedCustomerId = custId;
+      if (custId != null) {
+        final cust = _customersList.firstWhere((c) => c['id'] == custId, orElse: () => null);
+        if (cust != null) {
+          _customerNameController.text = cust['name'] ?? '';
+          _customerMobileController.text = cust['mobile'] ?? '';
+          _deliveryAddressController.text = cust['address'] ?? '';
+        }
+      }
+    });
+  }
+
+  Future<void> _openCameraScanner() async {
+    final String? scannedCode = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const CameraBarcodeScannerView()),
+    );
+
+    if (scannedCode != null && scannedCode.isNotEmpty) {
+      if (!_scannedBarcodes.contains(scannedCode)) {
+        setState(() {
+          _scannedBarcodes.add(scannedCode);
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('✓ Scanned Barcode: $scannedCode'),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Barcode $scannedCode already added!'),
+              backgroundColor: Colors.amber.shade900,
+            ),
+          );
+        }
+      }
+    }
+  }
 
   Future<void> _takeVehiclePhoto() async {
     final picker = ImagePicker();
@@ -262,7 +337,7 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
     }
   }
 
-  void _addBarcode() {
+  void _addBarcodeManual() {
     final code = _barcodeInputController.text.trim();
     if (code.isNotEmpty && !_scannedBarcodes.contains(code)) {
       setState(() {
@@ -284,8 +359,10 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
       final serialsList = _scannedBarcodes.map((b) => {'product_id': 1, 'serial_number': b}).toList();
       final body = {
         'order_type': _orderType,
+        'customer_id': _selectedCustomerId,
         'customer_name': _customerNameController.text.trim(),
         'customer_mobile': _customerMobileController.text.trim(),
+        'delivery_address': _deliveryAddressController.text.trim(),
         'vehicle_number': _vehicleNumberController.text.trim(),
         'driver_name': _driverNameController.text.trim(),
         'total_amount': _scannedBarcodes.length * 23500,
@@ -332,6 +409,7 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+
             children: [
               Text('Create Order & Dispatch', style: GoogleFonts.hankenGrotesk(fontSize: 18, fontWeight: FontWeight.bold)),
               IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
@@ -369,12 +447,34 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
 
-                  // Customer Details
+                  // Customer Project Selection Dropdown
+                  if (_orderType == 'PROJECT') ...[
+                    _loadingCustomers
+                        ? const Center(child: Padding(padding: EdgeInsets.all(8.0), child: CircularProgressIndicator()))
+                        : DropdownButtonFormField<int>(
+                            decoration: const InputDecoration(
+                              labelText: 'Select Registered Customer / Project *',
+                              border: OutlineInputBorder(),
+                              isDense: true,
+                            ),
+                            value: _selectedCustomerId,
+                            items: _customersList.map((c) {
+                              return DropdownMenuItem<int>(
+                                value: c['id'],
+                                child: Text('${c['name']} (${c['mobile'] ?? ''})', overflow: TextOverflow.ellipsis),
+                              );
+                            }).toList(),
+                            onChanged: _onCustomerSelected,
+                          ),
+                    const SizedBox(height: 12),
+                  ],
+
+                  // Customer Details Form Fields
                   TextField(
                     controller: _customerNameController,
-                    decoration: const InputDecoration(labelText: 'Customer Name *', border: OutlineInputBorder()),
+                    decoration: const InputDecoration(labelText: 'Customer / Buyer Name *', border: OutlineInputBorder()),
                   ),
                   const SizedBox(height: 8),
                   TextField(
@@ -382,9 +482,14 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
                     keyboardType: TextInputType.phone,
                     decoration: const InputDecoration(labelText: 'Mobile Phone', border: OutlineInputBorder()),
                   ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: _deliveryAddressController,
+                    decoration: const InputDecoration(labelText: 'Delivery / Installation Address', border: OutlineInputBorder()),
+                  ),
                   const SizedBox(height: 16),
 
-                  // Barcode Scanner Section
+                  // Live Camera Barcode Scanner Section
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
@@ -397,19 +502,39 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
                       children: [
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
+
                           children: [
-                            const Text('Scan Solar Panel Barcode', style: TextStyle(fontWeight: FontWeight.bold)),
-                            Text('${_scannedBarcodes.length} Scanned', style: TextStyle(color: Colors.blue.shade800, fontWeight: FontWeight.bold)),
+                            const Text('Scan Solar Panel Barcodes', style: TextStyle(fontWeight: FontWeight.bold)),
+                            Text('${_scannedBarcodes.length} Panels Scanned', style: TextStyle(color: Colors.blue.shade900, fontWeight: FontWeight.bold)),
                           ],
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 10),
+
+                        // Prominent Camera Scan Button
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.blue.shade700,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            ),
+                            onPressed: _openCameraScanner,
+                            icon: const Icon(Icons.camera_alt, color: Colors.white),
+                            label: const Text('Open Camera Barcode Scanner', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+
+                        // Manual Entry Fallback
                         Row(
                           children: [
                             Expanded(
                               child: TextField(
                                 controller: _barcodeInputController,
                                 decoration: const InputDecoration(
-                                  hintText: 'Enter or scan Module Sr. No.',
+                                  hintText: 'Or type Module Sr. No.',
                                   fillColor: Colors.white,
                                   filled: true,
                                   border: OutlineInputBorder(),
@@ -418,15 +543,15 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
                               ),
                             ),
                             const SizedBox(width: 8),
-                            ElevatedButton(
-                              style: ElevatedButton.styleFrom(backgroundColor: Colors.blue.shade700, foregroundColor: Colors.white),
-                              onPressed: _addBarcode,
-                              child: const Text('Add'),
+                            OutlinedButton(
+                              onPressed: _addBarcodeManual,
+                              child: const Text('Add Manual'),
                             ),
                           ],
                         ),
+
                         if (_scannedBarcodes.isNotEmpty) ...[
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 10),
                           Wrap(
                             spacing: 6,
                             runSpacing: 4,
@@ -483,6 +608,105 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
                     ],
                   ),
                 ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ============================================
+// CAMERA BARCODE SCANNER VIEW SCREEN
+// ============================================
+class CameraBarcodeScannerView extends StatefulWidget {
+  const CameraBarcodeScannerView({super.key});
+
+  @override
+  State<CameraBarcodeScannerView> createState() => _CameraBarcodeScannerViewState();
+}
+
+class _CameraBarcodeScannerViewState extends State<CameraBarcodeScannerView> {
+  final MobileScannerController _controller = MobileScannerController(
+    detectionSpeed: DetectionSpeed.noDuplicates,
+  );
+  bool _isScanned = false;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Scan Solar Panel Barcode'),
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+        actions: [
+          IconButton(
+            icon: ValueListenableBuilder(
+              valueListenable: _controller,
+              builder: (context, state, child) {
+                return Icon(
+                  state.torchState == TorchState.on ? Icons.flash_on : Icons.flash_off,
+                  color: Colors.yellow,
+                );
+              },
+            ),
+            onPressed: () => _controller.toggleTorch(),
+          ),
+        ],
+      ),
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+          MobileScanner(
+            controller: _controller,
+            onDetect: (capture) {
+              if (_isScanned) return;
+              final List<Barcode> barcodes = capture.barcodes;
+              for (final barcode in barcodes) {
+                final String? rawVal = barcode.rawValue;
+                if (rawVal != null && rawVal.trim().isNotEmpty) {
+                  setState(() => _isScanned = true);
+                  Navigator.pop(context, rawVal.trim());
+                  break;
+                }
+              }
+            },
+          ),
+
+          // Scanning Overlay Frame
+          Center(
+            child: Container(
+              width: 280,
+              height: 160,
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.green, width: 3),
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ),
+
+          // Instructions at bottom
+          Positioned(
+            bottom: 40,
+            left: 20,
+            right: 20,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.7),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Text(
+                'Point camera at Solar Panel Barcode (Module Sr. No.)',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
               ),
             ),
           ),
