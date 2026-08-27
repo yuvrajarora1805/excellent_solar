@@ -50,21 +50,102 @@ class _MyTicketsListScreenState extends State<MyTicketsListScreen> {
     }
   }
 
-  Future<void> _markResolved(int ticketId) async {
+  Future<void> _showResolveDialog(Map<String, dynamic> ticket) async {
+    final TextEditingController notesController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        return AlertDialog(
+          title: Text('Resolve Ticket #${ticket['ticket_number']}'),
+          content: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Are you sure you want to mark this ticket as resolved? This will submit it for manager approval.',
+                  style: TextStyle(fontSize: 14, color: Colors.black87),
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  controller: notesController,
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                    labelText: 'Resolution Notes / Work Done *',
+                    hintText: 'e.g. Replaced inverter fuse, checked wiring and tested generation',
+                    border: OutlineInputBorder(),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Please enter resolution notes';
+                    }
+                    return null;
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: const Text('Cancel'),
+              onPressed: () => Navigator.of(dialogContext).pop(),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
+              child: const Text('Submit Resolution'),
+              onPressed: () async {
+                if (formKey.currentState!.validate()) {
+                  Navigator.of(dialogContext).pop();
+                  await _markResolved(ticket['id'], notesController.text.trim());
+                }
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _markResolved(int ticketId, String notes) async {
     try {
-      await ApiService.post(
+      final response = await ApiService.post(
         Uri.parse('$baseUrl/api/mobile/update-status'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'type': 'TICKET',
           'id': ticketId,
           'status': 'RESOLVED',
-          'notes': 'Resolved from mobile app',
+          'notes': notes,
         }),
       );
-      _fetchTickets(); // Refresh list
+
+      if (response.statusCode == 200) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('✅ Ticket marked as resolved and sent for approval!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+        _fetchTickets();
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to update ticket status.')),
+          );
+        }
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to update status')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Connection error.')),
+        );
+      }
     }
   }
 
@@ -88,6 +169,9 @@ class _MyTicketsListScreenState extends State<MyTicketsListScreen> {
                 itemCount: _tickets.length,
                 itemBuilder: (context, index) {
                   final t = _tickets[index];
+                  final status = (t['status'] ?? 'OPEN').toString().toUpperCase();
+                  final isResolved = status == 'RESOLVED' || status == 'CLOSED';
+
                   return Card(
                     margin: const EdgeInsets.only(bottom: 12),
                     child: Padding(
@@ -102,10 +186,17 @@ class _MyTicketsListScreenState extends State<MyTicketsListScreen> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: Colors.red.shade100,
+                                  color: isResolved ? Colors.green.shade100 : Colors.red.shade100,
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: Text(t['priority'], style: TextStyle(color: Colors.red.shade800, fontSize: 12, fontWeight: FontWeight.bold)),
+                                child: Text(
+                                  isResolved ? 'RESOLVED' : (t['priority'] ?? 'NORMAL'), 
+                                  style: TextStyle(
+                                    color: isResolved ? Colors.green.shade800 : Colors.red.shade800, 
+                                    fontSize: 12, 
+                                    fontWeight: FontWeight.bold
+                                  ),
+                                ),
                               ),
                             ],
                           ),
@@ -115,15 +206,32 @@ class _MyTicketsListScreenState extends State<MyTicketsListScreen> {
                           Text('${t['issue_category']} - ${t['issue_type']}'),
                           const SizedBox(height: 4),
                           Text(t['description'], style: const TextStyle(color: Colors.grey)),
+                          if (t['resolution'] != null && t['resolution'].toString().isNotEmpty) ...[
+                            const SizedBox(height: 8),
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade100,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text('Resolution: ${t['resolution']}', style: const TextStyle(fontSize: 13, fontStyle: FontStyle.italic)),
+                            ),
+                          ],
                           const SizedBox(height: 12),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.end,
                             children: [
-                              ElevatedButton(
-                                onPressed: () => _markResolved(t['id']),
-                                style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
-                                child: const Text('Mark Resolved'),
-                              ),
+                              if (!isResolved)
+                                ElevatedButton(
+                                  onPressed: () => _showResolveDialog(t),
+                                  style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
+                                  child: const Text('Mark Resolved'),
+                                )
+                              else
+                                const Chip(
+                                  avatar: Icon(Icons.check_circle, color: Colors.green, size: 18),
+                                  label: Text('Awaiting Manager Closure', style: TextStyle(fontSize: 12)),
+                                ),
                             ],
                           )
                         ],
@@ -134,4 +242,5 @@ class _MyTicketsListScreenState extends State<MyTicketsListScreen> {
               ),
     );
   }
+
 }

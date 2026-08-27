@@ -26,22 +26,27 @@ export async function GET(request: Request) {
     
     const jobs = await query(sql) as any[];
 
+    const sectionParam = searchParams.get('section');
+
     const formattedJobs = jobs.map(job => {
       let displayStatus = 'Unknown';
       let isSurvey = false;
       let isActionable = true;
+      let section = 'SURVEY';
 
       switch(job.status) {
         case 'NEW':
         case 'SITE_SURVEY':
-          displayStatus = 'Site Survey';
+          displayStatus = 'Site Survey Pending';
           isSurvey = true;
           isActionable = true;
+          section = 'SURVEY';
           break;
         case 'SURVEY_SUBMITTED':
-          displayStatus = 'Pending Survey Approval';
+          displayStatus = 'Survey Submitted (Pending Review)';
           isSurvey = true;
           isActionable = false;
+          section = 'SURVEY';
           break;
         case 'SURVEY_VERIFIED':
         case 'MATERIAL_ALLOCATED':
@@ -49,17 +54,26 @@ export async function GET(request: Request) {
           displayStatus = 'Installation Ready';
           isSurvey = false;
           isActionable = true;
+          section = 'INSTALLATION';
           break;
         case 'INSTALLATION_COMPLETED':
         case 'FINAL_VERIFICATION':
-          displayStatus = 'Installation Finished';
+          displayStatus = 'Installation Completed';
           isSurvey = false;
           isActionable = false;
+          section = 'INSTALLATION';
+          break;
+        case 'PROJECT_COMPLETED':
+          displayStatus = 'Project Completed';
+          isSurvey = false;
+          isActionable = false;
+          section = 'COMPLETED';
           break;
         default:
           displayStatus = job.status;
           isSurvey = false;
           isActionable = false;
+          section = 'OTHER';
       }
 
       return {
@@ -69,6 +83,7 @@ export async function GET(request: Request) {
         address: job.site_address || 'Address pending',
         mobile: job.mobile,
         type: displayStatus,
+        section: section,
         is_survey: isSurvey,
         is_actionable: isActionable,
         status: job.status,
@@ -76,7 +91,14 @@ export async function GET(request: Request) {
       };
     });
 
-    return NextResponse.json({ success: true, jobs: formattedJobs });
+    // Optional section filter
+    let finalJobs = formattedJobs;
+    if (sectionParam) {
+      finalJobs = formattedJobs.filter(j => j.section === sectionParam.toUpperCase());
+    }
+
+    return NextResponse.json({ success: true, jobs: finalJobs });
+
 
   } catch (error) {
     console.error('Error fetching jobs:', error);

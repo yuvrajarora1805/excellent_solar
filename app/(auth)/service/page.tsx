@@ -313,11 +313,21 @@ function ServiceTicketDetails({ ticket, onUpdateStatus, onClose }: any) {
         </p>
       </div>
 
-      {/* Resolution Input */}
+      {/* Resolution Notes Display if already submitted */}
+      {ticket.resolution && (
+        <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded">
+          <div className="text-xs font-semibold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider mb-1">
+            Submitted Resolution Notes
+          </div>
+          <p className="text-sm text-slate-800 dark:text-slate-200">{ticket.resolution}</p>
+        </div>
+      )}
+
+      {/* Resolution Input if working */}
       {['IN_PROGRESS', 'ASSIGNED'].includes(ticket.status) && (
         <div>
           <label className="block text-label-bold text-on-surface mb-2">
-            Resolution Notes
+            Resolution Notes *
           </label>
           <textarea
             value={resolution}
@@ -353,24 +363,34 @@ function ServiceTicketDetails({ ticket, onUpdateStatus, onClose }: any) {
             className="px-3 py-2 text-label-bold text-on-tertiary bg-tertiary hover:opacity-90 rounded transition-opacity"
             disabled={!resolution}
           >
-            Mark Resolved
+            Submit Resolution
           </button>
         )}
         {ticket.status === 'RESOLVED' && (
-          <button
-            onClick={() => handleStatusUpdate('CLOSED')}
-            className="px-3 py-2 text-label-bold text-on-surface bg-surface-container hover:opacity-90 rounded transition-opacity"
-          >
-            Close Ticket
-          </button>
+          <>
+            <button
+              onClick={() => handleStatusUpdate('CLOSED')}
+              className="px-4 py-2 text-label-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded transition-colors flex items-center gap-1.5"
+            >
+              <span className="material-symbols-outlined text-base">verified</span>
+              Approve & Close Ticket
+            </button>
+            <button
+              onClick={() => handleStatusUpdate('IN_PROGRESS')}
+              className="px-3 py-2 text-label-bold text-red-600 bg-red-50 hover:bg-red-100 dark:bg-red-950/30 rounded transition-colors border border-red-200"
+            >
+              Reject & Re-open
+            </button>
+          </>
         )}
         <button
           onClick={onClose}
           className="ml-auto px-3 py-2 text-label-bold text-on-surface hover:bg-surface-container-low rounded transition-colors"
         >
-          Close
+          Cancel
         </button>
       </div>
+
     </div>
   );
 }

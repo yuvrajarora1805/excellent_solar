@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import '../services/api_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../main.dart' show baseUrl;
@@ -51,125 +50,161 @@ class _MyJobsListScreenState extends State<MyJobsListScreen> {
     }
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('My Active Jobs'),
-        actions: [
-          IconButton(icon: const Icon(Icons.refresh), onPressed: _fetchJobs),
-        ],
-      ),
-      body: _isLoading 
-        ? const Center(child: CircularProgressIndicator())
-        : _error.isNotEmpty
-          ? Center(child: Text(_error))
-          : _jobs.isEmpty
-            ? const Center(child: Text('No active jobs currently.'))
-            : ListView.builder(
-                padding: const EdgeInsets.all(16.0),
-                itemCount: _jobs.length,
-                itemBuilder: (context, index) {
-                  final j = _jobs[index];
-                  final isSurvey = j['is_survey'] == true;
-                  final isActionable = j['is_actionable'] == true;
-                  final displayStatus = j['type'] ?? 'Unknown';
-                  
-                  // Determine badge colors based on actionable status or type
-                  Color badgeBgColor;
-                  Color badgeTextColor;
-                  
-                  if (!isActionable) {
-                    badgeBgColor = Colors.orange[100]!;
-                    badgeTextColor = Colors.orange[800]!;
-                    if (displayStatus.contains('Finished') || displayStatus.contains('Completed')) {
-                      badgeBgColor = Colors.grey[200]!;
-                      badgeTextColor = Colors.grey[800]!;
-                    }
-                  } else {
-                    badgeBgColor = isSurvey ? Colors.amber[100]! : Colors.blue[100]!;
-                    badgeTextColor = isSurvey ? Colors.amber[800]! : Colors.blue[800]!;
-                  }
+  Widget _buildJobList(List<dynamic> filteredJobs) {
+    if (filteredJobs.isEmpty) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(24.0),
+          child: Text('No assigned jobs in this section.', style: TextStyle(color: Colors.grey)),
+        ),
+      );
+    }
 
-                  return Card(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      side: const BorderSide(color: Color(0xFFE5E7EB)),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: InkWell(
-                      onTap: () {
-                        if (!isActionable) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('This job is currently: $displayStatus. Waiting for admin approval or already finished.'),
-                              backgroundColor: Colors.orange[800],
-                            ),
-                          );
-                          return;
-                        }
+    return ListView.builder(
+      padding: const EdgeInsets.all(16.0),
+      itemCount: filteredJobs.length,
+      itemBuilder: (context, index) {
+        final j = filteredJobs[index];
+        final isSurvey = j['is_survey'] == true;
+        final isActionable = j['is_actionable'] == true;
+        final displayStatus = j['type'] ?? 'Unknown';
+        final section = j['section'] ?? 'SURVEY';
 
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => JobDetailScreen(
-                            jobId: j['id']?.toString() ?? 'Unknown',
-                            customerName: j['customer_name'] ?? 'Unknown',
-                            isSurvey: isSurvey,
-                          )),
-                        );
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  j['customer_name'] ?? 'Unknown',
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: badgeBgColor,
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Text(
-                                    displayStatus,
-                                    style: TextStyle(
-                                      color: badgeTextColor,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              children: [
-                                const Icon(Icons.location_on_outlined, size: 16, color: Colors.grey),
-                                const SizedBox(width: 4),
-                                Expanded(
-                                  child: Text(
-                                    j['address'] ?? 'No Address',
-                                    style: const TextStyle(color: Colors.grey),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
+        Color badgeBgColor;
+        Color badgeTextColor;
+
+        if (!isActionable) {
+          badgeBgColor = Colors.orange.shade100;
+          badgeTextColor = Colors.orange.shade800;
+          if (displayStatus.contains('Completed') || displayStatus.contains('Finished')) {
+            badgeBgColor = Colors.grey.shade200;
+            badgeTextColor = Colors.grey.shade800;
+          }
+        } else {
+          badgeBgColor = section == 'SURVEY' ? Colors.amber.shade100 : Colors.blue.shade100;
+          badgeTextColor = section == 'SURVEY' ? Colors.amber.shade900 : Colors.blue.shade900;
+        }
+
+        return Card(
+          margin: const EdgeInsets.only(bottom: 12),
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            side: const BorderSide(color: Color(0xFFE5E7EB)),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: InkWell(
+            onTap: () {
+              if (!isActionable) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('This job is currently: $displayStatus. Waiting for approval or completed.'),
+                    backgroundColor: Colors.orange.shade800,
+                  ),
+                );
+                return;
+              }
+
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => JobDetailScreen(
+                  jobId: j['id']?.toString() ?? 'Unknown',
+                  customerName: j['customer_name'] ?? 'Unknown',
+                  isSurvey: isSurvey,
+                )),
+              );
+            },
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        j['customer_name'] ?? 'Unknown',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: badgeBgColor,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Text(
+                          displayStatus,
+                          style: TextStyle(
+                            color: badgeTextColor,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
-                    ),
-                  );
-                },
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Icon(Icons.location_on_outlined, size: 16, color: Colors.grey),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          j['address'] ?? 'No Address',
+                          style: const TextStyle(color: Colors.grey),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
+            ),
+          ),
+        );
+      },
     );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final surveyJobs = _jobs.filter((j) => j['section'] == 'SURVEY').toList();
+    final installJobs = _jobs.filter((j) => j['section'] == 'INSTALLATION').toList();
+
+    return DefaultTabController(
+      length: 3,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('My Assigned Jobs'),
+          actions: [
+            IconButton(icon: const Icon(Icons.refresh), onPressed: _fetchJobs),
+          ],
+          bottom: const TabBar(
+            tabs: [
+              Tab(icon: Icon(Icons.architecture), text: 'Site Survey'),
+              Tab(icon: Icon(Icons.build), text: 'Installation'),
+              Tab(icon: Icon(Icons.list_alt), text: 'All Jobs'),
+            ],
+          ),
+        ),
+        body: _isLoading 
+          ? const Center(child: CircularProgressIndicator())
+          : _error.isNotEmpty
+            ? Center(child: Text(_error))
+            : TabBarView(
+                children: [
+                  _buildJobList(surveyJobs),
+                  _buildJobList(installJobs),
+                  _buildJobList(_jobs),
+                ],
+              ),
+      ),
+    );
+  }
+}
+
+extension ListFilterExtension on List {
+  List<dynamic> filter(bool Function(dynamic) test) {
+    return where(test).toList();
   }
 }
