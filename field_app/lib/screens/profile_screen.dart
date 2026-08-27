@@ -142,7 +142,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                   ),
 
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 20),
+
+                  // App Version Info Card
+                  Card(
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: const BorderSide(color: Color(0xFFE5E7EB)),
+                    ),
+                    child: const ListTile(
+                      leading: Icon(Icons.info_outline, color: Colors.green),
+                      title: Text('App Version', style: TextStyle(fontWeight: FontWeight.bold)),
+                      subtitle: Text('v1.0.2 (Build 3) • Excellent Solar Field App'),
+                      trailing: Chip(
+                        backgroundColor: Colors.green,
+                        label: Text('LATEST', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
 
                   SizedBox(
                     width: double.infinity,

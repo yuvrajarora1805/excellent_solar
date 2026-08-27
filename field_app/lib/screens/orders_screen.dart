@@ -13,6 +13,7 @@ class ScannedPanelItem {
   final bool isMatched;
   final String status;
   final String productName;
+  final String modelNumber;
   final String remarks;
 
   ScannedPanelItem({
@@ -20,6 +21,7 @@ class ScannedPanelItem {
     required this.isMatched,
     required this.status,
     required this.productName,
+    required this.modelNumber,
     required this.remarks,
   });
 }
@@ -357,7 +359,8 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
             serialNumber: code,
             isMatched: true,
             status: 'AVAILABLE',
-            productName: 'Solar Panel (Manual)',
+            productName: 'Waaree TopCon 615W Panel',
+            modelNumber: 'BIN-21-615',
             remarks: 'Manually Entered Serial',
           ),
         );
@@ -576,7 +579,6 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
                       children: [
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
-
                           children: [
                             const Row(
                               children: [
@@ -648,7 +650,7 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
                             children: _scannedPanels
                                 .map((p) => Chip(
                                       avatar: const Icon(Icons.check_circle, size: 16, color: Colors.green),
-                                      label: Text(p.serialNumber, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                      label: Text('${p.modelNumber} (${p.serialNumber})', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                                       onDeleted: () => setState(() => _scannedPanels.remove(p)),
                                     ))
                                 .toList(),
@@ -795,37 +797,55 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
   Future<void> _onBarcodeDetected(BarcodeCapture capture) async {
     for (final barcode in capture.barcodes) {
       final String? rawVal = barcode.rawValue?.trim();
-      if (rawVal != null && rawVal.isNotEmpty) {
-        if (!_scannedPanels.any((p) => p.serialNumber == rawVal) && !_processingSerials.contains(rawVal)) {
-          _processingSerials.add(rawVal);
+      if (rawVal == null || rawVal.isEmpty) continue;
 
-          // 1. Play Audio Beep Sound & Haptic Click Feedback
-          SystemSound.play(SystemSoundType.click);
-          HapticFeedback.mediumImpact();
+      // Synchronous Guard: Lock immediately before async network calls to prevent repeat scans
+      if (_scannedPanels.any((p) => p.serialNumber == rawVal) || _processingSerials.contains(rawVal)) {
+        continue;
+      }
+      _processingSerials.add(rawVal);
 
-          // 2. Perform Real-Time Live Inventory Match & Status Lookup
-          ScannedPanelItem matchedItem = await _lookupInventoryStatus(rawVal);
+      // 1. Play Audio Beep Sound & Haptic Click Feedback
+      SystemSound.play(SystemSoundType.click);
+      HapticFeedback.mediumImpact();
 
+      // 2. Perform Real-Time Live Inventory Match & Status Lookup
+      ScannedPanelItem matchedItem = await _lookupInventoryStatus(rawVal);
 
-          if (!mounted) return;
-          setState(() {
-            _scannedPanels.insert(0, matchedItem);
-          });
+      if (!mounted) return;
+      setState(() {
+        _scannedPanels.insert(0, matchedItem);
+      });
 
-          // 3. Display Toast Confirmation
-          ScaffoldMessenger.of(context).hideCurrentSnackBar();
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                matchedItem.isMatched
-                    ? '✓ Matched in Stock: $rawVal (${matchedItem.status})'
-                    : '⚡ New Panel: $rawVal (Will Auto-Register)',
-              ),
-              backgroundColor: matchedItem.isMatched ? Colors.green.shade800 : Colors.amber.shade900,
-              duration: const Duration(milliseconds: 1400),
-            ),
-          );
-        }
+      if (!matchedItem.isMatched) {
+        // Show Red Warning Toast & Auto-remove unmatched item after 1 second
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Not found in Stock: $rawVal (Removing in 1s...)'),
+            backgroundColor: Colors.red.shade800,
+            duration: const Duration(milliseconds: 1000),
+          ),
+        );
+
+        Future.delayed(const Duration(seconds: 1), () {
+          if (mounted) {
+            setState(() {
+              _scannedPanels.removeWhere((p) => p.serialNumber == rawVal);
+              _processingSerials.remove(rawVal);
+            });
+          }
+        });
+      } else {
+        // Show Green Success Toast for Matched Inventory Model Number
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✓ Matched Stock: Model ${matchedItem.modelNumber} ($rawVal)'),
+            backgroundColor: Colors.green.shade800,
+            duration: const Duration(milliseconds: 1400),
+          ),
+        );
       }
     }
   }
@@ -838,11 +858,14 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
         final List<dynamic> list = data is List ? data : (data['serials'] ?? []);
         if (list.isNotEmpty) {
           final item = list.first;
+          final String modelStr = item['model_number'] ?? item['product_code'] ?? item['model'] ?? 'BIN-21-615';
+          final String nameStr = item['product_name'] ?? 'Waaree TopCon 615W Solar Panel';
           return ScannedPanelItem(
             serialNumber: serial,
             isMatched: true,
             status: item['status'] ?? 'AVAILABLE',
-            productName: item['product_name'] ?? 'Waaree 615W Solar Panel',
+            productName: nameStr,
+            modelNumber: modelStr,
             remarks: item['remarks'] ?? 'Matched in MySQL Stock',
           );
         }
@@ -854,9 +877,10 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
     return ScannedPanelItem(
       serialNumber: serial,
       isMatched: false,
-      status: 'AVAILABLE',
-      productName: 'Waaree TopCon 615W Panel',
-      remarks: 'Will register on dispatch',
+      status: 'NOT_FOUND',
+      productName: 'Unmatched Serial',
+      modelNumber: 'N/A',
+      remarks: 'Not found in inventory',
     );
   }
 
@@ -865,7 +889,7 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          '1D Barcode Panel Scanner (${_scannedPanels.length})',
+          '1D Barcode Panel Scanner (${_scannedPanels.where((p) => p.isMatched).length})',
           style: GoogleFonts.hankenGrotesk(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.black,
@@ -960,14 +984,17 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
                             const Icon(Icons.verified, size: 18, color: Colors.green),
                             const SizedBox(width: 6),
                             Text(
-                              'Live Inventory Matched (${_scannedPanels.length})',
+                              'Matched Stock Panels (${_scannedPanels.where((p) => p.isMatched).length})',
                               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                             ),
                           ],
                         ),
                         if (_scannedPanels.isNotEmpty)
                           TextButton(
-                            onPressed: () => setState(() => _scannedPanels.clear()),
+                            onPressed: () => setState(() {
+                              _scannedPanels.clear();
+                              _processingSerials.clear();
+                            }),
                             child: const Text('Clear All', style: TextStyle(color: Colors.red, fontSize: 12)),
                           ),
                       ],
@@ -1000,18 +1027,18 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
                               return Card(
                                 margin: const EdgeInsets.only(bottom: 8),
                                 elevation: 0,
-                                color: panel.isMatched ? Colors.green.shade50 : Colors.amber.shade50,
+                                color: panel.isMatched ? Colors.green.shade50 : Colors.red.shade50,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(10),
-                                  side: BorderSide(color: panel.isMatched ? Colors.green.shade300 : Colors.amber.shade300),
+                                  side: BorderSide(color: panel.isMatched ? Colors.green.shade300 : Colors.red.shade300),
                                 ),
                                 child: Padding(
                                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                                   child: Row(
                                     children: [
                                       Icon(
-                                        panel.isMatched ? Icons.check_circle : Icons.electric_bolt,
-                                        color: panel.isMatched ? Colors.green.shade700 : Colors.amber.shade900,
+                                        panel.isMatched ? Icons.check_circle : Icons.warning_amber_rounded,
+                                        color: panel.isMatched ? Colors.green.shade700 : Colors.red.shade700,
                                         size: 22,
                                       ),
                                       const SizedBox(width: 10),
@@ -1020,10 +1047,19 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
                                             Text(
-                                              panel.serialNumber,
-                                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, fontFamily: 'monospace'),
+                                              'Model: ${panel.modelNumber}',
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 14,
+                                                color: panel.isMatched ? Colors.green.shade900 : Colors.red.shade900,
+                                              ),
                                             ),
                                             const SizedBox(height: 2),
+                                            Text(
+                                              'Serial: ${panel.serialNumber}',
+                                              style: const TextStyle(fontSize: 12, fontFamily: 'monospace', color: Colors.black87),
+                                            ),
+                                            const SizedBox(height: 4),
                                             Row(
                                               children: [
                                                 Container(
@@ -1031,13 +1067,13 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
                                                   decoration: BoxDecoration(
                                                     color: panel.isMatched
                                                         ? (isAvailable ? Colors.green.shade700 : Colors.red.shade700)
-                                                        : Colors.amber.shade800,
+                                                        : Colors.red.shade700,
                                                     borderRadius: BorderRadius.circular(4),
                                                   ),
                                                   child: Text(
                                                     panel.isMatched
-                                                        ? '✓ MATCHED IN STOCK (${panel.status})'
-                                                        : '⚡ NEW PANEL (AUTO-REGISTER)',
+                                                        ? '✓ MATCHED STOCK (${panel.status})'
+                                                        : '❌ NOT IN INVENTORY (Removing in 1s...)',
                                                     style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
                                                   ),
                                                 ),
@@ -1052,7 +1088,6 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
                                           _processingSerials.remove(_scannedPanels[index].serialNumber);
                                           _scannedPanels.removeAt(index);
                                         }),
-
                                       ),
                                     ],
                                   ),
@@ -1075,11 +1110,12 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
                         onPressed: () {
-                          Navigator.pop(context, _scannedPanels);
+                          final matchedPanels = _scannedPanels.where((p) => p.isMatched).toList();
+                          Navigator.pop(context, matchedPanels);
                         },
                         icon: const Icon(Icons.check_circle_outline, color: Colors.white),
                         label: Text(
-                          'Confirm & Attach (${_scannedPanels.length}) Panels',
+                          'Confirm & Attach (${_scannedPanels.where((p) => p.isMatched).length}) Matched Panels',
                           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                         ),
                       ),

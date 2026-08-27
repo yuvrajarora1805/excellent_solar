@@ -47,8 +47,9 @@ class _FieldDashboardScreenState extends State<FieldDashboardScreen> {
       final response = await ApiService.get(Uri.parse('$baseUrl/api/mobile/app-version'));
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final latestVersion = data['latest_version'] ?? '1.0.1';
-        const currentVersion = '1.0.1';
+        final latestVersion = data['latest_version'] ?? '1.0.2';
+        const currentVersion = '1.0.2';
+
 
 
         if (latestVersion != currentVersion) {
