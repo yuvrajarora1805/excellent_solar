@@ -295,23 +295,28 @@ export const serialNumberDb = {
       let importedCount = 0;
       let newlyInsertedCount = 0;
 
-      for (const mod of data.modules) {
-        if (!mod.module_sr_no) continue;
-        const remarks = `Box: ${mod.box_no || 'N/A'} | Pmax: ${mod.pmax || ''}W | Voc: ${mod.voc || ''}V | Isc: ${mod.isc || ''}A | Eff: ${mod.eff || ''}%`;
-        
-        const [result] = await conn.execute(
-          `INSERT INTO product_serial_numbers (product_id, serial_number, warehouse_id, current_location, remarks, status)
-           VALUES (?, ?, ?, 'WAREHOUSE', ?, 'AVAILABLE')
-           ON DUPLICATE KEY UPDATE remarks = VALUES(remarks)`,
-          [data.product_id, mod.module_sr_no, data.warehouse_id || null, remarks]
-        );
+      // Process module serial numbers in chunked batches of 100
+      const CHUNK_SIZE = 100;
+      for (let i = 0; i < data.modules.length; i += CHUNK_SIZE) {
+        const chunk = data.modules.slice(i, i + CHUNK_SIZE);
+        for (const mod of chunk) {
+          if (!mod.module_sr_no) continue;
+          const remarks = `Box: ${mod.box_no || 'N/A'} | Pmax: ${mod.pmax || ''}W | Voc: ${mod.voc || ''}V | Isc: ${mod.isc || ''}A | Eff: ${mod.eff || ''}%`;
+          
+          const [result] = await conn.execute(
+            `INSERT INTO product_serial_numbers (product_id, serial_number, warehouse_id, current_location, remarks, status)
+             VALUES (?, ?, ?, 'WAREHOUSE', ?, 'AVAILABLE')
+             ON DUPLICATE KEY UPDATE remarks = VALUES(remarks)`,
+            [data.product_id, mod.module_sr_no, data.warehouse_id || null, remarks]
+          );
 
-        importedCount++;
-        // affectedRows is 1 for a new INSERT, 2 for an UPDATE, and 0 for no change
-        if ((result as any).affectedRows === 1) {
-          newlyInsertedCount++;
+          importedCount++;
+          if ((result as any).affectedRows === 1) {
+            newlyInsertedCount++;
+          }
         }
       }
+
 
       // Only increment current_stock for newly added unique serial numbers
       if (newlyInsertedCount > 0) {

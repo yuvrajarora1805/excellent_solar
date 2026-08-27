@@ -134,10 +134,27 @@ export default function FlasherReportsPage() {
     }
   };
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
+
   const filteredPanels = panels.filter(p =>
     p.module_sr_no.toLowerCase().includes(search.toLowerCase()) ||
     p.box_no.toLowerCase().includes(search.toLowerCase())
   );
+
+  const totalPages = Math.ceil(filteredPanels.length / pageSize) || 1;
+  const paginatedPanels = filteredPanels.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearch(e.target.value);
+    setCurrentPage(1);
+  };
+
+  const startRecord = filteredPanels.length === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const endRecord = Math.min(currentPage * pageSize, filteredPanels.length);
 
   return (
     <div className="space-y-6">
@@ -207,23 +224,44 @@ export default function FlasherReportsPage() {
         </CardContent>
       </Card>
 
-      {/* Filter & Search */}
-      <div className="flex items-center gap-3">
-        <div className="relative flex-1">
+      {/* Filter & Search & Page Chunk Controls */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="relative flex-1 w-full">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <Input
             placeholder="Search by Unique Module Serial No. or Box No...."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={handleSearchChange}
             className="pl-10 font-mono text-sm"
           />
         </div>
-        <div className="text-xs text-slate-500 font-semibold">
-          Showing {filteredPanels.length} of {panels.length} panels
+
+        <div className="flex items-center gap-3 w-full sm:w-auto justify-between">
+          <div className="text-xs text-slate-600 dark:text-slate-400 font-semibold whitespace-nowrap">
+            Chunk Size:
+          </div>
+          <select
+            value={pageSize}
+            onChange={(e) => {
+              setPageSize(Number(e.target.value));
+              setCurrentPage(1);
+            }}
+            className="text-xs border rounded p-1.5 bg-white dark:bg-slate-900 dark:border-slate-700 font-semibold"
+          >
+            <option value={25}>25 per chunk</option>
+            <option value={50}>50 per chunk</option>
+            <option value={100}>100 per chunk</option>
+            <option value={200}>200 per chunk</option>
+            <option value={1000}>All ({filteredPanels.length})</option>
+          </select>
+
+          <div className="text-xs text-slate-500 font-semibold whitespace-nowrap">
+            {startRecord} - {endRecord} of {filteredPanels.length}
+          </div>
         </div>
       </div>
 
-      {/* Full Flasher Matrix Table */}
+      {/* Full Flasher Matrix Table (Paginated Chunks) */}
       <Card>
         <CardContent className="p-0 overflow-x-auto">
           <table className="w-full text-left text-xs min-w-[900px]">
@@ -242,7 +280,7 @@ export default function FlasherReportsPage() {
               </tr>
             </thead>
             <tbody className="divide-y font-medium text-slate-800 dark:text-slate-200">
-              {filteredPanels.map((p, idx) => (
+              {paginatedPanels.map((p, idx) => (
                 <tr key={idx} className="hover:bg-amber-50/50 dark:hover:bg-slate-800 transition-colors">
                   <td className="p-3 text-center text-slate-500 font-mono">{p.sr_no}</td>
                   <td className="p-3 font-mono">{p.box_no}</td>
@@ -258,7 +296,7 @@ export default function FlasherReportsPage() {
                   <td className="p-3 text-right font-bold text-emerald-600">{p.eff}%</td>
                 </tr>
               ))}
-              {filteredPanels.length === 0 && (
+              {paginatedPanels.length === 0 && (
                 <tr>
                   <td colSpan={10} className="p-8 text-center text-slate-500">
                     No panel serial numbers found matching "{search}".
@@ -268,7 +306,57 @@ export default function FlasherReportsPage() {
             </tbody>
           </table>
         </CardContent>
+
+        {/* Chunked Pagination Navigation Footer */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between p-3 border-t bg-slate-50 dark:bg-slate-900 text-xs">
+            <div className="text-slate-500">
+              Page <span className="font-bold text-slate-900 dark:text-white">{currentPage}</span> of{' '}
+              <span className="font-bold text-slate-900 dark:text-white">{totalPages}</span>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                className="h-8 text-xs"
+              >
+                Previous
+              </Button>
+              <div className="flex gap-1 max-w-[200px] overflow-x-auto">
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter((p) => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
+                  .map((pageNo, idx, arr) => (
+                    <div key={pageNo} className="flex items-center">
+                      {idx > 0 && arr[idx - 1] !== pageNo - 1 && <span className="px-1 text-slate-400">...</span>}
+                      <button
+                        onClick={() => setCurrentPage(pageNo)}
+                        className={`h-7 w-7 rounded text-xs font-bold transition-colors ${
+                          currentPage === pageNo
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100'
+                        }`}
+                      >
+                        {pageNo}
+                      </button>
+                    </div>
+                  ))}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                className="h-8 text-xs"
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        )}
       </Card>
+
 
       {/* Manual Panel Addition Modal */}
       <Modal isOpen={isManualModalOpen} onClose={() => setIsManualModalOpen(false)} title="Add Solar Panel Manually">

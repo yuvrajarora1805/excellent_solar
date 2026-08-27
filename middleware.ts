@@ -15,9 +15,8 @@ const publicRoutes = [
   '/api/mobile/login',
   '/api/mobile/app-version',
   '/downloads',
-  '/api/ocr',
-  '/api/run-migrations',
 ];
+
 
 
 
