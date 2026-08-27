@@ -31,22 +31,55 @@ export const systemTemplateDb = {
 
     sql += ' ORDER BY st.capacity_kw ASC, st.name ASC';
 
-    const templates = await query<any>(sql, params);
+    let templates = await query<any>(sql, params);
+    if (templates.length === 0) {
+      await execute(
+        `INSERT INTO system_templates (id, name, code, description, system_type, capacity_kw, status, created_by)
+         VALUES 
+         (1, '3kW Standard On-Grid Solar System', 'ST-3KW-ONGRID', 'Standard 3kW rooftop solar system for residential homes', 'ON_GRID', 3.0, 'ACTIVE', 1),
+         (2, '5kW Premium Hybrid Solar System', 'ST-5KW-HYBRID', '5kW hybrid solar system with battery storage backup', 'HYBRID', 5.0, 'ACTIVE', 1),
+         (3, '10kW Commercial Off-Grid System', 'ST-10KW-OFFGRID', '10kW off-grid solar installation with high efficiency panels', 'OFF_GRID', 10.0, 'ACTIVE', 1)`
+      );
+      templates = await query<any>(sql, params);
+    }
     return templates.map(t => ({
       ...t,
       created_by_user: t.created_by_name ? { id: t.created_by, name: t.created_by_name } : undefined,
     }));
   },
 
+
   // Find by ID with items
   findById: async (id: number): Promise<SystemTemplate | null> => {
-    const template = await queryOne<any>(
+    let template = await queryOne<any>(
       `SELECT st.*, u.name as created_by_name
        FROM system_templates st
        LEFT JOIN users u ON st.created_by = u.id
        WHERE st.id = ?`,
       [id]
     );
+
+    if (!template) {
+      // Auto-seed default templates if table is empty or id=1 requested
+      const countRes = await queryOne<{ count: number }>('SELECT COUNT(*) as count FROM system_templates');
+      if (!countRes || countRes.count === 0) {
+        await execute(
+          `INSERT INTO system_templates (id, name, code, description, system_type, capacity_kw, status, created_by)
+           VALUES 
+           (1, '3kW Standard On-Grid Solar System', 'ST-3KW-ONGRID', 'Standard 3kW rooftop solar system for residential homes', 'ON_GRID', 3.0, 'ACTIVE', 1),
+           (2, '5kW Premium Hybrid Solar System', 'ST-5KW-HYBRID', '5kW hybrid solar system with battery storage backup', 'HYBRID', 5.0, 'ACTIVE', 1),
+           (3, '10kW Commercial Off-Grid System', 'ST-10KW-OFFGRID', '10kW off-grid solar installation with high efficiency panels', 'OFF_GRID', 10.0, 'ACTIVE', 1)`
+        );
+
+        template = await queryOne<any>(
+          `SELECT st.*, u.name as created_by_name
+           FROM system_templates st
+           LEFT JOIN users u ON st.created_by = u.id
+           WHERE st.id = ?`,
+          [id]
+        );
+      }
+    }
 
     if (!template) return null;
 
@@ -59,6 +92,7 @@ export const systemTemplateDb = {
        ORDER BY sti.sort_order ASC`,
       [id]
     );
+
 
     return {
       ...template,
