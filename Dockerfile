@@ -25,8 +25,10 @@ RUN BUILD_STANDALONE=true npm run build
 FROM base AS runner
 WORKDIR /app
 
-# Install native dependencies for Sharp image compression & Python3 for OCR script
-RUN apk add --no-cache libc6-compat vips python3 py3-pip
+# Install native dependencies for Sharp image compression & Python3 + pdfplumber for OCR script
+RUN apk add --no-cache libc6-compat vips python3 py3-pip py3-pillow && \
+    python3 -m pip install pdfplumber --break-system-packages
+
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
