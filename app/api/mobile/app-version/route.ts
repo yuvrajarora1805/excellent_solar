@@ -6,6 +6,6 @@ export async function GET() {
     version_code: 2,
     force_update: false,
     apk_url: 'https://es.omvky.com/downloads/field_app.apk',
-    release_notes: '• Added ticket detail view & approval workflow\n• Improved image compression & faster uploads\n• Added Tabbed Job Sections (Survey vs Installation)',
+    release_notes: '• Fixed site survey verification workflow\n• Added pending work remarks support\n• Improved date formatting (DD/MM/YYYY)\n• Added user-specific job isolation\n• Integrated direct auto-installer link',
   });
 }
