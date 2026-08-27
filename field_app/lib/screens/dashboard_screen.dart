@@ -33,7 +33,69 @@ class _FieldDashboardScreenState extends State<FieldDashboardScreen> {
   void initState() {
     super.initState();
     _fetchStats();
+    _checkAppUpdate();
   }
+
+  Future<void> _checkAppUpdate() async {
+    try {
+      final response = await ApiService.get(Uri.parse('$baseUrl/api/mobile/app-version'));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final latestVersion = data['latest_version'] ?? '1.0.0';
+        const currentVersion = '1.0.0';
+
+        if (latestVersion != currentVersion) {
+          if (!mounted) return;
+          showDialog(
+            context: context,
+            barrierDismissible: data['force_update'] != true,
+            builder: (context) => AlertDialog(
+              title: const Row(
+                children: [
+                  Icon(Icons.system_update, color: Colors.blue),
+                  SizedBox(width: 8),
+                  Text('New App Version'),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Version $latestVersion is available!', style: const TextStyle(fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 8),
+                  if (data['release_notes'] != null)
+                    Text(data['release_notes'], style: const TextStyle(fontSize: 13, color: Colors.black87)),
+                ],
+              ),
+              actions: [
+                if (data['force_update'] != true)
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Later'),
+                  ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, foregroundColor: Colors.white),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Downloading APK update from ${data['apk_url']}...'),
+                        backgroundColor: Colors.blue,
+                      ),
+                    );
+                  },
+                  child: const Text('Update Now'),
+                ),
+              ],
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      // Ignore background check failure
+    }
+  }
+
 
   Future<void> _fetchStats() async {
     try {
