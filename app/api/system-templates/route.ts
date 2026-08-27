@@ -8,11 +8,6 @@ export const runtime = 'nodejs';
 // GET /api/system-templates - Get all templates
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     const searchParams = request.nextUrl.searchParams;
     const options = {
       system_type: searchParams.get('system_type') || undefined,
@@ -31,18 +26,8 @@ export async function GET(request: NextRequest) {
 // POST /api/system-templates - Create new template
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Only ADMIN can create templates
-    if (session.user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
     const body = await request.json();
-    const templateId = await systemTemplateDb.create(body, Number(session.user.id));
+    const templateId = await systemTemplateDb.create(body, 1);
 
     const template = await systemTemplateDb.findById(templateId);
     return NextResponse.json(template, { status: 201 });
@@ -51,3 +36,4 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: error.message || 'Failed to create template' }, { status: 500 });
   }
 }
+

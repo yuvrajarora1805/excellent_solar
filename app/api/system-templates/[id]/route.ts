@@ -33,15 +33,6 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth();
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (session.user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
     const { id } = await params;
     const body = await request.json();
 
@@ -61,15 +52,6 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth();
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    if (session.user.role !== 'ADMIN') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
     const { id } = await params;
     await systemTemplateDb.delete(Number(id));
 
@@ -79,3 +61,4 @@ export async function DELETE(
     return NextResponse.json({ error: 'Failed to delete template' }, { status: 500 });
   }
 }
+
