@@ -94,10 +94,8 @@ export const SolarQuotationTemplate: React.FC<{ data: Partial<SolarQuotationData
           <tr className="bg-[#6b9e38] text-black font-extrabold border-b border-black text-center">
             <th className="border border-black p-1.5 w-[8%]">Sr No.</th>
             <th className="border border-black p-1.5 text-center w-[35%]">MATERIAL DETAIL</th>
-            <th className="border border-black p-0 w-[8%] leading-tight text-[10px] align-middle">
-              <div className="flex items-center justify-center h-[50px]">
-                <span className="-rotate-90 inline-block tracking-widest whitespace-nowrap">QUANTITY</span>
-              </div>
+            <th className="border border-black p-1.5 w-[8%] leading-tight text-[10px]">
+              QUANTI<br />TY
             </th>
             <th className="border border-black p-1.5 text-center w-[25%]">BRAND</th>
             <th className="border border-black p-1.5 text-center w-[24%]">Description</th>
