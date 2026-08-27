@@ -34,11 +34,11 @@ export default function FlasherReportsPage() {
     brand: 'WAAREE ENERGIES LIMITED',
     report_title: 'Flasher Report',
     customer: 'M/S Excellent Solar',
-    oa_no: '3260108840',
-    invoice_no: '5601014785',
-    date: '10.08.2026',
+    oa_no: '—',
+    invoice_no: '—',
+    date: '—',
     module_model: 'BIN-21-615',
-    quantity: '620 Nos.',
+    quantity: '0 Nos.',
   });
 
   // Form for manual panel addition
@@ -68,8 +68,8 @@ export default function FlasherReportsPage() {
         const rawList = Array.isArray(data) ? data : (data.serials || []);
         
         const serialsList: FlasherPanel[] = rawList.map((s: any, idx: number) => {
-          let box_no = '18126725273';
-          let pmax = '617.49', voc = '48.24', isc = '15.81', vmp = '41.21', imp = '14.98', ff = '80.96', eff = '22.86';
+          let box_no = 'N/A';
+          let pmax = '—', voc = '—', isc = '—', vmp = '—', imp = '—', ff = '—', eff = '—';
 
           if (s.remarks && s.remarks.includes('Pmax:')) {
             const parts = s.remarks.split('|');
@@ -91,32 +91,18 @@ export default function FlasherReportsPage() {
           };
         });
 
-        if (serialsList.length > 0) {
-          setPanels(serialsList);
-        } else {
-          loadDefaultSamplePanels();
-        }
+        setPanels(serialsList);
       } else {
-        loadDefaultSamplePanels();
+        setPanels([]);
       }
     } catch (err) {
       console.error('Failed to fetch serial numbers:', err);
-      loadDefaultSamplePanels();
+      setPanels([]);
     } finally {
       setLoading(false);
     }
   };
 
-
-  const loadDefaultSamplePanels = () => {
-    setPanels([
-      { sr_no: 393, box_no: '18126725273', module_sr_no: 'WS08269074875699', pmax: '617.49', voc: '48.24', isc: '15.81', vmp: '41.21', imp: '14.98', ff: '80.96', eff: '22.86' },
-      { sr_no: 394, box_no: '18126725273', module_sr_no: 'WS08269074875700', pmax: '618.40', voc: '48.25', isc: '15.83', vmp: '41.22', imp: '15.00', ff: '80.95', eff: '22.89' },
-      { sr_no: 395, box_no: '18126725273', module_sr_no: 'WS08269074875703', pmax: '618.98', voc: '48.34', isc: '15.77', vmp: '41.27', imp: '15.00', ff: '81.18', eff: '22.92' },
-      { sr_no: 396, box_no: '18126725273', module_sr_no: 'WS08269074875704', pmax: '616.36', voc: '48.27', isc: '15.82', vmp: '41.25', imp: '14.94', ff: '80.73', eff: '22.82' },
-      { sr_no: 397, box_no: '18126725273', module_sr_no: 'WS08269074875705', pmax: '618.01', voc: '48.25', isc: '15.82', vmp: '41.21', imp: '15.00', ff: '80.96', eff: '22.88' },
-    ]);
-  };
 
   const handleAddManualPanel = async (e: React.FormEvent) => {
     e.preventDefault();
