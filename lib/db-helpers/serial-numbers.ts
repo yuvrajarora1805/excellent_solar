@@ -321,16 +321,21 @@ export const serialNumberDb = {
         );
       }
 
-      // Add stock transaction ledger entry
-      await conn.execute(
-        `INSERT INTO stock_transactions (product_id, type, quantity, reference_type, remarks, created_by)
-         VALUES (?, 'PURCHASE', ?, 'FTR_IMPORT', ?, ?)`,
-        [data.product_id, newlyInsertedCount > 0 ? newlyInsertedCount : importedCount, `FTR Import Invoice #${data.invoice_no || 'N/A'} - ${importedCount} panels (${newlyInsertedCount} new)`, data.userId]
-      );
+      // Add stock transaction ledger entry safely
+      try {
+        await conn.execute(
+          `INSERT INTO stock_transactions (product_id, type, quantity, reference_type, remarks, created_by)
+           VALUES (?, 'PURCHASE', ?, 'FTR_IMPORT', ?, ?)`,
+          [data.product_id, newlyInsertedCount > 0 ? newlyInsertedCount : importedCount, `FTR Import Invoice #${data.invoice_no || 'N/A'} - ${importedCount} panels (${newlyInsertedCount} new)`, data.userId]
+        );
+      } catch (stErr) {
+        console.warn('stock_transactions ledger entry optional error:', stErr);
+      }
 
       // Get updated current_stock
       const [rows] = await conn.execute('SELECT current_stock FROM products WHERE id = ?', [data.product_id]);
       const newStockCount = (rows as any)?.[0]?.current_stock || 0;
+
 
       return { importedCount, newlyInsertedCount, newStockCount };
     });
