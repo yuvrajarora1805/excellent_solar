@@ -87,7 +87,7 @@ export const productDb = {
   // Create new product
   create: async (data: Omit<Product, 'id' | 'created_at' | 'updated_at'>): Promise<number> => {
     return insert(
-      'INSERT INTO products (product_code, name, category, brand, model, specification, unit, minimum_stock, current_stock, selling_price, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO products (product_code, name, category, brand, model, specification, unit, minimum_stock, current_stock, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       [
         data.product_code,
         data.name,
@@ -98,7 +98,6 @@ export const productDb = {
         data.unit,
         data.minimum_stock,
         data.current_stock,
-        data.selling_price || 0,
         data.status || 'ACTIVE'
       ]
     );
@@ -149,10 +148,7 @@ export const productDb = {
       fields.push('status = ?');
       values.push(data.status);
     }
-    if (data.selling_price !== undefined) {
-      fields.push('selling_price = ?');
-      values.push(data.selling_price);
-    }
+
 
     if (fields.length === 0) return 0;
 

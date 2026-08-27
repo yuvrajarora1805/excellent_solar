@@ -30,10 +30,12 @@ export async function PUT(
     await productDb.update(id, body);
     const product = await productDb.findById(id);
     return NextResponse.json(product);
-  } catch (error) {
-    return NextResponse.json({ error: 'Failed to update product' }, { status: 500 });
+  } catch (error: any) {
+    console.error(`Error updating product ${params}:`, error);
+    return NextResponse.json({ error: error.message || 'Failed to update product' }, { status: 500 });
   }
 }
+
 
 export async function DELETE(
   request: NextRequest,
