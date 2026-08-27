@@ -75,8 +75,9 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: 'filePath is required in body' }, { status: 400 });
       }
       try {
-        fileBuffer = await fs.readFile(targetFilePath);
+        fileBuffer = await fs.readFile(/*turbopackIgnore: true*/ targetFilePath);
       } catch (err) {
+
         // Continue if file missing locally
       }
     }

@@ -10,6 +10,28 @@ export const runtime = 'nodejs';
 // Routes that don't require authentication
 const publicRoutes = ['/login', '/api/auth', '/api/mobile/auth/login', '/api/mobile/app-version', '/downloads', '/api/ocr'];
 
+const marketingRoutes: string[] = [
+  '/dashboard',
+  '/customers',
+  '/projects',
+  '/quotations',
+  '/survey',
+];
+
+const installationRoutes: string[] = [
+  '/dashboard',
+  '/inventory',
+  '/installation',
+  '/service',
+];
+
+const discomRoutes: string[] = [
+  '/dashboard',
+  '/discom',
+  '/documents',
+];
+
+
 
 export default auth((req) => {
   const { pathname } = req.nextUrl;
