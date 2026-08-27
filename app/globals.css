@@ -239,6 +239,8 @@
 @media print {
   body {
     background-color: white !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
   .app-sidebar, .app-header, .app-footer, [data-radix-focus-guard] {
     display: none !important;

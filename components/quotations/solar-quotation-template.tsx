@@ -47,7 +47,7 @@ export const SolarQuotationTemplate: React.FC<{ data: Partial<SolarQuotationData
   ];
 
   return (
-    <div className="bg-white text-black font-sans p-4 max-w-[800px] mx-auto border border-black shadow-lg print:shadow-none print:border-none print:p-0 print:m-0">
+    <div className="bg-white text-black font-sans p-4 max-w-[800px] mx-auto border border-black shadow-lg print:shadow-none print:border-none print:p-4 print:mx-auto print:max-w-full">
       {/* Header Logo */}
       <div className="text-center mb-4 flex justify-center">
         <img src="/logo.png" alt="Excellent Solar Logo" className="h-16 object-contain" />
