@@ -8,10 +8,7 @@ export const runtime = 'nodejs';
 // GET /api/serial-numbers - Get all serial numbers
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+
 
     const searchParams = request.nextUrl.searchParams;
     const options = {

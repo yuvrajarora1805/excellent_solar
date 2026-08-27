@@ -162,14 +162,14 @@ export const serialNumberDb = {
 
     sql += ' ORDER BY psn.created_at DESC';
 
-    if (options?.limit) {
-      sql += ` LIMIT ${Number(options.limit)}`;
-      if (options.offset) {
-        sql += ` OFFSET ${Number(options.offset)}`;
-      }
+    const limitVal = options?.limit ? Number(options.limit) : 2000;
+    sql += ` LIMIT ${limitVal}`;
+    if (options?.offset) {
+      sql += ` OFFSET ${Number(options.offset)}`;
     }
 
     return query<ProductSerialNumber>(sql, params);
+
   },
 
   findById: async (id: number): Promise<ProductSerialNumber | null> => {

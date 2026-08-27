@@ -65,10 +65,11 @@ export default function FlasherReportsPage() {
       const res = await fetch('/api/serial-numbers');
       if (res.ok) {
         const data = await res.json();
-        // Transform serial numbers data to flasher format if present
-        const serialsList: FlasherPanel[] = (data.serials || data || []).map((s: any, idx: number) => {
-          let box_no = '18126625466';
-          let pmax = '615.00', voc = '48.50', isc = '15.80', vmp = '41.20', imp = '15.00', ff = '80.50', eff = '22.80';
+        const rawList = Array.isArray(data) ? data : (data.serials || []);
+        
+        const serialsList: FlasherPanel[] = rawList.map((s: any, idx: number) => {
+          let box_no = '18126725273';
+          let pmax = '617.49', voc = '48.24', isc = '15.81', vmp = '41.21', imp = '14.98', ff = '80.96', eff = '22.86';
 
           if (s.remarks && s.remarks.includes('Pmax:')) {
             const parts = s.remarks.split('|');
@@ -93,7 +94,6 @@ export default function FlasherReportsPage() {
         if (serialsList.length > 0) {
           setPanels(serialsList);
         } else {
-          // Default initial demonstration dataset if database is empty
           loadDefaultSamplePanels();
         }
       } else {
@@ -106,6 +106,7 @@ export default function FlasherReportsPage() {
       setLoading(false);
     }
   };
+
 
   const loadDefaultSamplePanels = () => {
     setPanels([
