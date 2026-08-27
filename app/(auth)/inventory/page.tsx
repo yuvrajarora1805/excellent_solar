@@ -29,6 +29,14 @@ const inventorySections = [
     stats: 'Manage Flasher Reports & Serials',
   },
   {
+    title: 'Reservations & Requests',
+    description: 'Manage material reservations and project stock requests',
+    icon: 'assignment',
+    href: '/inventory/reservations',
+    color: 'bg-amber-100 text-amber-900',
+    stats: 'View Reservations & Requests',
+  },
+  {
     title: 'Purchases',
     description: 'Manage supplier purchases and invoices',
     icon: 'shopping_cart',
@@ -37,6 +45,7 @@ const inventorySections = [
     stats: 'View purchases',
   },
 ];
+
 
 export default function InventoryPage() {
   const [stats, setStats] = useState({
