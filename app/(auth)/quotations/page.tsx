@@ -186,13 +186,13 @@ export default function QuotationsPage() {
 function QuotationDetails({ quotation, onClose, onUpdateStatus }: any) {
   const items = Array.isArray(quotation.items) ? quotation.items : [];
 
-  const materials = items.length > 0
+  const materials = items && items.length > 0
     ? items.map((item: any, idx: number) => ({
         sr_no: idx + 1,
         material: (item.product_name || item.description || '').toUpperCase(),
         quantity: String(item.quantity || ''),
-        brand: item.product?.brand || 'N/A',
-        description: item.product?.description || '',
+        brand: item.unit ? String(item.unit).toUpperCase() : '',
+        description: item.remarks ? String(item.remarks).toUpperCase() : '',
       }))
     : undefined;
 
