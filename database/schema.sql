@@ -917,3 +917,53 @@ CREATE TABLE IF NOT EXISTS project_reservations (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   UNIQUE KEY(project_id, product_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================
+-- ORDERS & DISPATCH MANAGEMENT
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS orders (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  order_number VARCHAR(50) UNIQUE NOT NULL,
+  order_type ENUM('PROJECT', 'RETAIL') DEFAULT 'RETAIL',
+  customer_id INT NULL,
+  customer_name VARCHAR(255) NOT NULL,
+  customer_mobile VARCHAR(20),
+  delivery_address TEXT,
+  vehicle_number VARCHAR(50),
+  driver_name VARCHAR(100),
+  driver_mobile VARCHAR(20),
+  vehicle_photo_path VARCHAR(500),
+  total_amount DECIMAL(12, 2) DEFAULT 0,
+  status ENUM('DRAFT', 'READY_FOR_DISPATCH', 'DISPATCHED', 'DELIVERED', 'CANCELLED') DEFAULT 'DRAFT',
+  created_by INT,
+  dispatched_at TIMESTAMP NULL,
+  delivered_at TIMESTAMP NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_order_number (order_number),
+  INDEX idx_order_type (order_type),
+  INDEX idx_status (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS order_items (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  order_id INT NOT NULL,
+  product_id INT NOT NULL,
+  quantity INT NOT NULL,
+  unit_price DECIMAL(10, 2) DEFAULT 0,
+  line_total DECIMAL(12, 2) DEFAULT 0,
+  FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+  FOREIGN KEY (product_id) REFERENCES products(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS order_serials (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  order_id INT NOT NULL,
+  product_id INT NOT NULL,
+  serial_number VARCHAR(100) NOT NULL,
+  scanned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+  INDEX idx_serial_number (serial_number)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+

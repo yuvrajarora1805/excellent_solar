@@ -1,6 +1,10 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:http/http.dart' as http;
 import '../services/api_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -77,29 +81,15 @@ class _FieldDashboardScreenState extends State<FieldDashboardScreen> {
                   ),
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, foregroundColor: Colors.white),
-                  onPressed: () async {
+                  onPressed: () {
                     Navigator.pop(context);
                     final String? apkUrl = data['apk_url'];
                     if (apkUrl != null && apkUrl.isNotEmpty) {
-                      final uri = Uri.parse(apkUrl);
-                      try {
-                        final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
-                        if (!launched) {
-                          await launchUrl(uri, mode: LaunchMode.platformDefault);
-                        }
-                      } catch (e) {
-                        if (mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('Could not open APK download link: $apkUrl')),
-                          );
-                        }
-                      }
+                      _downloadAndInstallApk(apkUrl);
                     }
                   },
                   child: const Text('Update Now'),
                 ),
-
-
               ],
             ),
           );
@@ -109,6 +99,101 @@ class _FieldDashboardScreenState extends State<FieldDashboardScreen> {
       // Ignore background check failure
     }
   }
+
+  Future<void> _downloadAndInstallApk(String apkUrl) async {
+    double progress = 0.0;
+    StateSetter? dialogSetState;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setState) {
+          dialogSetState = setState;
+          return AlertDialog(
+            title: const Row(
+              children: [
+                Icon(Icons.downloading, color: Colors.blue),
+                SizedBox(width: 8),
+                Text('Downloading Update...'),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                LinearProgressIndicator(value: progress > 0 ? progress : null, backgroundColor: Colors.grey.shade200, color: Colors.blue),
+                const SizedBox(height: 12),
+                Text(
+                  progress > 0 ? '${(progress * 100).toInt()}% downloaded' : 'Starting download...',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+
+    try {
+      final client = http.Client();
+      final request = http.Request('GET', Uri.parse(apkUrl));
+      final response = await client.send(request);
+
+      if (response.statusCode != 200) {
+        throw Exception('Download failed with status ${response.statusCode}');
+      }
+
+      final contentLength = response.contentLength ?? 0;
+      final tempDir = await getTemporaryDirectory();
+      final apkFile = File('${tempDir.path}/field_app_update.apk');
+
+      List<int> bytes = [];
+      int downloaded = 0;
+
+      await for (var chunk in response.stream) {
+        bytes.addAll(chunk);
+        downloaded += chunk.length;
+        if (contentLength > 0 && dialogSetState != null) {
+          dialogSetState!(() {
+            progress = downloaded / contentLength;
+          });
+        }
+      }
+
+      await apkFile.writeAsBytes(bytes);
+
+      if (mounted && Navigator.canPop(context)) {
+        Navigator.pop(context); // Close progress dialog
+      }
+
+      // Invoke Android System Package Installer
+      const channel = MethodChannel('com.excellentsolar.field_app/installer');
+      final bool installed = await channel.invokeMethod('installApk', {'filePath': apkFile.path});
+
+      if (!installed && mounted) {
+        // Fallback to url_launcher if native channel fails
+        final uri = Uri.parse(apkUrl);
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      }
+    } catch (e) {
+      if (mounted && Navigator.canPop(context)) {
+        Navigator.pop(context); // Close progress dialog
+      }
+
+      // Fallback to url_launcher
+      try {
+        final uri = Uri.parse(apkUrl);
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } catch (err) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to download update: $e')),
+          );
+        }
+      }
+    }
+  }
+
 
 
   Future<void> _fetchStats() async {

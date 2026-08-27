@@ -5,6 +5,9 @@ import { useSearchParams } from 'next/navigation';
 import { DataTable } from '@/components/ui/data-table';
 import { Button } from '@/components/ui/button';
 import { Modal } from '@/components/ui/modal';
+import { Input } from '@/components/ui/input';
+import { SolarQuotationTemplate, SolarQuotationData } from '@/components/quotations/solar-quotation-template';
+
 
 interface Quotation {
   id: number;
@@ -31,7 +34,9 @@ function QuotationsPageContent() {
   const [selectedQuotation, setSelectedQuotation] = useState<Quotation | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isOcrModalOpen, setIsOcrModalOpen] = useState(false);
   const searchParams = useSearchParams();
+
   const initialProjectId = searchParams.get('project_id') || '';
 
   useEffect(() => {
@@ -216,13 +221,36 @@ function QuotationsPageContent() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-headline-md font-bold text-on-surface">Quotations</h1>
-          <p className="text-body-md text-on-surface-variant mt-1">Manage solar system quotations for customers</p>
+          <p className="text-body-md text-on-surface-variant mt-1">Manage solar system quotations for customers using Excellent Solar pattern</p>
         </div>
-        <Button onClick={() => setIsCreateOpen(true)} className="btn-primary flex items-center gap-2">
-          <span className="material-symbols-outlined">description</span>
-          New Quotation
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={() => setIsOcrModalOpen(true)} className="bg-amber-600 hover:bg-amber-700 text-white flex items-center gap-2">
+            <span className="material-symbols-outlined">center_focus_weak</span>
+            Import Quotation PDF (OCR)
+          </Button>
+          <Button onClick={() => setIsCreateOpen(true)} className="btn-primary flex items-center gap-2">
+            <span className="material-symbols-outlined">description</span>
+            New Quotation
+          </Button>
+        </div>
       </div>
+
+      {/* OCR Quotation Modal */}
+      <Modal
+        isOpen={isOcrModalOpen}
+        onClose={() => setIsOcrModalOpen(false)}
+        title="Import Quotation PDF (OCR & Pattern Generator)"
+        size="lg"
+      >
+        <OcrQuotationImportModal
+          onClose={() => setIsOcrModalOpen(false)}
+          onSuccess={() => {
+            setIsOcrModalOpen(false);
+            fetchQuotations();
+          }}
+        />
+      </Modal>
+
 
       {/* Data Table */}
       <div className="card-base overflow-hidden">
@@ -599,3 +627,118 @@ function CreateQuotationForm({ onSuccess, onCancel, initialProjectId = '' }: any
     </form>
   );
 }
+
+function OcrQuotationImportModal({ onClose }: { onClose: () => void; onSuccess: () => void }) {
+  const [filePath, setFilePath] = useState('/media/yuvraj/New Volume/xamp/htdocs/excellent-solar/SOLAR ROOFTOP QUOTATION 200 KW_260827_183327.pdf');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [quotationData, setQuotationData] = useState<SolarQuotationData | null>(null);
+  const [viewMode, setViewMode] = useState<'preview' | 'json'>('preview');
+
+  const handleParse = async () => {
+    try {
+      setLoading(true);
+      let response: Response;
+
+      if (selectedFile) {
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+        response = await fetch('/api/ocr/parse-pdf', { method: 'POST', body: formData });
+      } else {
+        response = await fetch('/api/ocr/parse-pdf', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filePath }),
+        });
+      }
+
+      const data = await response.json();
+      if (!response.ok || data.error) {
+        throw new Error(data.error || 'Failed to parse PDF');
+      }
+
+      setQuotationData(data);
+    } catch (err: any) {
+      alert(err.message || 'Error executing OCR on quotation PDF');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4 max-h-[80vh] overflow-y-auto pr-1">
+      {/* Upload or local path input */}
+      <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-lg border space-y-3">
+        <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200">
+          Upload Quotation PDF or specify File Path
+        </label>
+        <div className="flex gap-2">
+          <Input
+            type="file"
+            accept=".pdf"
+            onChange={(e) => {
+              if (e.target.files && e.target.files[0]) setSelectedFile(e.target.files[0]);
+            }}
+            className="flex-1"
+          />
+          <Button onClick={handleParse} disabled={loading} className="bg-amber-600 hover:bg-amber-700 text-white">
+            {loading ? 'Running OCR...' : 'Run OCR'}
+          </Button>
+        </div>
+        <div className="text-xs text-slate-500">Local PDF file path:</div>
+        <Input
+          value={filePath}
+          onChange={(e) => setFilePath(e.target.value)}
+          placeholder="/path/to/quotation.pdf"
+          className="text-xs font-mono"
+        />
+      </div>
+
+      {/* OCR Parsed Result Header & Pattern Preview */}
+      {quotationData && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between bg-amber-50 border border-amber-200 p-3 rounded-lg">
+            <div>
+              <span className="font-bold text-amber-900 block text-sm">PDF Quotation OCR Parsed Successfully</span>
+              <span className="text-xs text-amber-700">Customer: {quotationData.customer_name} | Capacity: {quotationData.capacity}</span>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant={viewMode === 'preview' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setViewMode('preview')}
+              >
+                Pattern Preview
+              </Button>
+              <Button
+                variant={viewMode === 'json' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setViewMode('json')}
+              >
+                Extracted Data
+              </Button>
+              <Button size="sm" onClick={() => window.print()} className="bg-blue-600 text-white">
+                Print / Download PDF
+              </Button>
+            </div>
+          </div>
+
+          {viewMode === 'preview' ? (
+            <div className="border rounded-lg p-2 bg-slate-100 overflow-x-auto">
+              <SolarQuotationTemplate data={quotationData} />
+            </div>
+          ) : (
+            <pre className="bg-slate-900 text-green-400 p-4 rounded-lg text-xs font-mono max-h-96 overflow-y-auto">
+              {JSON.stringify(quotationData, null, 2)}
+            </pre>
+          )}
+        </div>
+      )}
+
+      <div className="flex justify-end gap-2 pt-2 border-t">
+        <Button variant="outline" onClick={onClose}>Close</Button>
+      </div>
+    </div>
+  );
+}
+

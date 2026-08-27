@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Plus, Search, AlertCircle, Edit, Eye, Trash2, Package, TrendingUp, TrendingDown } from 'lucide-react';
-
+import { FTRImportModal } from '@/components/inventory/ftr-import-modal';
 
 interface Product {
   id: number;
@@ -30,6 +30,8 @@ export default function ProductsPage() {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [categories, setCategories] = useState<string[]>([]);
+  const [isFtrOpen, setIsFtrOpen] = useState(false);
+
   const limit = 20;
 
   useEffect(() => {
@@ -90,13 +92,30 @@ export default function ProductsPage() {
             Manage inventory products and stock levels
           </p>
         </div>
-        <Link href="/inventory/products/new">
-          <Button className="gap-2">
-            <Plus className="w-4 h-4" />
-            Add Product
+        <div className="flex gap-2">
+          <Button onClick={() => setIsFtrOpen(true)} className="bg-green-600 hover:bg-green-700 text-white gap-2">
+            <Package className="w-4 h-4" />
+            Import FTR Solar Panels (OCR)
           </Button>
-        </Link>
+          <Link href="/inventory/products/new">
+            <Button className="gap-2">
+              <Plus className="w-4 h-4" />
+              Add Product
+            </Button>
+          </Link>
+        </div>
       </div>
+
+      <FTRImportModal
+        isOpen={isFtrOpen}
+        onClose={() => setIsFtrOpen(false)}
+        onSuccess={() => {
+          fetchProducts();
+          setIsFtrOpen(false);
+        }}
+        products={products}
+      />
+
 
       {/* Filters */}
       <Card className="shadow-sm">

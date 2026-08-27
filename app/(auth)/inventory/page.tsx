@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
 const inventorySections = [
@@ -20,6 +21,14 @@ const inventorySections = [
     stats: 'Check stock status',
   },
   {
+    title: 'Flasher Reports & Panels',
+    description: 'View Waaree flasher test details, OA No., Box No., and unique serial numbers',
+    icon: 'solar_power',
+    href: '/inventory/flasher-reports',
+    color: 'bg-emerald-100 text-emerald-900',
+    stats: 'Manage Flasher Reports & Serials',
+  },
+  {
     title: 'Purchases',
     description: 'Manage supplier purchases and invoices',
     icon: 'shopping_cart',
@@ -27,25 +36,79 @@ const inventorySections = [
     color: 'bg-tertiary-container',
     stats: 'View purchases',
   },
-  {
-    title: 'Reservations',
-    description: 'View and manage inventory reservations',
-    icon: 'bookmark',
-    href: '/inventory/reservations',
-    color: 'bg-error-container',
-    stats: 'View reservations',
-  },
 ];
 
 export default function InventoryPage() {
+  const [stats, setStats] = useState({
+    totalProducts: 0,
+    totalStock: 0,
+    totalSerials: 0,
+    pendingPurchases: 0,
+    totalOrders: 0,
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchStats();
+  }, []);
+
+  const fetchStats = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch('/api/inventory/stats');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.stats) {
+          setStats(data.stats);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch inventory stats:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-8">
       {/* Header */}
       <div>
         <h1 className="text-headline-md font-bold text-on-surface">Inventory Management</h1>
         <p className="text-body-md text-on-surface-variant mt-1">
-          Manage products, stock, purchases, and reservations
+          Manage products, stock, flasher reports, and purchases
         </p>
+      </div>
+
+      {/* Real-time Dynamic Stats Cards */}
+      <div className="grid gap-4 md:grid-cols-4">
+        <div className="card-base p-4">
+          <div className="font-label-bold text-on-surface-variant mb-2">Total Products</div>
+          <div className="text-headline-md font-bold text-on-surface">
+            {loading ? '...' : stats.totalProducts}
+          </div>
+          <p className="text-label-sm text-secondary mt-1">Active items in catalog</p>
+        </div>
+        <div className="card-base p-4">
+          <div className="font-label-bold text-on-surface-variant mb-2">Total Stock & Panels</div>
+          <div className="text-headline-md font-bold text-emerald-600">
+            {loading ? '...' : stats.totalStock}
+          </div>
+          <p className="text-label-sm text-secondary mt-1">Units available in warehouse</p>
+        </div>
+        <div className="card-base p-4">
+          <div className="font-label-bold text-on-surface-variant mb-2">Pending Purchases</div>
+          <div className="text-headline-md font-bold text-amber-600">
+            {loading ? '...' : stats.pendingPurchases}
+          </div>
+          <p className="text-label-sm text-secondary mt-1">Purchase orders in progress</p>
+        </div>
+        <div className="card-base p-4">
+          <div className="font-label-bold text-on-surface-variant mb-2">Total Dispatches & Orders</div>
+          <div className="text-headline-md font-bold text-blue-600">
+            {loading ? '...' : stats.totalOrders}
+          </div>
+          <p className="text-label-sm text-secondary mt-1">Orders dispatched to customers</p>
+        </div>
       </div>
 
       {/* Inventory Sections */}
@@ -71,25 +134,6 @@ export default function InventoryPage() {
             </div>
           </div>
         ))}
-      </div>
-
-      {/* Quick Stats */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <div className="card-base p-4">
-          <div className="font-label-bold text-on-surface-variant mb-2">Total Products</div>
-          <div className="text-headline-md font-bold text-on-surface">0</div>
-          <p className="text-label-sm text-secondary mt-1">Active items in catalog</p>
-        </div>
-        <div className="card-base p-4">
-          <div className="font-label-bold text-on-surface-variant mb-2">Low Stock Items</div>
-          <div className="text-headline-md font-bold text-primary-container">0</div>
-          <p className="text-label-sm text-error mt-1">Need attention</p>
-        </div>
-        <div className="card-base p-4">
-          <div className="font-label-bold text-on-surface-variant mb-2">Pending Purchases</div>
-          <div className="text-headline-md font-bold text-on-surface">0</div>
-          <p className="text-label-sm text-secondary mt-1">Orders in progress</p>
-        </div>
       </div>
     </div>
   );

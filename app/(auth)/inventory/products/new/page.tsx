@@ -132,26 +132,47 @@ export default function NewProductPage() {
 
               <div>
                 <Label htmlFor="category">Category *</Label>
-                <select
-                  id="category"
-                  name="category"
-                  value={formData.category}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-input rounded-md bg-background"
-                  disabled={loading}
-                >
-                  <option value="Solar Panel">Solar Panel</option>
-                  <option value="Inverter">Inverter</option>
-                  <option value="Structure">Structure</option>
-                  <option value="Cable">Cable</option>
-                  <option value="Connector">Connector</option>
-                  <option value="Earthing">Earthing</option>
-                  <option value="Box">ACDB/DCDB</option>
-                  <option value="Breaker">Breaker</option>
-                  <option value="Accessories">Accessories</option>
-                </select>
+                <div className="space-y-2">
+                  <select
+                    id="category_select"
+                    value={formData.category === 'CUSTOM' || !['Solar Panel', 'Inverter', 'Structure', 'Cable', 'Connector', 'Earthing', 'ACDB/DCDB', 'Breaker', 'Accessories'].includes(formData.category) ? 'CUSTOM' : formData.category}
+                    onChange={(e) => {
+                      if (e.target.value === 'CUSTOM') {
+                        setFormData(prev => ({ ...prev, category: '' }));
+                      } else {
+                        setFormData(prev => ({ ...prev, category: e.target.value }));
+                      }
+                    }}
+                    className="w-full px-3 py-2 border border-input rounded-md bg-background font-medium"
+                    disabled={loading}
+                  >
+                    <option value="Solar Panel">Solar Panel</option>
+                    <option value="Inverter">Inverter</option>
+                    <option value="Structure">Structure</option>
+                    <option value="Cable">Cable</option>
+                    <option value="Connector">Connector</option>
+                    <option value="Earthing">Earthing</option>
+                    <option value="ACDB/DCDB">ACDB/DCDB</option>
+                    <option value="Breaker">Breaker</option>
+                    <option value="Accessories">Accessories</option>
+                    <option value="CUSTOM">+ Add New Custom Category...</option>
+                  </select>
+
+                  {(!['Solar Panel', 'Inverter', 'Structure', 'Cable', 'Connector', 'Earthing', 'ACDB/DCDB', 'Breaker', 'Accessories'].includes(formData.category) || formData.category === '') && (
+                    <Input
+                      id="category_custom"
+                      name="category"
+                      value={formData.category}
+                      onChange={handleChange}
+                      placeholder="Enter new category name (e.g. Battery Storage, Transformers...)"
+                      className="mt-2 font-medium"
+                      disabled={loading}
+                    />
+                  )}
+                </div>
                 {errors.category && <p className="text-sm text-red-600 mt-1">{errors.category}</p>}
               </div>
+
             </div>
 
             <div>

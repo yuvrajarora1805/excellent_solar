@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { TrendingUp, TrendingDown, Package } from 'lucide-react';
+import { FTRImportModal } from '@/components/inventory/ftr-import-modal';
 
 interface StockSummary {
   id: number;
@@ -23,6 +24,8 @@ export default function StockPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
+  const [isFtrOpen, setIsFtrOpen] = useState(false);
+
 
   useEffect(() => {
     fetchStock();
@@ -55,21 +58,45 @@ export default function StockPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Stock Management</h1>
-          <p className="text-slate-600 dark:text-slate-400 mt-1">View and manage inventory stock levels</p>
+          <p className="text-slate-600 dark:text-slate-400 mt-1">
+            Monitor inventory stock levels, solar panel flasher test reports, and transactions
+          </p>
         </div>
-        <Link href="/inventory/stock/adjust">
-          <Button>
-            <TrendingUp className="w-4 h-4 mr-2" />
-            Adjust Stock
+        <div className="flex gap-2">
+          <Link href="/inventory/flasher-reports">
+            <Button className="bg-amber-600 hover:bg-amber-700 text-white font-bold gap-2">
+              <Package className="w-4 h-4" />
+              View Panel Serials & Flasher Details
+            </Button>
+          </Link>
+          <Button onClick={() => setIsFtrOpen(true)} variant="outline" className="gap-2">
+            Import FTR PDF (OCR)
           </Button>
-        </Link>
+          <Link href="/inventory/stock/adjust">
+            <Button variant="outline">
+              <TrendingUp className="w-4 h-4 mr-2" />
+              Adjust Stock
+            </Button>
+          </Link>
+        </div>
       </div>
 
+      <FTRImportModal
+        isOpen={isFtrOpen}
+        onClose={() => setIsFtrOpen(false)}
+        onSuccess={() => {
+          fetchStock();
+          setIsFtrOpen(false);
+        }}
+        products={stock}
+      />
 
-      <div className="grid gap-4 md:grid-cols-3">
+
+
+      <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Products</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Product Models</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stock.length}</div>
@@ -78,24 +105,12 @@ export default function StockPage() {
 
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Stock Items</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Inventory Stock</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
               <Package className="w-5 h-5 text-slate-400" />
               <span className="text-2xl font-bold">{totalStock}</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Low Stock Items</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              <TrendingDown className="w-5 h-5 text-orange-500" />
-              <span className="text-2xl font-bold text-orange-600">{lowStockCount}</span>
             </div>
           </CardContent>
         </Card>
@@ -119,13 +134,12 @@ export default function StockPage() {
             <div className="text-center py-8">Loading...</div>
           ) : (
             <div className="bg-white dark:bg-slate-900 rounded-lg border overflow-hidden overflow-x-auto">
-              <table className="w-full min-w-[900px]">
+              <table className="w-full min-w-[700px]">
                 <thead className="bg-slate-50 dark:bg-slate-800">
                   <tr>
                     <th className="px-4 py-3 text-left text-sm font-medium">Product</th>
                     <th className="px-4 py-3 text-left text-sm font-medium">Category</th>
                     <th className="px-4 py-3 text-right text-sm font-medium">Current Stock</th>
-                    <th className="px-4 py-3 text-right text-sm font-medium">Minimum</th>
                     <th className="px-4 py-3 text-center text-sm font-medium">Status</th>
                   </tr>
                 </thead>
@@ -137,22 +151,13 @@ export default function StockPage() {
                         <div className="text-xs text-slate-500">{item.product_code}</div>
                       </td>
                       <td className="px-4 py-3 text-sm">{item.category}</td>
-                      <td className="px-4 py-3 text-right">
-                        <span className={`font-medium ${item.current_stock <= item.minimum_stock ? 'text-orange-600' : ''}`}>
-                          {item.current_stock} {item.unit}
-                        </span>
+                      <td className="px-4 py-3 text-right font-bold text-slate-900 dark:text-white">
+                        {item.current_stock} {item.unit}
                       </td>
-                      <td className="px-4 py-3 text-right text-sm">{item.minimum_stock} {item.unit}</td>
                       <td className="px-4 py-3 text-center">
-                        {item.current_stock <= item.minimum_stock ? (
-                          <span className="px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
-                            Low Stock
-                          </span>
-                        ) : (
-                          <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            OK
-                          </span>
-                        )}
+                        <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          In Stock
+                        </span>
                       </td>
                     </tr>
                   ))}
@@ -165,3 +170,4 @@ export default function StockPage() {
     </div>
   );
 }
+

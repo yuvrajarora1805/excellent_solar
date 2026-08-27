@@ -273,6 +273,71 @@ export const serialNumberDb = {
     });
   },
 
+  // Import Flasher Test Report (FTR) to update solar panel stock and serial numbers
+  importFlasherReport: async (data: {
+    product_id: number;
+    invoice_no?: string;
+    warehouse_id?: number;
+    modules: Array<{
+      module_sr_no: string;
+      box_no?: string;
+      pmax?: string | number;
+      voc?: string | number;
+      isc?: string | number;
+      vmp?: string | number;
+      imp?: string | number;
+      ff?: string | number;
+      eff?: string | number;
+    }>;
+    userId: number;
+  }): Promise<{ importedCount: number; newlyInsertedCount: number; newStockCount: number }> => {
+    return transaction(async (conn) => {
+      let importedCount = 0;
+      let newlyInsertedCount = 0;
+
+      for (const mod of data.modules) {
+        if (!mod.module_sr_no) continue;
+        const remarks = `Box: ${mod.box_no || 'N/A'} | Pmax: ${mod.pmax || ''}W | Voc: ${mod.voc || ''}V | Isc: ${mod.isc || ''}A | Eff: ${mod.eff || ''}%`;
+        
+        const [result] = await conn.execute(
+          `INSERT INTO product_serial_numbers (product_id, serial_number, warehouse_id, current_location, remarks, status)
+           VALUES (?, ?, ?, 'WAREHOUSE', ?, 'AVAILABLE')
+           ON DUPLICATE KEY UPDATE remarks = VALUES(remarks)`,
+          [data.product_id, mod.module_sr_no, data.warehouse_id || null, remarks]
+        );
+
+        importedCount++;
+        // affectedRows is 1 for a new INSERT, 2 for an UPDATE, and 0 for no change
+        if ((result as any).affectedRows === 1) {
+          newlyInsertedCount++;
+        }
+      }
+
+      // Only increment current_stock for newly added unique serial numbers
+      if (newlyInsertedCount > 0) {
+        await conn.execute(
+          'UPDATE products SET current_stock = current_stock + ? WHERE id = ?',
+          [newlyInsertedCount, data.product_id]
+        );
+      }
+
+      // Add stock transaction ledger entry
+      await conn.execute(
+        `INSERT INTO stock_transactions (product_id, type, quantity, reference_type, remarks, created_by)
+         VALUES (?, 'PURCHASE', ?, 'FTR_IMPORT', ?, ?)`,
+        [data.product_id, newlyInsertedCount > 0 ? newlyInsertedCount : importedCount, `FTR Import Invoice #${data.invoice_no || 'N/A'} - ${importedCount} panels (${newlyInsertedCount} new)`, data.userId]
+      );
+
+      // Get updated current_stock
+      const [rows] = await conn.execute('SELECT current_stock FROM products WHERE id = ?', [data.product_id]);
+      const newStockCount = (rows as any)?.[0]?.current_stock || 0;
+
+      return { importedCount, newlyInsertedCount, newStockCount };
+    });
+  },
+
+
+
   update: async (id: number, data: Partial<Omit<ProductSerialNumber, 'id' | 'created_at' | 'updated_at' | 'product' | 'warehouse'>>): Promise<number> => {
     const fields: string[] = [];
     const values: any[] = [];

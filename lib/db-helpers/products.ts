@@ -188,16 +188,19 @@ export const productDb = {
 
   // Get inventory stats
   getStats: async () => {
-    const totalProducts = await queryOne<{ count: number }>('SELECT COUNT(*) as count FROM products WHERE status = "Active"');
-    const lowStock = await queryOne<{ count: number }>('SELECT COUNT(*) as count FROM products WHERE current_stock <= minimum_stock AND status = "Active"');
-    const panels = await queryOne<{ sum: number }>('SELECT SUM(current_stock) as sum FROM products WHERE category LIKE "%Panel%" AND status = "Active"');
-    const inverters = await queryOne<{ sum: number }>('SELECT SUM(current_stock) as sum FROM products WHERE category LIKE "%Inverter%" AND status = "Active"');
+    const totalProducts = await queryOne<{ count: number }>('SELECT COUNT(*) as count FROM products');
+    const totalStock = await queryOne<{ sum: number }>('SELECT COALESCE(SUM(current_stock), 0) as sum FROM products');
+    const totalSerials = await queryOne<{ count: number }>('SELECT COUNT(*) as count FROM product_serial_numbers');
+    const pendingPurchases = await queryOne<{ count: number }>('SELECT COUNT(*) as count FROM purchases WHERE status = "PENDING"');
+    const totalOrders = await queryOne<{ count: number }>('SELECT COUNT(*) as count FROM orders');
 
     return {
       totalProducts: totalProducts?.count || 0,
-      lowStock: lowStock?.count || 0,
-      panels: panels?.sum || 0,
-      inverters: inverters?.sum || 0,
+      totalStock: totalStock?.sum || totalSerials?.count || 0,
+      totalSerials: totalSerials?.count || 0,
+      pendingPurchases: pendingPurchases?.count || 0,
+      totalOrders: totalOrders?.count || 0,
     };
   },
 };
+

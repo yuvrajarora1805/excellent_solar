@@ -17,8 +17,10 @@ import 'screens/booking_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/discom_screen.dart';
+import 'screens/orders_screen.dart';
 
 const String baseUrl = 'https://es.omvky.com';
+
 
 @pragma('vm:entry-point')
 void onStart(ServiceInstance service) async {
@@ -260,6 +262,13 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     }
 
     if (_role != 'DISCOM') {
+      _screens.add(const OrdersScreen());
+      _destinations.add(const NavigationDestination(
+        icon: Icon(Icons.local_shipping_outlined),
+        selectedIcon: Icon(Icons.local_shipping),
+        label: 'Orders',
+      ));
+
       _screens.add(const OnGridBookingForm());
       _destinations.add(const NavigationDestination(
         icon: Icon(Icons.add_circle_outline),
@@ -274,6 +283,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       selectedIcon: Icon(Icons.person),
       label: 'Profile',
     ));
+
   }
 
   @override
