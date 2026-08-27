@@ -7,8 +7,11 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const { product_id, invoice_no, warehouse_id, modules, user_id } = body;
+    let targetProductId = product_id ? Number(product_id) : 1;
+
     // Auto-resolve or create default product BIN-21-615 in products table
     let prodRes = await queryOne<{ id: number }>('SELECT id FROM products WHERE product_code = "BIN-21-615" LIMIT 1');
+
     if (!prodRes) {
       prodRes = await queryOne<{ id: number }>('SELECT id FROM products LIMIT 1');
     }
