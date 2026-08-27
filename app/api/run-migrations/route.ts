@@ -184,23 +184,7 @@ export async function GET() {
     `);
     results.push('Created system_template_items table');
 
-    // Seed default system templates if empty
-    await execute(`
-      INSERT INTO system_templates (id, name, code, description, system_type, capacity_kw, template_type, status, created_by)
-      SELECT 1, '3kW Standard On-Grid System', 'TPL-3KW-ONGRID', 'Standard 3kW rooftop solar power system with mono perc panels', 'ON_GRID', 3.00, 'STANDARD', 'ACTIVE', 1
-      FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_templates WHERE id = 1);
-    `);
-    await execute(`
-      INSERT INTO system_templates (id, name, code, description, system_type, capacity_kw, template_type, status, created_by)
-      SELECT 2, '5kW Standard On-Grid System', 'TPL-5KW-ONGRID', 'Standard 5kW residential rooftop solar installation kit', 'ON_GRID', 5.00, 'STANDARD', 'ACTIVE', 1
-      FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_templates WHERE id = 2);
-    `);
-    await execute(`
-      INSERT INTO system_templates (id, name, code, description, system_type, capacity_kw, template_type, status, created_by)
-      SELECT 3, '10kW Commercial Hybrid System', 'TPL-10KW-HYBRID', '10kW commercial solar system with battery storage backup', 'HYBRID', 10.00, 'PREMIUM', 'ACTIVE', 1
-      FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM system_templates WHERE id = 3);
-    `);
-    results.push('Seeded default system templates');
+
 
     const safeAlter = async (table: string, queryStr: string) => {
       try {
