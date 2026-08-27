@@ -154,7 +154,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     child: const ListTile(
                       leading: Icon(Icons.info_outline, color: Colors.green),
                       title: Text('App Version', style: TextStyle(fontWeight: FontWeight.bold)),
-                      subtitle: Text('v1.2.0 (Build 5) • Excellent Solar Field App'),
+                      subtitle: Text('v1.5.0 (Build 6) • Excellent Solar Field App'),
 
 
                       trailing: Chip(
