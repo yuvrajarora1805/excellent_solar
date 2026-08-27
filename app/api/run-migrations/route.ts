@@ -139,10 +139,10 @@ export async function GET() {
         description VARCHAR(255),
         quantity INT NOT NULL,
         unit VARCHAR(50),
-        unit_price DECIMAL(10, 2) NOT NULL,
+        unit_price DECIMAL(10, 2) NOT NULL DEFAULT 0,
         discount_amount DECIMAL(10, 2) DEFAULT 0,
         tax_amount DECIMAL(10, 2) DEFAULT 0,
-        line_total DECIMAL(12, 2) NOT NULL,
+        line_total DECIMAL(12, 2) NOT NULL DEFAULT 0,
         sort_order INT DEFAULT 0,
         remarks TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -236,6 +236,11 @@ export async function GET() {
     await safeAlter('products', `
       ALTER TABLE products 
       ADD COLUMN reserved_stock INT DEFAULT 0
+    `);
+
+    await safeAlter('products', `
+      ALTER TABLE products 
+      ADD COLUMN selling_price DECIMAL(10, 2) DEFAULT NULL
     `);
 
 

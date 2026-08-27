@@ -254,8 +254,19 @@ export const quotationDb = {
           `INSERT INTO quotation_items (quotation_id, product_id, description, quantity, unit, unit_price,
            discount_amount, tax_amount, line_total, sort_order, remarks)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [quotationId, item.product_id || null, item.description, item.quantity, item.unit, item.unit_price,
-           item.discount_amount, item.tax_amount, item.line_total, item.sort_order, item.remarks || null]
+          [
+            quotationId,
+            item.product_id || null,
+            item.description,
+            item.quantity,
+            item.unit || null,
+            Number(item.unit_price || 0),
+            Number(item.discount_amount || 0),
+            Number(item.tax_amount || 0),
+            Number(item.line_total || 0),
+            item.sort_order || 0,
+            item.remarks || null,
+          ]
         );
       }
 
