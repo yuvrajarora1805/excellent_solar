@@ -61,32 +61,30 @@ export const SolarQuotationTemplate: React.FC<{ data: Partial<SolarQuotationData
       </div>
 
       {/* Customer & Project Spec Box */}
-      <table className="w-full border-collapse border border-black mb-2 text-xs">
-        <tbody>
-          <tr className="border-b border-black">
-            <td className="p-1.5 font-bold w-[65%] border-r border-black">
-              To <span className="uppercase text-sm ml-2 font-serif font-black">{data.customer_name || 'M.G PIPE INDUSTRIES'}</span>
-            </td>
-            <td className="p-1.5 font-bold text-right font-serif">
-              DATE : {data.date || '10/08/2026'}
-            </td>
-          </tr>
-          <tr className="border-b border-black">
-            <td className="p-1.5 font-bold border-r border-black">Project Type</td>
-            <td className="p-1.5 font-bold text-center uppercase tracking-wide">{data.project_type || 'ONGRID SOLAR'}</td>
-          </tr>
-          <tr className="border-b border-black">
-            <td className="p-1.5 font-bold border-r border-black text-[10px] uppercase leading-tight">
-              PROPOSED<br />CAPACITY
-            </td>
-            <td className="p-1.5 font-extrabold text-center text-sm">{data.capacity || '200 KW'}</td>
-          </tr>
-          <tr>
-            <td className="p-1.5 font-bold border-r border-black">Location</td>
-            <td className="p-1.5 font-bold text-center uppercase tracking-wider">{data.location || 'JALALABAD'}</td>
-          </tr>
-        </tbody>
-      </table>
+      <div className="w-full border border-black mb-2 text-xs flex flex-col">
+        <div className="flex border-b border-black">
+          <div className="p-1.5 font-bold w-[65%] border-r border-black flex items-center">
+            To <span className="uppercase text-sm ml-2 font-serif font-black">{data.customer_name || 'M.G PIPE INDUSTRIES'}</span>
+          </div>
+          <div className="p-1.5 font-bold w-[35%] text-right font-serif flex items-center justify-end">
+            DATE : {data.date || '10/08/2026'}
+          </div>
+        </div>
+        <div className="flex border-b border-black">
+          <div className="p-1.5 font-bold w-[35%] border-r border-black flex items-center">Project Type</div>
+          <div className="p-1.5 font-bold w-[65%] text-center uppercase tracking-wide flex items-center justify-center">{data.project_type || 'ONGRID SOLAR'}</div>
+        </div>
+        <div className="flex border-b border-black">
+          <div className="p-1.5 font-bold w-[35%] border-r border-black text-[10px] uppercase leading-tight flex items-center">
+            PROPOSED<br />CAPACITY
+          </div>
+          <div className="p-1.5 font-extrabold w-[65%] text-center text-sm flex items-center justify-center">{data.capacity || '200 KW'}</div>
+        </div>
+        <div className="flex">
+          <div className="p-1.5 font-bold w-[35%] border-r border-black flex items-center">Location</div>
+          <div className="p-1.5 font-bold w-[65%] text-center uppercase tracking-wider flex items-center justify-center">{data.location || 'JALALABAD'}</div>
+        </div>
+      </div>
 
       {/* Material Detail Table */}
       <table className="w-full border-collapse border border-black mb-2 text-[11px]">
