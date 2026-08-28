@@ -50,7 +50,7 @@ export const SolarQuotationTemplate: React.FC<{ data: Partial<SolarQuotationData
     <div className="bg-white text-black font-sans p-8 mx-auto border border-black shadow-lg w-[210mm] min-h-[297mm] box-border relative print:shadow-none print:border-none print:p-8 print:m-0 print:w-[210mm]">
       {/* Header Logo */}
       <div className="text-center mb-4 flex justify-center">
-        <img src="/logo.png" alt="Excellent Solar Logo" className="h-16 object-contain" />
+        <img src="/qutaionlogo.png" alt="Excellent Solar Logo" className="h-16 object-contain" />
       </div>
 
       {/* Address Header Box */}
