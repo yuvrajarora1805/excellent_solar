@@ -192,7 +192,7 @@ function QuotationDetails({ quotation, onClose, onUpdateStatus }: any) {
         material: (item.product_name || item.description || '').toUpperCase(),
         quantity: String(item.quantity || ''),
         brand: item.unit ? String(item.unit).toUpperCase() : '',
-        description: item.remarks ? String(item.remarks).toUpperCase() : '',
+        description: item.unit_price > 0 ? `₹${Number(item.unit_price).toLocaleString('en-IN')}` : '',
       }))
     : undefined;
 
