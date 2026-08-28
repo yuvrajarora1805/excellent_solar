@@ -61,30 +61,26 @@ export const SolarQuotationTemplate: React.FC<{ data: Partial<SolarQuotationData
       </div>
 
       {/* Customer & Project Spec Box */}
-      <div className="w-full border border-black mb-2 text-xs flex flex-col">
-        <div className="flex border-b border-black">
-          <div className="p-1.5 font-bold w-[65%] border-r border-black flex items-center">
-            To <span className="uppercase text-sm ml-2 font-serif font-black">{data.customer_name || 'M.G PIPE INDUSTRIES'}</span>
-          </div>
-          <div className="p-1.5 font-bold w-[35%] text-right font-serif flex items-center justify-end">
-            DATE : {data.date || '10/08/2026'}
-          </div>
-        </div>
-        <div className="flex border-b border-black">
-          <div className="p-1.5 font-bold w-[35%] border-r border-black flex items-center">Project Type</div>
-          <div className="p-1.5 font-bold w-[65%] text-center uppercase tracking-wide flex items-center justify-center">{data.project_type || 'ONGRID SOLAR'}</div>
-        </div>
-        <div className="flex border-b border-black">
-          <div className="p-1.5 font-bold w-[35%] border-r border-black text-[10px] uppercase leading-tight flex items-center">
-            PROPOSED<br />CAPACITY
-          </div>
-          <div className="p-1.5 font-extrabold w-[65%] text-center text-sm flex items-center justify-center">{data.capacity || '200 KW'}</div>
-        </div>
-        <div className="flex">
-          <div className="p-1.5 font-bold w-[35%] border-r border-black flex items-center">Location</div>
-          <div className="p-1.5 font-bold w-[65%] text-center uppercase tracking-wider flex items-center justify-center">{data.location || 'JALALABAD'}</div>
-        </div>
-      </div>
+      <table className="w-full border-collapse border border-black mb-2 text-xs">
+        <tbody>
+          <tr className="border-b border-black">
+            <td className="p-1.5 font-bold border-r border-black w-[20%]">Customer Name</td>
+            <td className="p-1.5 font-bold border-r border-black w-[30%] uppercase">{data.customer_name || 'M.G PIPE INDUSTRIES'}</td>
+            <td className="p-1.5 font-bold border-r border-black w-[20%]">Date</td>
+            <td className="p-1.5 font-bold w-[30%]">{data.date || '10/08/2026'}</td>
+          </tr>
+          <tr className="border-b border-black">
+            <td className="p-1.5 font-bold border-r border-black w-[20%]">Project Type</td>
+            <td className="p-1.5 font-bold border-r border-black w-[30%] uppercase">{data.project_type || 'ONGRID SOLAR'}</td>
+            <td className="p-1.5 font-bold border-r border-black w-[20%] align-middle" rowSpan={2}>Location</td>
+            <td className="p-1.5 font-bold w-[30%] uppercase align-middle" rowSpan={2}>{data.location || 'JALALABAD'}</td>
+          </tr>
+          <tr>
+            <td className="p-1.5 font-bold border-r border-black w-[20%] text-[10px] leading-tight">PROPOSED<br />CAPACITY</td>
+            <td className="p-1.5 font-extrabold border-r border-black w-[30%] text-sm">{data.capacity || '200 KW'}</td>
+          </tr>
+        </tbody>
+      </table>
 
       {/* Material Detail Table */}
       <table className="w-full border-collapse border border-black mb-2 text-[11px]">
