@@ -43,7 +43,7 @@ export function Modal({ isOpen, onClose, title, children, size = 'md', className
       {/* Modal */}
       <div
         className={cn(
-          'relative w-full mx-4 bg-white dark:bg-slate-900 rounded-lg shadow-xl',
+          'relative print:static w-full mx-4 bg-white dark:bg-slate-900 rounded-lg shadow-xl',
           'max-h-[90vh] overflow-hidden flex flex-col print:max-h-none print:overflow-visible print:shadow-none print:m-0 print:w-full print:bg-transparent',
           sizes[size],
           className
