@@ -275,74 +275,103 @@ export const quotationDb = {
   },
 
   // Update quotation
-  update: async (id: number, data: Partial<Omit<Quotation, 'id' | 'quotation_number' | 'created_at' | 'updated_at' | 'created_by' | 'created_by_user' | 'items'>>): Promise<number> => {
-    const fields: string[] = [];
-    const values: any[] = [];
+  update: async (id: number, data: any): Promise<number> => {
+    return transaction(async (conn) => {
+      const fields: string[] = [];
+      const values: any[] = [];
 
-    if (data.quotation_date) {
-      fields.push('quotation_date = ?');
-      values.push(data.quotation_date);
-    }
-    if (data.valid_until !== undefined) {
-      fields.push('valid_until = ?');
-      values.push(data.valid_until);
-    }
-    if (data.system_type) {
-      fields.push('system_type = ?');
-      values.push(data.system_type);
-    }
-    if (data.capacity_kw !== undefined) {
-      fields.push('capacity_kw = ?');
-      values.push(data.capacity_kw);
-    }
-    if (data.subtotal !== undefined) {
-      fields.push('subtotal = ?');
-      values.push(data.subtotal);
-    }
-    if (data.discount_amount !== undefined) {
-      fields.push('discount_amount = ?');
-      values.push(data.discount_amount);
-    }
-    if (data.discount_percentage !== undefined) {
-      fields.push('discount_percentage = ?');
-      values.push(data.discount_percentage);
-    }
-    if (data.gst_amount !== undefined) {
-      fields.push('gst_amount = ?');
-      values.push(data.gst_amount);
-    }
-    if (data.gst_percentage !== undefined) {
-      fields.push('gst_percentage = ?');
-      values.push(data.gst_percentage);
-    }
-    if (data.total_amount !== undefined) {
-      fields.push('total_amount = ?');
-      values.push(data.total_amount);
-    }
-    if (data.payment_schedule !== undefined) {
-      fields.push('payment_schedule = ?');
-      values.push(JSON.stringify(data.payment_schedule));
-    }
-    if (data.status) {
-      fields.push('status = ?');
-      values.push(data.status);
-    }
-    if (data.terms_conditions !== undefined) {
-      fields.push('terms_conditions = ?');
-      values.push(data.terms_conditions);
-    }
-    if (data.remarks !== undefined) {
-      fields.push('remarks = ?');
-      values.push(data.remarks);
-    }
+      if (data.quotation_date) {
+        fields.push('quotation_date = ?');
+        values.push(data.quotation_date);
+      }
+      if (data.valid_until !== undefined) {
+        fields.push('valid_until = ?');
+        values.push(data.valid_until);
+      }
+      if (data.system_type) {
+        fields.push('system_type = ?');
+        values.push(data.system_type);
+      }
+      if (data.capacity_kw !== undefined) {
+        fields.push('capacity_kw = ?');
+        values.push(data.capacity_kw);
+      }
+      if (data.subtotal !== undefined) {
+        fields.push('subtotal = ?');
+        values.push(data.subtotal);
+      }
+      if (data.discount_amount !== undefined) {
+        fields.push('discount_amount = ?');
+        values.push(data.discount_amount);
+      }
+      if (data.discount_percentage !== undefined) {
+        fields.push('discount_percentage = ?');
+        values.push(data.discount_percentage);
+      }
+      if (data.gst_amount !== undefined) {
+        fields.push('gst_amount = ?');
+        values.push(data.gst_amount);
+      }
+      if (data.gst_percentage !== undefined) {
+        fields.push('gst_percentage = ?');
+        values.push(data.gst_percentage);
+      }
+      if (data.total_amount !== undefined) {
+        fields.push('total_amount = ?');
+        values.push(data.total_amount);
+      }
+      if (data.payment_schedule !== undefined) {
+        fields.push('payment_schedule = ?');
+        values.push(JSON.stringify(data.payment_schedule));
+      }
+      if (data.status) {
+        fields.push('status = ?');
+        values.push(data.status);
+      }
+      if (data.terms_conditions !== undefined) {
+        fields.push('terms_conditions = ?');
+        values.push(data.terms_conditions);
+      }
+      if (data.remarks !== undefined) {
+        fields.push('remarks = ?');
+        values.push(data.remarks);
+      }
 
-    if (fields.length === 0) return 0;
+      if (fields.length > 0) {
+        values.push(id);
+        await conn.execute(
+          `UPDATE quotations SET ${fields.join(', ')} WHERE id = ?`,
+          values
+        );
+      }
 
-    values.push(id);
-    return execute(
-      `UPDATE quotations SET ${fields.join(', ')} WHERE id = ?`,
-      values
-    );
+      // Update items if provided
+      if (data.items && Array.isArray(data.items)) {
+        await conn.execute('DELETE FROM quotation_items WHERE quotation_id = ?', [id]);
+        for (const item of data.items) {
+          await conn.execute(
+            `INSERT INTO quotation_items (quotation_id, product_id, description, quantity, unit, unit_price,
+             discount_amount, tax_amount, line_total, sort_order, remarks)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            [
+              id,
+              item.product_id || null,
+              item.description || item.product?.name || item.material || '',
+              item.quantity || 1,
+              item.unit || null,
+              Number(item.unit_price || 0),
+              Number(item.discount_amount || 0),
+              Number(item.tax_amount || 0),
+              Number(item.line_total || 0),
+              item.sort_order || 0,
+              item.remarks || null,
+            ]
+          );
+        }
+      }
+
+      return id;
+    });
   },
 
   // Update status
