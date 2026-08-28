@@ -165,13 +165,6 @@ export const SolarQuotationTemplate: React.FC<{ data: Partial<SolarQuotationData
         <div className="inline-block text-center font-bold">
           <p className="text-xs">Authorized Signatory</p>
           <p className="text-sm font-black">Excellent Solar</p>
-
-          {/* Stamp Seal */}
-          <div className="mt-1 mx-auto w-20 h-20 border-2 border-blue-800 rounded-full flex flex-col items-center justify-center text-blue-800 text-[9px] font-black leading-tight p-1 rotate-[-10deg]">
-            <span>EXCELLENT SOLAR</span>
-            <span className="text-[7px] my-0.5">Date............</span>
-            <span>KOTKAPURA</span>
-          </div>
         </div>
       </div>
     </div>
