@@ -93,22 +93,22 @@ export const SolarQuotationTemplate: React.FC<{ data: Partial<SolarQuotationData
         <thead>
           <tr className="bg-[#6b9e38] text-black font-extrabold border-b border-black text-center">
             <th className="border border-black p-1.5 w-[8%]">Sr No.</th>
-            <th className="border border-black p-1.5 text-center w-[35%]">MATERIAL DETAIL</th>
-            <th className="border border-black p-1.5 w-[8%] leading-tight text-[10px]">
+            <th className="border border-black p-1.5 text-center w-[45%]">MATERIAL DETAIL</th>
+            <th className="border border-black p-1.5 text-center w-[15%]">UNIT PRICE (₹)</th>
+            <th className="border border-black p-1.5 w-[12%] leading-tight text-[10px]">
               QUANTI<br />TY
             </th>
-            <th className="border border-black p-1.5 text-center w-[25%]">BRAND</th>
-            <th className="border border-black p-1.5 text-center w-[24%]">Description</th>
+            <th className="border border-black p-1.5 text-center w-[20%]">TOTAL (₹)</th>
           </tr>
         </thead>
         <tbody>
-          {materials.map((m, idx) => (
+          {materials.map((m: any, idx: number) => (
             <tr key={idx} className={`border-b border-black text-center font-bold ${idx % 2 === 0 ? 'bg-[#ffffe0]' : 'bg-white'}`}>
               <td className="border border-black p-1.5 font-normal">{m.sr_no || idx + 1}</td>
               <td className="border border-black p-1.5 text-left font-black italic uppercase">{m.material}</td>
+              <td className="border border-black p-1.5 uppercase font-extrabold">{m.unit_price}</td>
               <td className="border border-black p-1.5 font-extrabold uppercase">{m.quantity}</td>
-              <td className="border border-black p-1.5 uppercase font-extrabold">{m.brand}</td>
-              <td className="border border-black p-1.5 uppercase text-center font-extrabold">{m.description}</td>
+              <td className="border border-black p-1.5 uppercase text-center font-extrabold">{m.line_total}</td>
             </tr>
           ))}
         </tbody>
@@ -118,22 +118,23 @@ export const SolarQuotationTemplate: React.FC<{ data: Partial<SolarQuotationData
       <table className="w-full border-collapse border border-black mb-2 text-xs bg-[#e64a19] text-white font-bold">
         <tbody>
           <tr className="border-b border-black">
-            <td className="border-r border-black p-1.5 w-[50%]">Total Project Rate/Watt (INR)</td>
-            <td className="border-r border-black p-1.5 text-center text-sm">{data.rate_per_watt || '23.50/-'}</td>
-            <td className="p-1.5 text-center text-[10px] uppercase">{data.gst_info || 'GST EXTRA 8.9%'}</td>
+            <td className="border-r border-black p-1.5 w-[75%] text-right pr-4">Subtotal (INR)</td>
+            <td className="p-1.5 text-center text-sm">{data.subtotal || '0'}</td>
           </tr>
           <tr className="border-b border-black">
-            <td className="border-r border-black p-1.5">Total Project Cost (INR)</td>
-            <td className="border-r border-black p-1.5 text-center text-base font-black">{data.total_cost || '47,00,000/-'}</td>
-            <td className="p-1.5 text-center text-[10px] uppercase">{data.gst_info || 'GST EXTRA (8.9%)'}</td>
+            <td className="border-r border-black p-1.5 text-right pr-4">Discount (INR)</td>
+            <td className="p-1.5 text-center text-sm">{data.discount_amount || '0'}</td>
           </tr>
           <tr className="border-b border-black">
-            <td className="border-r border-black p-1.5 text-[10px] uppercase">INSTALLATION AND DISCOM FEE/APPROVAL</td>
-            <td className="border-r border-black p-1.5 text-center font-black">INCLUDED</td>
-            <td className="p-1.5 text-center font-black">INCLUDED</td>
+            <td className="border-r border-black p-1.5 text-right pr-4">{data.gst_info || 'GST (18%)'}</td>
+            <td className="p-1.5 text-center text-sm">{data.gst_amount || '0'}</td>
+          </tr>
+          <tr className="border-b border-black">
+            <td className="border-r border-black p-1.5 text-right pr-4">Total Project Cost (INR)</td>
+            <td className="p-1.5 text-center text-base font-black">{data.total_cost || '0'}</td>
           </tr>
           <tr>
-            <td colSpan={3} className="p-1.5 text-center bg-[#fff59d] text-black font-black border-t border-black text-[11px] italic">
+            <td colSpan={2} className="p-1.5 text-center bg-[#fff59d] text-black font-black border-t border-black text-[11px] italic">
               {data.bank_details || 'BANK:- AXIS BANK KKP, NAME EXCELLENT SOLAR , A/C NO 922030040457208 , IFSC UTIB0000577'}
             </td>
           </tr>

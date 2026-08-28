@@ -190,20 +190,18 @@ function QuotationDetails({ quotation, onClose, onUpdateStatus }: any) {
     ? items.map((item: any, idx: number) => ({
         sr_no: idx + 1,
         material: (item.product_name || item.description || '').toUpperCase(),
+        unit_price: item.unit_price > 0 ? `₹${Number(item.unit_price).toLocaleString('en-IN')}` : '0',
         quantity: String(item.quantity || ''),
-        brand: item.unit ? String(item.unit).toUpperCase() : '',
-        description: item.unit_price > 0 ? `₹${Number(item.unit_price).toLocaleString('en-IN')}` : '',
+        line_total: item.line_total > 0 ? `₹${Number(item.line_total).toLocaleString('en-IN')}` : '0',
       }))
     : undefined;
 
   const capacityKw = Number(quotation.capacity_kw || 0);
+  
+  const subtotalAmount = Number(quotation.subtotal || 0);
+  const discountAmount = Number(quotation.discount_amount || 0);
+  const gstAmount = Number(quotation.gst_amount || 0);
   const totalAmount = Number(quotation.total_amount || 0);
-  const totalCost = totalAmount > 0
-    ? `${totalAmount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}/-`
-    : '';
-  const ratePerWatt = capacityKw > 0 && totalAmount > 0
-    ? `${(totalAmount / (capacityKw * 1000)).toFixed(2)}/-`
-    : '';
 
   const terms = quotation.terms_conditions
     ? quotation.terms_conditions.split('\n').filter(Boolean)
@@ -216,9 +214,11 @@ function QuotationDetails({ quotation, onClose, onUpdateStatus }: any) {
     capacity: capacityKw ? `${capacityKw} KW` : '',
     location: quotation.remarks || '',
     materials,
-    rate_per_watt: ratePerWatt,
-    total_cost: totalCost,
-    gst_info: quotation.gst_percentage ? `GST EXTRA ${quotation.gst_percentage}%` : 'GST EXTRA 8.9%',
+    subtotal: subtotalAmount > 0 ? `${subtotalAmount.toLocaleString('en-IN')}/-` : '0/-',
+    discount_amount: discountAmount > 0 ? `${discountAmount.toLocaleString('en-IN')}/-` : '0/-',
+    gst_info: quotation.gst_percentage ? `GST (${quotation.gst_percentage}%)` : 'GST (18%)',
+    gst_amount: gstAmount > 0 ? `${gstAmount.toLocaleString('en-IN')}/-` : '0/-',
+    total_cost: totalAmount > 0 ? `${totalAmount.toLocaleString('en-IN')}/-` : '0/-',
     terms,
   };
 
