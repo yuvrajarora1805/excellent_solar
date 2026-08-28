@@ -6,8 +6,8 @@ export interface SolarQuotationItem {
   sr_no: number | string;
   material: string;
   quantity: string;
-  brand: string;
-  description: string;
+  unit_price?: string;
+  line_total?: string;
 }
 
 export interface SolarQuotationData {
@@ -17,7 +17,10 @@ export interface SolarQuotationData {
   capacity: string;
   location: string;
   materials: SolarQuotationItem[];
-  rate_per_watt: string;
+  subtotal?: string;
+  discount_amount?: string;
+  gst_amount?: string;
+  rate_per_watt?: string;
   total_cost: string;
   gst_info?: string;
   installation_discom_fee?: string;
@@ -26,16 +29,16 @@ export interface SolarQuotationData {
 }
 
 const DEFAULT_MATERIALS: SolarQuotationItem[] = [
-  { sr_no: 1, material: 'SOLAR PANELS', quantity: '325', brand: 'WAAREE TOPCON', description: '615 W' },
-  { sr_no: 2, material: 'INVERTER', quantity: '2', brand: 'WAAREE/LUMINOUS', description: '8 YEARS WARRANTY' },
-  { sr_no: 3, material: 'EARTHING', quantity: '5+1', brand: '3 METER', description: 'COPPER BONDED WITH CHEMICAL' },
-  { sr_no: 4, material: 'LIGTNING ARRESTER', quantity: '2', brand: '1 METER', description: 'COPPER BONDED' },
-  { sr_no: 5, material: 'STRUCTURE', quantity: '200 KW', brand: '70 MM HEIGHT', description: 'ALUMINIUM' },
-  { sr_no: 6, material: 'EARTHING WIRE', quantity: 'AS PER REQUIRED', brand: 'HAVELLS', description: '4 MM & 6MM' },
-  { sr_no: 7, material: 'SERVICE WIRE', quantity: '50 MTR MAXI.', brand: 'AS PER PSPCL', description: '150 MM ALUMINIUM' },
-  { sr_no: 8, material: 'DC WIRE', quantity: 'AS PER REQUIRED', brand: 'WAAREE/HAVELLS', description: '6 MM' },
-  { sr_no: 9, material: 'ACDB', quantity: '1', brand: 'HAVELLS', description: '' },
-  { sr_no: 10, material: 'DCDB', quantity: 'N.A', brand: 'N.A', description: '' },
+  { sr_no: 1, material: 'SOLAR PANELS (615 W WAAREE TOPCON)', quantity: '325', unit_price: '-', line_total: '-' },
+  { sr_no: 2, material: 'INVERTER (WAAREE/LUMINOUS)', quantity: '2', unit_price: '-', line_total: '-' },
+  { sr_no: 3, material: 'EARTHING (3 METER COPPER BONDED)', quantity: '5+1', unit_price: '-', line_total: '-' },
+  { sr_no: 4, material: 'LIGTNING ARRESTER (1 METER)', quantity: '2', unit_price: '-', line_total: '-' },
+  { sr_no: 5, material: 'STRUCTURE (70 MM HEIGHT ALUMINIUM)', quantity: '200 KW', unit_price: '-', line_total: '-' },
+  { sr_no: 6, material: 'EARTHING WIRE (HAVELLS 4/6MM)', quantity: 'AS PER REQUIRED', unit_price: '-', line_total: '-' },
+  { sr_no: 7, material: 'SERVICE WIRE (150 MM ALUMINIUM)', quantity: '50 MTR MAXI.', unit_price: '-', line_total: '-' },
+  { sr_no: 8, material: 'DC WIRE (6 MM WAAREE/HAVELLS)', quantity: 'AS PER REQUIRED', unit_price: '-', line_total: '-' },
+  { sr_no: 9, material: 'ACDB (HAVELLS)', quantity: '1', unit_price: '-', line_total: '-' },
+  { sr_no: 10, material: 'DCDB', quantity: 'N.A', unit_price: '-', line_total: '-' },
 ];
 
 export const SolarQuotationTemplate: React.FC<{ data: Partial<SolarQuotationData> }> = ({ data }) => {
