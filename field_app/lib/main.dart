@@ -10,6 +10,7 @@ import 'dart:io';
 import 'dart:ui';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_background_service_android/flutter_background_service_android.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'screens/login_screen.dart';
 import 'screens/jobs_screen.dart';
 import 'screens/tickets_screen.dart';
@@ -209,6 +210,40 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   void initState() {
     super.initState();
     _loadRole();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkPermissions();
+    });
+  }
+
+  Future<void> _checkPermissions() async {
+    bool hasNotification = await Permission.notification.isGranted;
+    bool hasBatteryIgnore = await Permission.ignoreBatteryOptimizations.isGranted;
+
+    if (!hasNotification || !hasBatteryIgnore) {
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Permissions Required'),
+            content: const Text(
+                'Excellent Solar Field App requires background execution and notifications to alert you of new jobs immediately. Please enable them in your device settings for the app to function properly.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK'),
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  openAppSettings();
+                },
+                child: const Text('Open Settings'),
+              ),
+            ],
+          ),
+        );
+      }
+    }
   }
 
   Future<void> _loadRole() async {
