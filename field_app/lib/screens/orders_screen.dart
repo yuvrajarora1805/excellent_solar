@@ -620,7 +620,7 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
                   ),
                   const SizedBox(height: 16),
 
-                  // 1D Barcode Scanner Section
+                  // 1D & 2D Barcode / QR Code Scanner Section
                   Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
@@ -638,7 +638,7 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
                               children: [
                                 Icon(Icons.qr_code_scanner, color: Colors.blue, size: 20),
                                 SizedBox(width: 6),
-                                Text('Scan 1D Solar Panel Barcodes', style: TextStyle(fontWeight: FontWeight.bold)),
+                                Text('Scan 1D & 2D Barcodes / QR Codes', style: TextStyle(fontWeight: FontWeight.bold)),
                               ],
                             ),
                             Container(
@@ -650,7 +650,7 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
                         ),
                         const SizedBox(height: 12),
 
-                        // Prominent 1D Scanner Button
+                        // Prominent 1D / 2D Scanner Button
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton.icon(
@@ -664,7 +664,7 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
                             onPressed: _openMultiCameraScanner,
                             icon: const Icon(Icons.camera_alt, color: Colors.white),
                             label: Text(
-                              'Open 1D Barcode Camera Scanner (${_scannedPanels.length})',
+                              'Open 1D/2D Barcode Camera Scanner (${_scannedPanels.length})',
                               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                             ),
                           ),
@@ -834,7 +834,7 @@ class MultiCameraBarcodeScannerView extends StatefulWidget {
 }
 
 class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScannerView> {
-  // Restrict MobileScanner strictly to 1D Barcodes only (Ignores 2D QR codes)
+  // MobileScanner supports both 1D Barcodes and 2D Barcodes (QR Codes, Data Matrix, PDF417, Aztec)
   final MobileScannerController _controller = MobileScannerController(
     detectionSpeed: DetectionSpeed.noDuplicates,
     formats: const [
@@ -845,6 +845,10 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
       BarcodeFormat.ean13,
       BarcodeFormat.upcA,
       BarcodeFormat.codabar,
+      BarcodeFormat.qrCode,
+      BarcodeFormat.dataMatrix,
+      BarcodeFormat.pdf417,
+      BarcodeFormat.aztec,
     ],
   );
 
@@ -959,7 +963,7 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          '1D Barcode Panel Scanner (${_scannedPanels.where((p) => p.isMatched).length})',
+          '1D/2D Barcode Panel Scanner (${_scannedPanels.where((p) => p.isMatched).length})',
           style: GoogleFonts.hankenGrotesk(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.black,
@@ -982,7 +986,7 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
       backgroundColor: Colors.black,
       body: Column(
         children: [
-          // TOP 45%: 1D CAMERA VIEWFINDER
+          // TOP 45%: 1D/2D CAMERA VIEWFINDER
           Expanded(
             flex: 45,
             child: Stack(
@@ -992,11 +996,11 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
                   onDetect: _onBarcodeDetected,
                 ),
 
-                // Green Target Crosshair Box (1D Barcode Spec)
+                // Green Target Crosshair Box (1D & 2D Barcode Spec)
                 Center(
                   child: Container(
                     width: 300,
-                    height: 120,
+                    height: 140,
                     decoration: BoxDecoration(
                       border: Border.all(color: Colors.greenAccent, width: 3),
                       borderRadius: BorderRadius.circular(12),
@@ -1019,7 +1023,7 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: const Text(
-                      '📷 1D Barcodes Only (Code 128 / Code 39) - QR Codes Ignored',
+                      '📷 1D & 2D Barcodes Supported (Code 128, QR Code, Data Matrix, etc.)',
                       textAlign: TextAlign.center,
                       style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11),
                     ),
@@ -1081,7 +1085,7 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
                                 Icon(Icons.qr_code_scanner, size: 48, color: Colors.grey.shade400),
                                 const SizedBox(height: 8),
                                 Text(
-                                  'Point camera at 1D Solar Panel Barcode Sticker',
+                                  'Point camera at 1D/2D Barcode or QR Code Sticker',
                                   style: TextStyle(color: Colors.grey.shade600, fontWeight: FontWeight.bold),
                                 ),
                               ],

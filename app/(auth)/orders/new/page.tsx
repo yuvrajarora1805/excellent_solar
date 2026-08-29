@@ -368,14 +368,14 @@ export default function NewOrderPage() {
           {/* Barcode Scanner Input */}
           <div className="bg-slate-900 p-4 rounded-lg text-white space-y-2">
             <label className="block text-xs font-bold text-amber-400 uppercase tracking-wider">
-              Scan Barcode / Unique Serial Number (Module Sr. No.)
+              Scan 1D/2D Barcode or QR Code / Unique Serial Number (Module Sr. No.)
             </label>
             <form onSubmit={handleAddSerialBarcode} className="flex gap-2">
               <Input
                 autoFocus
                 value={scannedSerialInput}
                 onChange={(e) => setScannedSerialInput(e.target.value)}
-                placeholder="Scan or type Module Sr. No. (e.g. WS08269074875699) and hit Enter"
+                placeholder="Scan 1D/2D Barcode or type Module Sr. No. (e.g. WS08269074875699) and hit Enter"
                 className="bg-slate-800 text-white border-slate-700 font-mono text-sm"
               />
               <Button type="submit" className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold">
@@ -383,7 +383,7 @@ export default function NewOrderPage() {
               </Button>
             </form>
             <p className="text-[11px] text-slate-400 italic">
-              Connect your USB Barcode Scanner or type serial number to auto-validate against inventory.
+              Connect your USB 1D/2D Barcode Scanner or type serial number to auto-validate against inventory.
             </p>
           </div>
 
