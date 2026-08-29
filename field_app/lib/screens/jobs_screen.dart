@@ -16,6 +16,7 @@ class _MyJobsListScreenState extends State<MyJobsListScreen> {
   List<dynamic> _jobs = [];
   bool _isLoading = true;
   String _error = '';
+  String _role = 'ADMIN';
 
   @override
   void initState() {
@@ -27,6 +28,7 @@ class _MyJobsListScreenState extends State<MyJobsListScreen> {
     try {
       final prefs = await SharedPreferences.getInstance();
       final workerId = prefs.getInt('worker_id') ?? 1;
+      final role = prefs.getString('worker_role') ?? 'ADMIN';
 
       final response = await ApiService.get(Uri.parse('$baseUrl/api/mobile/jobs?worker_id=$workerId'));
 
@@ -34,6 +36,7 @@ class _MyJobsListScreenState extends State<MyJobsListScreen> {
         final data = jsonDecode(response.body);
         setState(() {
           _jobs = data['jobs'] ?? [];
+          _role = role;
           _isLoading = false;
         });
       } else {
@@ -183,20 +186,37 @@ class _MyJobsListScreenState extends State<MyJobsListScreen> {
     final surveyJobs = _jobs.filter((j) => j['section'] == 'SURVEY').toList();
     final installJobs = _jobs.filter((j) => j['section'] == 'INSTALLATION').toList();
 
+    String uRole = _role.toUpperCase().trim();
+    bool isInstaller = uRole == 'INSTALLATION' || uRole == 'WORKER';
+    bool isSales = uRole == 'SALES' || uRole == 'MARKETING';
+    
+    List<Widget> tabs = [];
+    List<Widget> tabViews = [];
+
+    if (!isInstaller) {
+      tabs.add(const Tab(icon: Icon(Icons.architecture), text: 'Site Survey'));
+      tabViews.add(_buildJobList(surveyJobs));
+    }
+
+    if (!isSales) {
+      tabs.add(const Tab(icon: Icon(Icons.build), text: 'Installation'));
+      tabViews.add(_buildJobList(installJobs));
+    }
+
+    tabs.add(const Tab(icon: Icon(Icons.list_alt), text: 'All Jobs'));
+    tabViews.add(_buildJobList(_jobs));
+
     return DefaultTabController(
-      length: 3,
+      length: tabs.length,
       child: Scaffold(
         appBar: AppBar(
           title: const Text('My Assigned Jobs'),
           actions: [
             IconButton(icon: const Icon(Icons.refresh), onPressed: _fetchJobs),
           ],
-          bottom: const TabBar(
-            tabs: [
-              Tab(icon: Icon(Icons.architecture), text: 'Site Survey'),
-              Tab(icon: Icon(Icons.build), text: 'Installation'),
-              Tab(icon: Icon(Icons.list_alt), text: 'All Jobs'),
-            ],
+          bottom: TabBar(
+            isScrollable: tabs.length > 3,
+            tabs: tabs,
           ),
         ),
         body: _isLoading 
@@ -204,11 +224,7 @@ class _MyJobsListScreenState extends State<MyJobsListScreen> {
           : _error.isNotEmpty
             ? Center(child: Text(_error))
             : TabBarView(
-                children: [
-                  _buildJobList(surveyJobs),
-                  _buildJobList(installJobs),
-                  _buildJobList(_jobs),
-                ],
+                children: tabViews,
               ),
       ),
     );
