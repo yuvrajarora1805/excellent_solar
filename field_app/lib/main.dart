@@ -296,7 +296,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       ));
     }
 
-    if (_role != 'DISCOM') {
+    if (uRole == 'ADMIN' || uRole == 'SALES' || uRole == 'MARKETING') {
       _screens.add(const OrdersScreen());
       _destinations.add(const NavigationDestination(
         icon: Icon(Icons.local_shipping_outlined),
