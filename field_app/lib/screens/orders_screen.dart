@@ -353,10 +353,12 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
   bool _isCheckingManual = false;
 
   Future<void> _addBarcodeManual() async {
-    final code = _barcodeInputController.text.trim();
-    if (code.isEmpty) return;
+    final rawInput = _barcodeInputController.text.trim();
+    if (rawInput.isEmpty) return;
 
-    if (_scannedPanels.any((p) => p.serialNumber == code)) {
+    final code = extractSerialNumberFromBarcode(rawInput);
+
+    if (_scannedPanels.any((p) => p.serialNumber == code || p.serialNumber == rawInput)) {
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('⚠️ Serial Number $code is already added!')),
@@ -368,42 +370,51 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
       setState(() => _isCheckingManual = true);
 
       // Perform Real-Time Live MySQL Inventory Stock Lookup
-      final response = await ApiService.get(Uri.parse('$baseUrl/api/serial-numbers?search=$code'));
+      var response = await ApiService.get(Uri.parse('$baseUrl/api/serial-numbers?search=$code'));
+      List<dynamic> list = [];
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final List<dynamic> list = data is List ? data : (data['serials'] ?? []);
-
-        if (list.isNotEmpty) {
-          final item = list.first;
-          final String modelStr = item['model_number'] ?? item['product_code'] ?? item['model'] ?? 'BIN-21-615';
-          final String nameStr = item['product_name'] ?? 'Waaree TopCon 615W Solar Panel';
-
-          final matchedItem = ScannedPanelItem(
-            serialNumber: code,
-            isMatched: true,
-            status: item['status'] ?? 'AVAILABLE',
-            productName: nameStr,
-            modelNumber: modelStr,
-            remarks: item['remarks'] ?? 'Matched in MySQL Stock',
-          );
-
-          if (!mounted) return;
-          setState(() {
-            _scannedPanels.insert(0, matchedItem);
-            _barcodeInputController.clear();
-            _isCheckingManual = false;
-          });
-
-          ScaffoldMessenger.of(context).hideCurrentSnackBar();
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('✓ Matched Stock: Model $modelStr ($code)'),
-              backgroundColor: Colors.green.shade800,
-              duration: const Duration(milliseconds: 1400),
-            ),
-          );
-          return;
+        list = data is List ? data : (data['serials'] ?? []);
+      }
+      if (list.isEmpty && rawInput != code) {
+        response = await ApiService.get(Uri.parse('$baseUrl/api/serial-numbers?search=${Uri.encodeComponent(rawInput)}'));
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          list = data is List ? data : (data['serials'] ?? []);
         }
+      }
+
+      if (list.isNotEmpty) {
+        final item = list.first;
+        final String matchedSerial = item['serial_number'] ?? code;
+        final String modelStr = item['model_number'] ?? item['product_code'] ?? item['model'] ?? 'BIN-21-615';
+        final String nameStr = item['product_name'] ?? 'Waaree TopCon 615W Solar Panel';
+
+        final matchedItem = ScannedPanelItem(
+          serialNumber: matchedSerial,
+          isMatched: true,
+          status: item['status'] ?? 'AVAILABLE',
+          productName: nameStr,
+          modelNumber: modelStr,
+          remarks: item['remarks'] ?? 'Matched in MySQL Stock',
+        );
+
+        if (!mounted) return;
+        setState(() {
+          _scannedPanels.insert(0, matchedItem);
+          _barcodeInputController.clear();
+          _isCheckingManual = false;
+        });
+
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✓ Matched Stock: Model $modelStr ($matchedSerial)'),
+            backgroundColor: Colors.green.shade800,
+            duration: const Duration(milliseconds: 1400),
+          ),
+        );
+        return;
       }
 
       // Not found in inventory stock
@@ -819,7 +830,80 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
 }
 
 // ============================================================================
-// CONTINUOUS 1D MULTI-BARCODE SCANNER VIEW WITH LIVE INVENTORY MATCHING & BEEP SOUND
+// HELPER: PARSE 1D & 2D BARCODE / QR CODE PAYLOAD TEXT INTO CLEAN SERIAL NUMBER
+// ============================================================================
+String extractSerialNumberFromBarcode(String raw) {
+  String input = raw.trim();
+  if (input.isEmpty) return input;
+
+  // 1. Check if input is JSON object (e.g. {"sn": "WS08269074875699"})
+  if (input.startsWith('{') && input.endsWith('}')) {
+    try {
+      final Map<String, dynamic> jsonMap = jsonDecode(input);
+      for (final key in ['serial_number', 'serialNumber', 'serial', 'sn', 'module_sn', 'code', 'id']) {
+        if (jsonMap.containsKey(key) && jsonMap[key] != null && jsonMap[key].toString().trim().isNotEmpty) {
+          return jsonMap[key].toString().trim();
+        }
+      }
+    } catch (_) {}
+  }
+
+  // 2. Check if input is URL (e.g., https://waaree.com/verify?sn=WS08269074875699)
+  if (input.startsWith('http://') || input.startsWith('https://')) {
+    try {
+      final uri = Uri.parse(input);
+      if (uri.queryParameters.containsKey('sn') && uri.queryParameters['sn']!.trim().isNotEmpty) {
+        return uri.queryParameters['sn']!.trim();
+      }
+      if (uri.queryParameters.containsKey('serial') && uri.queryParameters['serial']!.trim().isNotEmpty) {
+        return uri.queryParameters['serial']!.trim();
+      }
+      if (uri.queryParameters.containsKey('code') && uri.queryParameters['code']!.trim().isNotEmpty) {
+        return uri.queryParameters['code']!.trim();
+      }
+      final segments = uri.pathSegments.where((s) => s.trim().isNotEmpty).toList();
+      if (segments.isNotEmpty) {
+        final last = segments.last.trim();
+        if (RegExp(r'^[A-Za-z0-9\-_]{6,30}$').hasMatch(last)) {
+          return last;
+        }
+      }
+    } catch (_) {}
+  }
+
+  // 3. Multi-line QR text parsing (e.g. "BRAND: WAAREE\nSN: WS08269074875699")
+  if (input.contains('\n') || input.contains('\r')) {
+    final lines = input.split(RegExp(r'[\r\n]+'));
+    for (final line in lines) {
+      final parsedLine = extractSerialNumberFromBarcode(line);
+      if (parsedLine.isNotEmpty && parsedLine != line.trim()) {
+        return parsedLine;
+      }
+    }
+    for (final line in lines) {
+      final trimmed = line.trim();
+      if (RegExp(r'^[A-Za-z0-9]{8,30}$').hasMatch(trimmed)) {
+        return trimmed;
+      }
+    }
+  }
+
+  // 4. Strip common serial number prefixes (SN:, S/N:, SERIAL:, SR NO:, etc.)
+  final prefixRegex = RegExp(r'^(SN\s*:?\s*|S/N\s*:?\s*|SERIAL\s*(NO)?\.?\s*:?\s*|SR\s*NO\.?\s*:?\s*|MODULE\s*SN\s*:?\s*)', caseSensitive: false);
+  if (prefixRegex.hasMatch(input)) {
+    input = input.replaceFirst(prefixRegex, '').trim();
+  }
+
+  // 5. GS1 Data Matrix AI prefix (21 = Serial Number in GS1 standard)
+  if (input.length > 10 && input.startsWith('21') && RegExp(r'^21[A-Za-z0-9]{6,28}$').hasMatch(input)) {
+    return input.substring(2);
+  }
+
+  return input;
+}
+
+// ============================================================================
+// CONTINUOUS 1D & 2D MULTI-BARCODE SCANNER VIEW WITH LIVE INVENTORY MATCHING
 // ============================================================================
 class MultiCameraBarcodeScannerView extends StatefulWidget {
   final List<ScannedPanelItem> initialScannedPanels;
@@ -873,18 +957,23 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
       final String? rawVal = barcode.rawValue?.trim();
       if (rawVal == null || rawVal.isEmpty) continue;
 
+      final String serialNumber = extractSerialNumberFromBarcode(rawVal);
+      if (serialNumber.isEmpty) continue;
+
       // Synchronous Guard: Lock immediately before async network calls to prevent repeat scans
-      if (_scannedPanels.any((p) => p.serialNumber == rawVal) || _processingSerials.contains(rawVal)) {
+      if (_scannedPanels.any((p) => p.serialNumber == serialNumber || p.serialNumber == rawVal) ||
+          _processingSerials.contains(serialNumber) ||
+          _processingSerials.contains(rawVal)) {
         continue;
       }
-      _processingSerials.add(rawVal);
+      _processingSerials.add(serialNumber);
 
       // 1. Play Audio Beep Sound & Haptic Click Feedback
       SystemSound.play(SystemSoundType.click);
       HapticFeedback.mediumImpact();
 
       // 2. Perform Real-Time Live Inventory Match & Status Lookup
-      ScannedPanelItem matchedItem = await _lookupInventoryStatus(rawVal);
+      ScannedPanelItem matchedItem = await _lookupInventoryStatus(serialNumber, rawInput: rawVal);
 
       if (!mounted) return;
       setState(() {
@@ -896,7 +985,7 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('❌ Not found in Stock: $rawVal (Removing in 1s...)'),
+            content: Text('❌ Not found in Stock: $serialNumber (Removing in 1s...)'),
             backgroundColor: Colors.red.shade800,
             duration: const Duration(milliseconds: 1000),
           ),
@@ -905,7 +994,8 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
         Future.delayed(const Duration(seconds: 1), () {
           if (mounted) {
             setState(() {
-              _scannedPanels.removeWhere((p) => p.serialNumber == rawVal);
+              _scannedPanels.removeWhere((p) => p.serialNumber == serialNumber || p.serialNumber == rawVal);
+              _processingSerials.remove(serialNumber);
               _processingSerials.remove(rawVal);
             });
           }
@@ -915,7 +1005,7 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('✓ Matched Stock: Model ${matchedItem.modelNumber} ($rawVal)'),
+            content: Text('✓ Matched Stock: Model ${matchedItem.modelNumber} (${matchedItem.serialNumber})'),
             backgroundColor: Colors.green.shade800,
             duration: const Duration(milliseconds: 1400),
           ),
@@ -924,25 +1014,37 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
     }
   }
 
-  Future<ScannedPanelItem> _lookupInventoryStatus(String serial) async {
+  Future<ScannedPanelItem> _lookupInventoryStatus(String serial, {String? rawInput}) async {
     try {
-      final response = await ApiService.get(Uri.parse('$baseUrl/api/serial-numbers?search=$serial'));
+      var response = await ApiService.get(Uri.parse('$baseUrl/api/serial-numbers?search=$serial'));
+      List<dynamic> list = [];
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final List<dynamic> list = data is List ? data : (data['serials'] ?? []);
-        if (list.isNotEmpty) {
-          final item = list.first;
-          final String modelStr = item['model_number'] ?? item['product_code'] ?? item['model'] ?? 'BIN-21-615';
-          final String nameStr = item['product_name'] ?? 'Waaree TopCon 615W Solar Panel';
-          return ScannedPanelItem(
-            serialNumber: serial,
-            isMatched: true,
-            status: item['status'] ?? 'AVAILABLE',
-            productName: nameStr,
-            modelNumber: modelStr,
-            remarks: item['remarks'] ?? 'Matched in MySQL Stock',
-          );
+        list = data is List ? data : (data['serials'] ?? []);
+      }
+
+      // Try search raw input if different from serial
+      if (list.isEmpty && rawInput != null && rawInput != serial && rawInput.isNotEmpty) {
+        response = await ApiService.get(Uri.parse('$baseUrl/api/serial-numbers?search=${Uri.encodeComponent(rawInput)}'));
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          list = data is List ? data : (data['serials'] ?? []);
         }
+      }
+
+      if (list.isNotEmpty) {
+        final item = list.first;
+        final String matchedSerial = item['serial_number'] ?? serial;
+        final String modelStr = item['model_number'] ?? item['product_code'] ?? item['model'] ?? 'BIN-21-615';
+        final String nameStr = item['product_name'] ?? 'Waaree TopCon 615W Solar Panel';
+        return ScannedPanelItem(
+          serialNumber: matchedSerial,
+          isMatched: true,
+          status: item['status'] ?? 'AVAILABLE',
+          productName: nameStr,
+          modelNumber: modelStr,
+          remarks: item['remarks'] ?? 'Matched in MySQL Stock',
+        );
       }
     } catch (e) {
       // Fallback
