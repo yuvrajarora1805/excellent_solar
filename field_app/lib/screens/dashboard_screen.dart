@@ -48,7 +48,7 @@ class _FieldDashboardScreenState extends State<FieldDashboardScreen> {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final latestVersion = data['latest_version'] ?? '1.5.0';
-        const currentVersion = '1.5.0';
+        const currentVersion = '1.7.0';
 
 
 
