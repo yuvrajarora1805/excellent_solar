@@ -21,12 +21,14 @@ interface FlasherPanel {
   imp: string | number;
   ff: string | number;
   eff: string | number;
+  date?: string;
 }
 
 export default function FlasherReportsPage() {
   const [panels, setPanels] = useState<FlasherPanel[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [selectedInvoice, setSelectedInvoice] = useState<string>('All');
   const [isFtrModalOpen, setIsFtrModalOpen] = useState(false);
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
@@ -117,6 +119,7 @@ export default function FlasherReportsPage() {
             invoice_no: s.invoice_no || '—',
             module_sr_no: s.serial_number,
             pmax, voc, isc, vmp, imp, ff, eff,
+            date: s.created_at ? new Date(s.created_at).toLocaleDateString('en-GB') : '—',
           };
         });
 
@@ -166,10 +169,26 @@ export default function FlasherReportsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(50);
 
-  const filteredPanels = panels.filter(p =>
-    p.module_sr_no.toLowerCase().includes(search.toLowerCase()) ||
-    p.box_no.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredPanels = panels.filter(p => {
+    const matchesSearch = p.module_sr_no.toLowerCase().includes(search.toLowerCase()) || p.box_no.toLowerCase().includes(search.toLowerCase());
+    const matchesInvoice = selectedInvoice === 'All' || p.invoice_no === selectedInvoice;
+    return matchesSearch && matchesInvoice;
+  });
+
+  const uniqueInvoices = ['All', ...Array.from(new Set(panels.map(p => p.invoice_no).filter(inv => inv && inv !== '—')))];
+
+  useEffect(() => {
+    if (selectedInvoice !== 'All') {
+      const firstPanel = panels.find(p => p.invoice_no === selectedInvoice);
+      setHeaderInfo(prev => ({
+        ...prev,
+        invoice_no: selectedInvoice,
+        date: firstPanel?.date || '—',
+      }));
+    } else {
+      setHeaderInfo(prev => ({ ...prev, invoice_no: '—', date: '—' }));
+    }
+  }, [selectedInvoice, panels]);
 
   const totalPages = Math.ceil(filteredPanels.length / pageSize) || 1;
   const paginatedPanels = filteredPanels.slice(
@@ -263,14 +282,30 @@ export default function FlasherReportsPage() {
 
       {/* Filter & Search & Page Chunk Controls */}
       <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-        <div className="relative flex-1 w-full">
+        <div className="relative flex-1 w-full max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
           <Input
-            placeholder="Search by Unique Module Serial No. or Box No...."
+            placeholder="Search by Serial No. or Box No...."
             value={search}
             onChange={handleSearchChange}
             className="pl-10 font-mono text-sm"
           />
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-slate-600 dark:text-slate-400 font-semibold">Invoice:</span>
+          <select
+            value={selectedInvoice}
+            onChange={(e) => {
+              setSelectedInvoice(e.target.value);
+              setCurrentPage(1);
+            }}
+            className="text-xs border rounded p-1.5 bg-white dark:bg-slate-900 dark:border-slate-700 font-semibold"
+          >
+            {uniqueInvoices.map(inv => (
+              <option key={inv as string} value={inv as string}>{inv}</option>
+            ))}
+          </select>
         </div>
 
         <div className="flex items-center gap-3 w-full sm:w-auto justify-between">
