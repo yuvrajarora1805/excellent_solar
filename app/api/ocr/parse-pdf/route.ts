@@ -44,8 +44,15 @@ function extractSerialsFromPdfBuffer(buffer: Buffer, fileName: string) {
     s.length >= 10
   );
 
-  const invoiceMatch = text.match(/Invoice\s*No\.\s*:\s*([A-Z0-9]+)/i) || text.match(/56010\d+/);
-  const invoiceNo = invoiceMatch ? invoiceMatch[1] || invoiceMatch[0] : '5601014785';
+  // Extract invoice number — try multiple patterns
+  let invoiceNo = '—';
+  const invMatch1 = text.match(/Invoice\s*(?:No|Number)\.?\s*[:\-]?\s*([A-Z0-9]{6,20})/i);
+  const invMatch2 = text.match(/56010\d{6,10}/);
+  if (invMatch1 && invMatch1[1]) {
+    invoiceNo = invMatch1[1].trim();
+  } else if (invMatch2) {
+    invoiceNo = invMatch2[0].trim();
+  }
 
   const modelMatch = text.match(/BIN-\d+-\d+/i) || text.match(/Waaree\s*[\w-]+/i);
   const moduleModel = modelMatch ? modelMatch[0] : 'BIN-21-615';

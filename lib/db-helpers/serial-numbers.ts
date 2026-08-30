@@ -304,10 +304,10 @@ export const serialNumberDb = {
           const remarks = `Box: ${mod.box_no || 'N/A'} | Pmax: ${mod.pmax || ''}W | Voc: ${mod.voc || ''}V | Isc: ${mod.isc || ''}A | Eff: ${mod.eff || ''}%`;
           
           const [result] = await conn.execute(
-            `INSERT INTO product_serial_numbers (product_id, serial_number, warehouse_id, current_location, remarks, status)
-             VALUES (?, ?, ?, 'WAREHOUSE', ?, 'AVAILABLE')
-             ON DUPLICATE KEY UPDATE remarks = VALUES(remarks)`,
-            [data.product_id, mod.module_sr_no, data.warehouse_id || null, remarks]
+            `INSERT INTO product_serial_numbers (product_id, serial_number, warehouse_id, current_location, invoice_no, remarks, status)
+             VALUES (?, ?, ?, 'WAREHOUSE', ?, ?, 'AVAILABLE')
+             ON DUPLICATE KEY UPDATE remarks = VALUES(remarks), invoice_no = COALESCE(VALUES(invoice_no), invoice_no)`,
+            [data.product_id, mod.module_sr_no, data.warehouse_id || null, data.invoice_no || null, remarks]
           );
 
           importedCount++;
