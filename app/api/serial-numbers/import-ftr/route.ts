@@ -7,13 +7,19 @@ let columnChecked = false;
 async function ensureInvoiceNoColumn() {
   if (columnChecked) return;
   try {
-    await execute(
-      `ALTER TABLE product_serial_numbers ADD COLUMN IF NOT EXISTS invoice_no VARCHAR(100) DEFAULT NULL`
+    // Check if column exists first (works on all MySQL versions)
+    const cols = await query<{ COLUMN_NAME: string }>(
+      `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS 
+       WHERE TABLE_SCHEMA = DATABASE() 
+       AND TABLE_NAME = 'product_serial_numbers' 
+       AND COLUMN_NAME = 'invoice_no'`
     );
+    if (cols.length === 0) {
+      await execute(`ALTER TABLE product_serial_numbers ADD COLUMN invoice_no VARCHAR(100) DEFAULT NULL`);
+    }
     columnChecked = true;
   } catch (e) {
-    // Column may already exist, ignore
-    columnChecked = true;
+    columnChecked = true; // Don't block imports if migration fails
   }
 }
 
