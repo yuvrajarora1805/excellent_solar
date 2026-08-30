@@ -359,28 +359,36 @@ export const FTRImportModal: React.FC<FTRImportModalProps> = ({ isOpen, onClose,
                 <span>Total: {ftrData.modules.length}</span>
               </div>
               <div className="max-h-60 overflow-y-auto text-xs">
-                <table className="w-full text-left">
-                  <thead className="bg-slate-50 border-b sticky top-0">
+                <table className="w-full text-left min-w-[700px]">
+                  <thead className="bg-slate-800 text-white sticky top-0">
                     <tr>
                       <th className="p-2">#</th>
+                      <th className="p-2">Invoice No.</th>
                       <th className="p-2">Box No.</th>
-                      <th className="p-2">Module Serial No.</th>
-                      <th className="p-2">Pmax (W)</th>
-                      <th className="p-2">Voc (V)</th>
-                      <th className="p-2">Isc (A)</th>
-                      <th className="p-2">Eff (%)</th>
+                      <th className="p-2 text-amber-300">Module Serial No.</th>
+                      <th className="p-2 text-right">Pmax (W)</th>
+                      <th className="p-2 text-right">Voc (V)</th>
+                      <th className="p-2 text-right">Isc (A)</th>
+                      <th className="p-2 text-right">Vmp (V)</th>
+                      <th className="p-2 text-right">Imp (A)</th>
+                      <th className="p-2 text-right">FF (%)</th>
+                      <th className="p-2 text-right text-emerald-300">Eff (%)</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y">
-                    {ftrData.modules.slice(0, 50).map((m, idx) => (
+                    {ftrData.modules.slice(0, 50).map((m: any, idx: number) => (
                       <tr key={idx} className="hover:bg-slate-50">
                         <td className="p-2 text-slate-500">{m.sr_no}</td>
+                        <td className="p-2 font-mono text-[11px] text-slate-600">{m.invoice_no || ftrData.invoice_no || '—'}</td>
                         <td className="p-2 font-mono text-[11px]">{m.box_no}</td>
                         <td className="p-2 font-mono font-bold text-blue-700">{m.module_sr_no}</td>
-                        <td className="p-2 font-bold">{m.pmax}</td>
-                        <td className="p-2">{m.voc}</td>
-                        <td className="p-2">{m.isc}</td>
-                        <td className="p-2 font-semibold text-green-700">{m.eff}%</td>
+                        <td className="p-2 text-right font-bold">{m.pmax}</td>
+                        <td className="p-2 text-right">{m.voc}</td>
+                        <td className="p-2 text-right">{m.isc}</td>
+                        <td className="p-2 text-right">{m.vmp}</td>
+                        <td className="p-2 text-right">{m.imp}</td>
+                        <td className="p-2 text-right">{m.ff}</td>
+                        <td className="p-2 text-right font-semibold text-green-700">{m.eff}%</td>
                       </tr>
                     ))}
                   </tbody>

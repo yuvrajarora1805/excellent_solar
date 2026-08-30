@@ -304,15 +304,27 @@ export const serialNumberDb = {
           const remarks = `Box: ${mod.box_no || 'N/A'} | Pmax: ${mod.pmax || ''}W | Voc: ${mod.voc || ''}V | Isc: ${mod.isc || ''}A | Eff: ${mod.eff || ''}%`;
           
           const [result] = await conn.execute(
-            `INSERT INTO product_serial_numbers (product_id, serial_number, warehouse_id, current_location, invoice_no, remarks, status)
-             VALUES (?, ?, ?, 'WAREHOUSE', ?, ?, 'AVAILABLE')
-             ON DUPLICATE KEY UPDATE remarks = VALUES(remarks), invoice_no = COALESCE(VALUES(invoice_no), invoice_no)`,
-            [data.product_id, mod.module_sr_no, data.warehouse_id || null, data.invoice_no || null, remarks]
+            `INSERT INTO product_serial_numbers (product_id, serial_number, warehouse_id, current_location, remarks, status)
+             VALUES (?, ?, ?, 'WAREHOUSE', ?, 'AVAILABLE')
+             ON DUPLICATE KEY UPDATE remarks = VALUES(remarks)`,
+            [data.product_id, mod.module_sr_no, data.warehouse_id || null, remarks]
           );
 
           importedCount++;
           if ((result as any).affectedRows === 1) {
             newlyInsertedCount++;
+          }
+
+          // Try to set invoice_no (column added via auto-migration — may not exist on old installs)
+          if (data.invoice_no) {
+            try {
+              await conn.execute(
+                `UPDATE product_serial_numbers SET invoice_no = ? WHERE serial_number = ?`,
+                [data.invoice_no, mod.module_sr_no]
+              );
+            } catch (_invErr) {
+              // Column doesn't exist yet — will work after first migration
+            }
           }
         }
       }
