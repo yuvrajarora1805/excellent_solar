@@ -58,9 +58,11 @@ export const SolarQuotationTemplate: React.FC<{ data: Partial<SolarQuotationData
         {/* QR Code */}
           <div className="absolute top-0 right-0 flex flex-col items-center">
             <img 
-              src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(`Name: ${data.customer_name}\nLocation: ${data.location}\nMap: ${data.latitude && data.longitude ? `https://maps.google.com/?q=${data.latitude},${data.longitude}` : `https://maps.google.com/?q=${encodeURIComponent(data.location || 'Punjab')}`}`)}`} 
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=4&qzone=1&data=${encodeURIComponent(`Name: ${data.customer_name}\nLocation: ${data.location}\nMap: ${data.latitude && data.longitude ? `https://maps.google.com/?q=${data.latitude},${data.longitude}` : `https://maps.google.com/?q=${encodeURIComponent(data.location || 'Punjab')}`}`)}`} 
               alt="Location QR" 
-              className="w-16 h-16 border border-gray-300 shadow-sm" 
+              width={75}
+              height={75}
+              style={{ imageRendering: 'crisp-edges', width: '75px', height: '75px', border: '1px solid #d1d5db' }} 
             />
             <span className="text-[8px] mt-0.5 font-bold">Scan for Map</span>
           </div>
