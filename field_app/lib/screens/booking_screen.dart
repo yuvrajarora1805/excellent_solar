@@ -510,7 +510,7 @@ class _OnGridBookingFormState extends State<OnGridBookingForm> {
                   'id': p.product.id,
                   'name': p.product.name,
                   'quantity': p.quantity,
-                  'selling_price': p.product.price,
+                  'selling_price': 0.0,
                   'unit': p.product.unit,
                 }).toList();
 

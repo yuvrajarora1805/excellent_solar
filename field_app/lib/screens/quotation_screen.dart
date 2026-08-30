@@ -336,7 +336,7 @@ class _QuotationScreenState extends State<QuotationScreen> {
                               decoration: const InputDecoration(
                                 labelText: 'Price per Unit (₹)',
                                 border: OutlineInputBorder(),
-                                dense: true,
+                                isDense: true,
                               ),
                               onChanged: (val) {
                                 double? p = double.tryParse(val);
@@ -353,7 +353,7 @@ class _QuotationScreenState extends State<QuotationScreen> {
                               decoration: const InputDecoration(
                                 labelText: 'Qty',
                                 border: OutlineInputBorder(),
-                                dense: true,
+                                isDense: true,
                               ),
                               onChanged: (val) {
                                 int? q = int.tryParse(val);
@@ -412,7 +412,7 @@ class _QuotationScreenState extends State<QuotationScreen> {
                               controller: _discountCtrl,
                               keyboardType: TextInputType.number,
                               textAlign: TextAlign.end,
-                              decoration: const InputDecoration(border: OutlineInputBorder(), dense: true),
+                              decoration: const InputDecoration(border: OutlineInputBorder(), isDense: true),
                               onChanged: (_) => setState(() {}),
                             ),
                           ),
