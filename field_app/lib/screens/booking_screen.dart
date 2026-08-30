@@ -74,6 +74,115 @@ class _OnGridBookingFormState extends State<OnGridBookingForm> {
   // Selected inventory
   List<SelectedProduct> _selectedProducts = [];
 
+  // Projects
+  List<dynamic> _projects = [];
+  bool _loadingProjects = true;
+  int? _selectedProjectId;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchProjects();
+  }
+
+  Future<void> _fetchProjects() async {
+    try {
+      final response = await ApiService.get(Uri.parse('$baseUrl/api/projects?limit=1000'));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (mounted) {
+          setState(() {
+            _projects = data['projects'] ?? [];
+            _loadingProjects = false;
+          });
+        }
+      } else {
+        if (mounted) setState(() => _loadingProjects = false);
+      }
+    } catch (e) {
+      if (mounted) setState(() => _loadingProjects = false);
+    }
+  }
+
+  void _showProjectPicker() {
+    String searchQuery = '';
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setModalState) {
+            final filtered = _projects.where((p) {
+              final name = (p['customer_name'] ?? '').toString().toLowerCase();
+              final phone = (p['mobile'] ?? '').toString().toLowerCase();
+              return name.contains(searchQuery.toLowerCase()) || phone.contains(searchQuery.toLowerCase());
+            }).toList();
+
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.7,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              child: Column(
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: Text('Select Customer / Project', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: TextField(
+                      decoration: const InputDecoration(
+                        hintText: 'Search by name or mobile...',
+                        prefixIcon: Icon(Icons.search),
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (val) {
+                        setModalState(() {
+                          searchQuery = val;
+                        });
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: _loadingProjects
+                        ? const Center(child: CircularProgressIndicator())
+                        : ListView.builder(
+                            itemCount: filtered.length,
+                            itemBuilder: (context, index) {
+                              final p = filtered[index];
+                              return ListTile(
+                                leading: const CircleAvatar(backgroundColor: Colors.blue, child: Icon(Icons.person, color: Colors.white)),
+                                title: Text(p['customer_name'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.bold)),
+                                subtitle: Text('${p['mobile'] ?? 'No Mobile'} • ${p['full_address'] ?? p['site_address'] ?? 'No Address'}'),
+                                onTap: () {
+                                  setState(() {
+                                    _selectedProjectId = p['id'];
+                                    _customerNameCtrl.text = p['customer_name'] ?? '';
+                                    _mobileNumberCtrl.text = p['mobile'] ?? '';
+                                    _addressCtrl.text = p['full_address'] ?? p['site_address'] ?? '';
+                                    if (p['capacity'] != null) {
+                                      _proposedLoadCtrl.text = p['capacity'].toString();
+                                    }
+                                  });
+                                  Navigator.pop(context);
+                                },
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   Future<void> _capturePhoto() async {
     // Validate: customer name must be filled before geotagging
     if (_customerNameCtrl.text.trim().isEmpty) {
@@ -210,9 +319,23 @@ class _OnGridBookingFormState extends State<OnGridBookingForm> {
             const SizedBox(height: 8),
 
             // CUSTOMER PROFILE
-            const Text(
-              '1. Customer Profile',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  '1. Customer Profile',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                ),
+                TextButton.icon(
+                  onPressed: _showProjectPicker,
+                  icon: const Icon(Icons.search),
+                  label: const Text('Select Project'),
+                  style: TextButton.styleFrom(
+                    backgroundColor: Colors.blue.shade50,
+                    foregroundColor: Colors.blue,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 8),
             TextFormField(
@@ -513,6 +636,7 @@ class _OnGridBookingFormState extends State<OnGridBookingForm> {
                       customerName: _customerNameCtrl.text,
                       mobileNumber: _mobileNumberCtrl.text,
                       capacityKw: _proposedLoadCtrl.text,
+                      projectId: _selectedProjectId,
                     ),
                   ),
                 );
