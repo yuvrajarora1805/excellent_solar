@@ -4,7 +4,7 @@ import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Truck, ArrowLeft, Printer, CheckCircle, User, MapPin, Calendar, Camera, Barcode } from 'lucide-react';
+import { Truck, ArrowLeft, Printer, CheckCircle, User, MapPin, Calendar, Camera, Barcode, Download } from 'lucide-react';
 import type { Order } from '@/lib/db-helpers/orders';
 
 export default function OrderDetailsPage({ params }: { params: Promise<{ id: string }> }) {
@@ -91,10 +91,35 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
         alert(data.error || 'Dispatch failed');
       }
     } catch (err) {
-      alert('Failed to dispatch order');
+      alert('Error dispatching order');
     } finally {
       setUpdating(false);
     }
+  };
+
+  const handleDownloadCSV = () => {
+    if (!order) return;
+    
+    let csv = "Order Number,Date,Customer Name,Status\n";
+    csv += `"${order.order_number}","${new Date(order.created_at).toLocaleDateString()}","${order.customer_name}","${order.status}"\n\n`;
+    
+    csv += "Product Code,Product Name,Quantity,Unit Price,Line Total\n";
+    order.items?.forEach(item => {
+      csv += `"${item.product_code}","${item.product_name}",${item.quantity},${item.unit_price},${item.line_total}\n`;
+    });
+    
+    csv += "\nDispatched Solar Panel Serial Numbers\n";
+    order.serials?.forEach((s, idx) => {
+      csv += `"${idx + 1}","${s.serial_number}"\n`;
+    });
+    
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Dispatch_Details_${order.order_number}.csv`;
+    a.click();
+    window.URL.revokeObjectURL(url);
   };
 
   if (loading) return <div className="p-8 text-center text-slate-500 animate-pulse">Loading order details...</div>;
@@ -129,6 +154,9 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
               {updating ? 'Dispatching...' : 'Dispatch Order & Sync Stock'}
             </Button>
           )}
+          <Button onClick={handleDownloadCSV} variant="outline" className="border-green-600 text-green-700 hover:bg-green-50 font-bold">
+            <Download className="w-4 h-4 mr-2" /> Export to Excel
+          </Button>
           <Button onClick={() => window.print()} className="bg-blue-600 text-white">
             <Printer className="w-4 h-4 mr-2" /> Print Delivery Challan / Gate Pass
           </Button>
@@ -140,9 +168,8 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
         {/* Header */}
         <div className="border-b-2 border-black pb-4 mb-4 flex justify-between items-start">
           <div>
-            <div className="flex items-center gap-2">
-              <span className="text-3xl font-extrabold italic text-red-600">excellent</span>
-              <span className="text-3xl font-black text-red-600">SOLAR</span>
+            <div className="flex items-center gap-2 mb-2">
+              <img src="/logo.png" alt="Excellent Solar" className="h-14 w-auto" />
             </div>
             <p className="text-xs font-semibold text-slate-700 mt-1">
               Kotkapura, Faridkot | Phone: +91 98581-09000, 77196-52727
@@ -301,9 +328,9 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
             </div>
           </div>
           <div>
-            <p className="mb-8">Driver / Transport Signature</p>
+            <p className="mb-8">Store Incharge Signature</p>
             <div className="border-t border-dashed border-slate-400 pt-1">
-              {order.driver_name || 'Driver Signature'}
+              Store Incharge
             </div>
           </div>
           <div>

@@ -29,6 +29,20 @@ export async function GET(
            WHERE ssp.site_survey_id IN (SELECT id FROM site_surveys WHERE project_id = ?)`,
           [id]
         );
+        
+        // Include the original booking site photo if no other photos exist
+        if (p.site_photo_path && (!photos || photos.length === 0)) {
+          photos.push({
+            id: -1,
+            category: 'site_photo',
+            file_name: p.site_photo_path.split('/').pop() || 'booking_photo.jpg',
+            file_path: p.site_photo_path,
+            uploader_name: 'Customer Booking',
+            uploader_role: 'SYSTEM',
+            created_at: p.created_at,
+          });
+        }
+
         return NextResponse.json({
           id: 0,
           project_id: id,
