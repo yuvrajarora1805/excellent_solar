@@ -219,6 +219,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     final prefs = await SharedPreferences.getInstance();
     final bool dismissed = prefs.getBool('permission_dismissed') ?? false;
     if (dismissed) return;
+    
+    // Immediately mark as dismissed/requested so we don't ask on every single startup
+    await prefs.setBool('permission_dismissed', true);
 
     bool hasNotification = await Permission.notification.isGranted;
     bool hasBatteryIgnore = await Permission.ignoreBatteryOptimizations.isGranted;
