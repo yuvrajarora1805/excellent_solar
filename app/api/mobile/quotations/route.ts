@@ -48,6 +48,7 @@ export async function POST(request: NextRequest) {
         description: i.description || i.name || 'Solar Product',
         quantity: qty,
         unit: i.unit || 'Piece',
+        brand: i.brand || null,
         unit_price: price,
         discount_amount: 0,
         tax_amount: 0,
@@ -59,9 +60,21 @@ export async function POST(request: NextRequest) {
 
     const discountAmount = Number(body.discount_amount || 0);
     const gstPercentage = Number(body.gst_percentage || 18);
-    const taxableAmount = Math.max(0, subtotal - discountAmount);
-    const gstAmount = Math.round((taxableAmount * gstPercentage) / 100);
-    const totalAmount = taxableAmount + gstAmount;
+    let totalAmount = Number(body.total_amount || 0);
+    
+    let taxableAmount = 0;
+    let gstAmount = 0;
+
+    if (totalAmount > 0 && subtotal === 0) {
+      // Mobile app doesn't send item prices, calculate backwards from total_amount
+      taxableAmount = Math.round(totalAmount / (1 + (gstPercentage / 100)));
+      gstAmount = totalAmount - taxableAmount;
+      subtotal = taxableAmount + discountAmount;
+    } else {
+      taxableAmount = Math.max(0, subtotal - discountAmount);
+      gstAmount = Math.round((taxableAmount * gstPercentage) / 100);
+      totalAmount = taxableAmount + gstAmount;
+    }
 
     // Find customer ID
     let customerId = body.customer_id;
