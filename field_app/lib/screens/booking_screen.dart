@@ -506,14 +506,6 @@ class _OnGridBookingFormState extends State<OnGridBookingForm> {
             // SUBMIT ACTIONS
             OutlinedButton.icon(
               onPressed: () {
-                final initialProds = _selectedProducts.map((p) => {
-                  'id': p.product.id,
-                  'name': p.product.name,
-                  'quantity': p.quantity,
-                  'selling_price': 0.0,
-                  'unit': p.product.unit,
-                }).toList();
-
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -521,7 +513,6 @@ class _OnGridBookingFormState extends State<OnGridBookingForm> {
                       customerName: _customerNameCtrl.text,
                       mobileNumber: _mobileNumberCtrl.text,
                       capacityKw: _proposedLoadCtrl.text,
-                      initialProducts: initialProds,
                     ),
                   ),
                 );
