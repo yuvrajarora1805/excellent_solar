@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { serialNumberDb } from '@/lib/db-helpers/serial-numbers';
-import { queryOne, execute } from '@/lib/db';
+import { query, queryOne, execute } from '@/lib/db';
 
 // Auto-add invoice_no column if it doesn't exist (runs once on first call)
 let columnChecked = false;

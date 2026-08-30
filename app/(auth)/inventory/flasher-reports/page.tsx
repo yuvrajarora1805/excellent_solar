@@ -32,18 +32,16 @@ export default function FlasherReportsPage() {
   const [isClearing, setIsClearing] = useState(false);
 
   const handleClearAll = async () => {
-    if (!confirm('⚠️ Are you sure you want to DELETE ALL serial numbers from the database?\n\nThis will:\n• Remove all 620 serial number records\n• Reset the product stock to 0\n\nYou can re-import the PDF after this to start fresh.')) return;
+    if (!confirm(`⚠️ Are you sure you want to DELETE ALL ${panels.length} serial numbers from the database?\n\nThis will:\n• Remove all serial number records\n• Reset the product stock to 0\n\nYou can re-import the PDF after this to start fresh.`)) return;
     try {
       setIsClearing(true);
-      // Get product_id from first panel or default to 1
-      const productId = panels[0]?.id ? 1 : 1; // Will clear all serials for product 1
-      // Fetch the product list to get correct ID
-      const prodRes = await fetch('/api/inventory/products');
-      const prodData = await prodRes.json();
-      const products = prodData.products || [];
-      const binProd = products.find((p: any) => p.product_code === 'BIN-21-615') || products[0];
-      if (!binProd) { alert('No product found!'); return; }
-      const res = await fetch(`/api/serial-numbers/clear-all?product_id=${binProd.id}`, { method: 'DELETE' });
+      // Get product IDs from existing serial numbers via the API
+      const sRes = await fetch('/api/serial-numbers?limit=1');
+      const sData = await sRes.json();
+      const firstSerial = Array.isArray(sData) ? sData[0] : (sData.serials || sData)[0];
+      const productId = firstSerial?.product_id;
+      if (!productId) { alert('No serial numbers found in database!'); return; }
+      const res = await fetch(`/api/serial-numbers/clear-all?product_id=${productId}`, { method: 'DELETE' });
       const result = await res.json();
       if (!res.ok) throw new Error(result.error);
       alert(`✅ ${result.message}`);
