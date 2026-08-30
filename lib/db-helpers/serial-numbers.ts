@@ -301,7 +301,7 @@ export const serialNumberDb = {
         const chunk = data.modules.slice(i, i + CHUNK_SIZE);
         for (const mod of chunk) {
           if (!mod.module_sr_no) continue;
-          const remarks = `Box: ${mod.box_no || 'N/A'} | Pmax: ${mod.pmax || ''}W | Voc: ${mod.voc || ''}V | Isc: ${mod.isc || ''}A | Eff: ${mod.eff || ''}%`;
+          const remarks = `Box: ${mod.box_no || 'N/A'} | Pmax: ${mod.pmax || ''}W | Voc: ${mod.voc || ''}V | Isc: ${mod.isc || ''}A | Vmp: ${mod.vmp || ''}V | Imp: ${mod.imp || ''}A | FF: ${mod.ff || ''}% | Eff: ${mod.eff || ''}%`;
           
           const [result] = await conn.execute(
             `INSERT INTO product_serial_numbers (product_id, serial_number, warehouse_id, current_location, remarks, status)

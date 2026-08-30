@@ -75,11 +75,15 @@ export default function FlasherReportsPage() {
           if (s.remarks && s.remarks.includes('Pmax:')) {
             const parts = s.remarks.split('|');
             parts.forEach((p: string) => {
-              if (p.includes('Box:')) box_no = p.replace('Box:', '').trim();
-              if (p.includes('Pmax:')) pmax = p.replace('Pmax:', '').replace('W', '').trim();
-              if (p.includes('Voc:')) voc = p.replace('Voc:', '').replace('V', '').trim();
-              if (p.includes('Isc:')) isc = p.replace('Isc:', '').replace('A', '').trim();
-              if (p.includes('Eff:')) eff = p.replace('Eff:', '').replace('%', '').trim();
+              const t = p.trim();
+              if (t.startsWith('Box:')) box_no = t.replace('Box:', '').trim();
+              if (t.startsWith('Pmax:')) pmax = t.replace('Pmax:', '').replace('W', '').trim();
+              if (t.startsWith('Voc:')) voc = t.replace('Voc:', '').replace('V', '').trim();
+              if (t.startsWith('Isc:')) isc = t.replace('Isc:', '').replace('A', '').trim();
+              if (t.startsWith('Vmp:')) vmp = t.replace('Vmp:', '').replace('V', '').trim();
+              if (t.startsWith('Imp:')) imp = t.replace('Imp:', '').replace('A', '').trim();
+              if (t.startsWith('FF:')) ff = t.replace('FF:', '').replace('%', '').trim();
+              if (t.startsWith('Eff:')) eff = t.replace('Eff:', '').replace('%', '').trim();
             });
           }
 
