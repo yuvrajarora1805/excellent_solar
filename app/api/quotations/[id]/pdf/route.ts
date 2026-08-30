@@ -24,6 +24,10 @@ export async function GET(
     // Fetch customer details
     const customers = await query<any>('SELECT * FROM customers WHERE id = ?', [qAny.customer_id || 1]);
     const customer = customers.length > 0 ? customers[0] : { name: qAny.customer_name || 'Customer' };
+    
+    // Fetch site survey for precise coordinates
+    const siteSurveys = await query<any>('SELECT latitude, longitude FROM site_surveys WHERE project_id = ? ORDER BY id DESC LIMIT 1', [qAny.project_id || 0]);
+    const siteSurvey = siteSurveys.length > 0 ? siteSurveys[0] : null;
 
     const items = quotation.items || [];
     const dateFormatted = quotation.quotation_date ? new Date(quotation.quotation_date).toLocaleDateString('en-IN') : new Date().toLocaleDateString('en-IN');
@@ -81,7 +85,7 @@ export async function GET(
     <div class="logo-header">
       <img src="/qutaionlogo.png" alt="Excellent Solar Logo" onerror="this.onerror=null; this.src='/logo.png';" />
       <div class="qr-container">
-        <img src="https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=\${encodeURIComponent((quotation.project_latitude && quotation.project_longitude) ? \`https://maps.google.com/?q=\${quotation.project_latitude},\${quotation.project_longitude}\` : (customer.latitude && customer.longitude) ? \`https://maps.google.com/?q=\${customer.latitude},\${customer.longitude}\` : \`https://maps.google.com/?q=\${quotation.remarks || customer.city || 'Punjab'}\`)}" alt="QR Code" />
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=\${encodeURIComponent((quotation.project_latitude && quotation.project_longitude) ? \`https://maps.google.com/?q=\${quotation.project_latitude},\${quotation.project_longitude}\` : (siteSurvey?.latitude && siteSurvey?.longitude) ? \`https://maps.google.com/?q=\${siteSurvey.latitude},\${siteSurvey.longitude}\` : (customer.latitude && customer.longitude) ? \`https://maps.google.com/?q=\${customer.latitude},\${customer.longitude}\` : \`https://maps.google.com/?q=\${quotation.remarks || customer.city || 'Punjab'}\`)}" alt="QR Code" />
         <span>Scan for Map</span>
       </div>
 
