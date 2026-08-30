@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Modal } from '@/components/ui/modal';
-import { Plus, Search, FileUp, Zap, CheckCircle, Package } from 'lucide-react';
+import { Plus, Search, FileUp, Zap, CheckCircle, Package, Trash2 } from 'lucide-react';
 import { FTRImportModal } from '@/components/inventory/ftr-import-modal';
 
 interface FlasherPanel {
@@ -29,6 +29,31 @@ export default function FlasherReportsPage() {
   const [search, setSearch] = useState('');
   const [isFtrModalOpen, setIsFtrModalOpen] = useState(false);
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
+
+  const handleClearAll = async () => {
+    if (!confirm('⚠️ Are you sure you want to DELETE ALL serial numbers from the database?\n\nThis will:\n• Remove all 620 serial number records\n• Reset the product stock to 0\n\nYou can re-import the PDF after this to start fresh.')) return;
+    try {
+      setIsClearing(true);
+      // Get product_id from first panel or default to 1
+      const productId = panels[0]?.id ? 1 : 1; // Will clear all serials for product 1
+      // Fetch the product list to get correct ID
+      const prodRes = await fetch('/api/inventory/products');
+      const prodData = await prodRes.json();
+      const products = prodData.products || [];
+      const binProd = products.find((p: any) => p.product_code === 'BIN-21-615') || products[0];
+      if (!binProd) { alert('No product found!'); return; }
+      const res = await fetch(`/api/serial-numbers/clear-all?product_id=${binProd.id}`, { method: 'DELETE' });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error);
+      alert(`✅ ${result.message}`);
+      fetchSerials();
+    } catch (err: any) {
+      alert(`❌ Error: ${err.message}`);
+    } finally {
+      setIsClearing(false);
+    }
+  };
 
   // Flasher Report Header Info
   const [headerInfo, setHeaderInfo] = useState({
@@ -175,7 +200,7 @@ export default function FlasherReportsPage() {
             Track Waaree flasher test metrics, OA No., Box No., and unique module serial numbers
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Button onClick={() => setIsManualModalOpen(true)} className="bg-blue-600 hover:bg-blue-700 text-white gap-2">
             <Plus className="w-4 h-4" />
             Add Panel Manually
@@ -183,6 +208,14 @@ export default function FlasherReportsPage() {
           <Button onClick={() => setIsFtrModalOpen(true)} className="bg-emerald-600 hover:bg-emerald-700 text-white gap-2">
             <FileUp className="w-4 h-4" />
             Import FTR PDF (OCR)
+          </Button>
+          <Button
+            onClick={handleClearAll}
+            disabled={isClearing || panels.length === 0}
+            className="bg-red-600 hover:bg-red-700 text-white gap-2"
+          >
+            <Trash2 className="w-4 h-4" />
+            {isClearing ? 'Clearing...' : `Clear All (${panels.length})`}
           </Button>
         </div>
       </div>
