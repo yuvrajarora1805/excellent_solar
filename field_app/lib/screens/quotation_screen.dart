@@ -253,6 +253,9 @@ class _QuotationScreenState extends State<QuotationScreen> {
   void _showAddItemDialog() {
     InventoryProduct? selectedProduct;
     final qtyCtrl = TextEditingController(text: '1');
+    final brandCtrl = TextEditingController();
+    final specCtrl = TextEditingController();
+    TextEditingController? searchController;
     
     showDialog(
       context: context,
@@ -264,63 +267,92 @@ class _QuotationScreenState extends State<QuotationScreen> {
               title: Text('Add Material', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold)),
               content: SizedBox(
                 width: MediaQuery.of(context).size.width * 0.9,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Autocomplete<InventoryProduct>(
-                      displayStringForOption: (p) => p.name,
-                      optionsBuilder: (textEditingValue) {
-                        if (textEditingValue.text.isEmpty) return const Iterable<InventoryProduct>.empty();
-                        final q = textEditingValue.text.toLowerCase();
-                        return _inventoryProducts.where((p) => p.name.toLowerCase().contains(q) || p.productCode.toLowerCase().contains(q)).take(15);
-                      },
-                      onSelected: (p) => setDialogState(() => selectedProduct = p),
-                      fieldViewBuilder: (context, controller, focusNode, onEditingComplete) {
-                        return _darkTextField(
-                          label: 'Search Product',
-                          controller: controller,
-                          focusNode: focusNode,
-                          hint: 'Type product name...',
-                          onChanged: (val) {
-                            if (val.isEmpty) setDialogState(() => selectedProduct = null);
-                          }
-                        );
-                      },
-                      optionsViewBuilder: (context, onSelected, options) {
-                        return Align(
-                          alignment: Alignment.topLeft,
-                          child: Material(
-                            color: const Color(0xFF0F172A),
-                            elevation: 4,
-                            borderRadius: BorderRadius.circular(8),
-                            child: ConstrainedBox(
-                              constraints: BoxConstraints(maxHeight: 250, maxWidth: MediaQuery.of(context).size.width * 0.7),
-                              child: ListView.builder(
-                                padding: EdgeInsets.zero,
-                                shrinkWrap: true,
-                                itemCount: options.length,
-                                itemBuilder: (context, index) {
-                                  final p = options.elementAt(index);
-                                  return ListTile(
-                                    title: Text(p.name, style: GoogleFonts.inter(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-                                    subtitle: Text('${p.productCode} • ${p.brand}', style: GoogleFonts.inter(color: const Color(0xFF94A3B8), fontSize: 11)),
-                                    onTap: () => onSelected(p),
-                                  );
-                                },
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Autocomplete<InventoryProduct>(
+                        displayStringForOption: (p) => p.name,
+                        optionsBuilder: (textEditingValue) {
+                          if (textEditingValue.text.isEmpty) return const Iterable<InventoryProduct>.empty();
+                          final q = textEditingValue.text.toLowerCase();
+                          return _inventoryProducts.where((p) => p.name.toLowerCase().contains(q) || p.productCode.toLowerCase().contains(q)).take(15);
+                        },
+                        onSelected: (p) {
+                          setDialogState(() {
+                            selectedProduct = p;
+                            brandCtrl.text = p.brand.isNotEmpty ? p.brand : p.category;
+                            specCtrl.text = p.specification.isNotEmpty ? p.specification : p.unit;
+                          });
+                        },
+                        fieldViewBuilder: (context, controller, focusNode, onEditingComplete) {
+                          searchController = controller;
+                          return _darkTextField(
+                            label: 'Product Name / Description *',
+                            controller: controller,
+                            focusNode: focusNode,
+                            hint: 'Type product name...',
+                            onChanged: (val) {
+                              if (val.isEmpty) setDialogState(() => selectedProduct = null);
+                            }
+                          );
+                        },
+                        optionsViewBuilder: (context, onSelected, options) {
+                          return Align(
+                            alignment: Alignment.topLeft,
+                            child: Material(
+                              color: const Color(0xFF0F172A),
+                              elevation: 4,
+                              borderRadius: BorderRadius.circular(8),
+                              child: ConstrainedBox(
+                                constraints: BoxConstraints(maxHeight: 250, maxWidth: MediaQuery.of(context).size.width * 0.7),
+                                child: ListView.builder(
+                                  padding: EdgeInsets.zero,
+                                  shrinkWrap: true,
+                                  itemCount: options.length,
+                                  itemBuilder: (context, index) {
+                                    final p = options.elementAt(index);
+                                    return ListTile(
+                                      title: Text(p.name, style: GoogleFonts.inter(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                                      subtitle: Text('${p.productCode} • ${p.brand}', style: GoogleFonts.inter(color: const Color(0xFF94A3B8), fontSize: 11)),
+                                      onTap: () => onSelected(p),
+                                    );
+                                  },
+                                ),
                               ),
                             ),
+                          );
+                        }
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _darkTextField(
+                              label: 'Brand',
+                              controller: brandCtrl,
+                              hint: 'e.g. WAAREE',
+                            ),
                           ),
-                        );
-                      }
-                    ),
-                    const SizedBox(height: 16),
-                    _darkTextField(
-                      label: 'Quantity',
-                      controller: qtyCtrl,
-                      keyboardType: TextInputType.number,
-                    ),
-                  ],
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _darkTextField(
+                              label: 'Quantity *',
+                              controller: qtyCtrl,
+                              keyboardType: TextInputType.number,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      _darkTextField(
+                        label: 'Description / Spec',
+                        controller: specCtrl,
+                        hint: 'e.g. 540W Mono PERC',
+                      ),
+                    ],
+                  ),
                 ),
               ),
               actions: [
@@ -331,13 +363,14 @@ class _QuotationScreenState extends State<QuotationScreen> {
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF38BDF8), foregroundColor: const Color(0xFF0F172A)),
                   onPressed: () {
-                    if (selectedProduct == null) return;
+                    final desc = searchController?.text ?? '';
+                    if (desc.isEmpty) return;
                     setState(() {
                       _items.add(LineItem(
-                        description: selectedProduct!.name,
-                        quantity: qtyCtrl.text,
-                        brand: selectedProduct!.brand.isNotEmpty ? selectedProduct!.brand : selectedProduct!.category,
-                        unit: selectedProduct!.specification.isNotEmpty ? selectedProduct!.specification : selectedProduct!.unit,
+                        description: desc,
+                        quantity: qtyCtrl.text.isEmpty ? '1' : qtyCtrl.text,
+                        brand: brandCtrl.text,
+                        unit: specCtrl.text,
                       ));
                     });
                     Navigator.pop(context);

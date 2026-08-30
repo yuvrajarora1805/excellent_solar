@@ -62,6 +62,10 @@ export async function GET(
       body { padding: 0; }
       .container { border: none; padding: 0; }
       .no-print { display: none; }
+      * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
     }
   </style>
 </head>
