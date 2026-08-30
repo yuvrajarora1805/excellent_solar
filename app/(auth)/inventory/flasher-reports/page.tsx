@@ -29,6 +29,7 @@ export default function FlasherReportsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [selectedInvoice, setSelectedInvoice] = useState<string>('All');
+  const [selectedDate, setSelectedDate] = useState<string>('All');
   const [isFtrModalOpen, setIsFtrModalOpen] = useState(false);
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
@@ -172,10 +173,12 @@ export default function FlasherReportsPage() {
   const filteredPanels = panels.filter(p => {
     const matchesSearch = p.module_sr_no.toLowerCase().includes(search.toLowerCase()) || p.box_no.toLowerCase().includes(search.toLowerCase());
     const matchesInvoice = selectedInvoice === 'All' || p.invoice_no === selectedInvoice;
-    return matchesSearch && matchesInvoice;
+    const matchesDate = selectedDate === 'All' || p.date === selectedDate;
+    return matchesSearch && matchesInvoice && matchesDate;
   });
 
-  const uniqueInvoices = ['All', ...Array.from(new Set(panels.map(p => p.invoice_no).filter(inv => inv && inv !== '—')))];
+  const uniqueInvoices = ['All', ...Array.from(new Set(panels.filter(p => selectedDate === 'All' || p.date === selectedDate).map(p => p.invoice_no).filter(inv => inv && inv !== '—')))];
+  const uniqueDates = ['All', ...Array.from(new Set(panels.map(p => p.date).filter(date => date && date !== '—')))];
 
   useEffect(() => {
     if (selectedInvoice !== 'All') {
@@ -292,20 +295,38 @@ export default function FlasherReportsPage() {
           />
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-slate-600 dark:text-slate-400 font-semibold">Invoice:</span>
-          <select
-            value={selectedInvoice}
-            onChange={(e) => {
-              setSelectedInvoice(e.target.value);
-              setCurrentPage(1);
-            }}
-            className="text-xs border rounded p-1.5 bg-white dark:bg-slate-900 dark:border-slate-700 font-semibold"
-          >
-            {uniqueInvoices.map(inv => (
-              <option key={inv as string} value={inv as string}>{inv}</option>
-            ))}
-          </select>
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-600 dark:text-slate-400 font-semibold">Date:</span>
+            <select
+              value={selectedDate}
+              onChange={(e) => {
+                setSelectedDate(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="text-xs border rounded p-1.5 bg-white dark:bg-slate-900 dark:border-slate-700 font-semibold"
+            >
+              {uniqueDates.map(d => (
+                <option key={d as string} value={d as string}>{d}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-600 dark:text-slate-400 font-semibold">Invoice:</span>
+            <select
+              value={selectedInvoice}
+              onChange={(e) => {
+                setSelectedInvoice(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="text-xs border rounded p-1.5 bg-white dark:bg-slate-900 dark:border-slate-700 font-semibold"
+            >
+              {uniqueInvoices.map(inv => (
+                <option key={inv as string} value={inv as string}>{inv}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div className="flex items-center gap-3 w-full sm:w-auto justify-between">
