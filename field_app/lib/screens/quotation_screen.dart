@@ -6,6 +6,38 @@ import '../services/api_service.dart';
 import '../main.dart' show baseUrl;
 
 // ─── Data Models ───────────────────────────────────────────────────────────
+class Project {
+  final int id;
+  final String idStr;
+  final String customerName;
+  final String customerMobile;
+  final String customerCity;
+  final String customerAddress;
+  final String capacityKw;
+
+  Project({
+    required this.id,
+    required this.idStr,
+    required this.customerName,
+    required this.customerMobile,
+    required this.customerCity,
+    required this.customerAddress,
+    required this.capacityKw,
+  });
+
+  factory Project.fromJson(Map<String, dynamic> j) {
+    return Project(
+      id: j['id'] ?? 0,
+      idStr: j['id_str'] ?? '',
+      customerName: j['customer_name'] ?? '',
+      customerMobile: j['customer_mobile'] ?? '',
+      customerCity: j['customer_city'] ?? '',
+      customerAddress: j['customer_address'] ?? '',
+      capacityKw: j['capacity_kw']?.toString() ?? '',
+    );
+  }
+}
+
 class InventoryProduct {
   final int id;
   final String productCode;
@@ -91,9 +123,13 @@ class _QuotationScreenState extends State<QuotationScreen> {
   String _systemType = 'ONGRID_SOLAR';
   bool _isGenerating = false;
 
-  // Inventory
+  // Inventory & Projects
   List<InventoryProduct> _inventoryProducts = [];
   bool _loadingInventory = true;
+  
+  List<Project> _projects = [];
+  bool _loadingProjects = true;
+  Project? _selectedProject;
 
   // Default items — same as the web
   List<LineItem> _items = [
@@ -118,6 +154,7 @@ class _QuotationScreenState extends State<QuotationScreen> {
     _totalCostCtrl = TextEditingController();
     _gstCtrl = TextEditingController(text: '8.9');
     _fetchInventory();
+    _fetchProjects();
   }
 
   @override
@@ -153,6 +190,53 @@ class _QuotationScreenState extends State<QuotationScreen> {
     } catch (e) {
       setState(() => _loadingInventory = false);
     }
+  }
+
+  Future<void> _fetchProjects() async {
+    try {
+      final response = await ApiService.get(Uri.parse('$baseUrl/api/projects?limit=1000'));
+      if (response.statusCode == 200) {
+        final dynamic decoded = jsonDecode(response.body);
+        List<dynamic> data = [];
+        if (decoded is Map && decoded['projects'] != null) {
+          data = decoded['projects'] as List;
+        } else if (decoded is List) {
+          data = decoded;
+        }
+        setState(() {
+          _projects = data.map((e) => Project.fromJson(e)).toList();
+          _loadingProjects = false;
+
+          // Auto-select project if passed in
+          if (widget.projectId != null) {
+            final match = _projects.where((p) => p.id == widget.projectId).toList();
+            if (match.isNotEmpty) {
+              _onProjectSelected(match.first);
+            }
+          } else if (widget.customerName.isNotEmpty) {
+            final match = _projects.where((p) => p.customerName.toLowerCase() == widget.customerName.toLowerCase()).toList();
+            if (match.isNotEmpty) {
+              _onProjectSelected(match.first);
+            }
+          }
+        });
+      } else {
+        setState(() => _loadingProjects = false);
+      }
+    } catch (e) {
+      setState(() => _loadingProjects = false);
+    }
+  }
+
+  void _onProjectSelected(Project? p) {
+    setState(() {
+      _selectedProject = p;
+      if (p != null) {
+        final addressParts = [p.customerAddress, p.customerCity].where((e) => e.isNotEmpty).join(', ');
+        if (addressParts.isNotEmpty) _locationCtrl.text = addressParts;
+        if (p.capacityKw.isNotEmpty && p.capacityKw != '0') _capacityCtrl.text = p.capacityKw;
+      }
+    });
   }
 
   int get _calculatedTotal {
@@ -197,7 +281,7 @@ class _QuotationScreenState extends State<QuotationScreen> {
         'gst_percentage': double.tryParse(_gstCtrl.text) ?? 8.9,
         'total_amount': _finalTotal,
         'remarks': _locationCtrl.text,
-        'project_id': widget.projectId,
+        'project_id': _selectedProject?.id ?? widget.projectId,
         'status': 'DRAFT',
         'items': _items.map((item) => {
           'description': item.description,
@@ -273,10 +357,33 @@ class _QuotationScreenState extends State<QuotationScreen> {
               title: 'Customer & Project Details',
               icon: Icons.person_outline,
               children: [
-                _infoRow('Customer Name', widget.customerName.isNotEmpty ? widget.customerName : 'N/A'),
-                const SizedBox(height: 8),
-                _infoRow('Mobile', widget.mobileNumber.isNotEmpty ? widget.mobileNumber : 'N/A'),
-                const SizedBox(height: 16),
+                _loadingProjects 
+                  ? const Padding(padding: EdgeInsets.all(8.0), child: Text('Loading projects...', style: TextStyle(color: Colors.white70)))
+                  : _darkDropdown<Project?>(
+                      label: 'Select Customer Project',
+                      value: _selectedProject,
+                      items: [
+                        const DropdownMenuItem<Project?>(value: null, child: Text('Select a Customer Project...')),
+                        ..._projects.map((p) => DropdownMenuItem<Project?>(
+                          value: p,
+                          child: Text('${p.idStr} - ${p.customerName}'),
+                        ))
+                      ],
+                      onChanged: _onProjectSelected,
+                    ),
+                const SizedBox(height: 12),
+                if (_selectedProject != null) ...[
+                  _infoRow('Customer Name', _selectedProject!.customerName),
+                  const SizedBox(height: 8),
+                  _infoRow('Mobile', _selectedProject!.customerMobile.isNotEmpty ? _selectedProject!.customerMobile : 'N/A'),
+                  const SizedBox(height: 16),
+                ] else if (widget.customerName.isNotEmpty) ...[
+                  _infoRow('Customer Name', widget.customerName),
+                  const SizedBox(height: 8),
+                  _infoRow('Mobile', widget.mobileNumber.isNotEmpty ? widget.mobileNumber : 'N/A'),
+                  const SizedBox(height: 16),
+                ],
+
                 _darkTextField(label: 'Location / City *', controller: _locationCtrl, hint: 'e.g. JALALABAD'),
                 const SizedBox(height: 12),
                 Row(children: [
@@ -584,11 +691,11 @@ class _QuotationScreenState extends State<QuotationScreen> {
     );
   }
 
-  Widget _darkDropdown({
+  Widget _darkDropdown<T>({
     required String label,
-    required String value,
-    required List<DropdownMenuItem<String>> items,
-    required ValueChanged<String?> onChanged,
+    required T value,
+    required List<DropdownMenuItem<T>> items,
+    required ValueChanged<T?> onChanged,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -603,9 +710,9 @@ class _QuotationScreenState extends State<QuotationScreen> {
           ),
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
+            child: DropdownButton<T>(
               value: value,
-              items: items.map((item) => DropdownMenuItem<String>(
+              items: items.map((item) => DropdownMenuItem<T>(
                 value: item.value,
                 child: DefaultTextStyle(
                   style: GoogleFonts.inter(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
