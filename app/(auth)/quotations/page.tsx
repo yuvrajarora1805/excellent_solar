@@ -568,7 +568,7 @@ function CreateQuotationForm({ onSuccess, onCancel, initialProjectId = '' }: any
                 </button>
               </div>
 
-              <div className="overflow-x-auto border border-outline-variant rounded">
+              <div className="border border-outline-variant rounded mb-32">
                 <table className="w-full text-sm border-collapse">
                   <thead className="bg-[#6b9e38] text-black font-extrabold uppercase text-center border-b">
                     <tr>
