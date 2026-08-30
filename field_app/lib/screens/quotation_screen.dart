@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
 import '../main.dart' show baseUrl;
+import 'search_sheets.dart';
 
 // ─── Data Models ───────────────────────────────────────────────────────────
 class Project {
@@ -359,17 +360,35 @@ class _QuotationScreenState extends State<QuotationScreen> {
               children: [
                 _loadingProjects 
                   ? const Padding(padding: EdgeInsets.all(8.0), child: Text('Loading projects...', style: TextStyle(color: Colors.white70)))
-                  : _darkDropdown<Project?>(
-                      label: 'Select Customer Project',
-                      value: _selectedProject,
-                      items: [
-                        const DropdownMenuItem<Project?>(value: null, child: Text('Select a Customer Project...')),
-                        ..._projects.map((p) => DropdownMenuItem<Project?>(
-                          value: p,
-                          child: Text('${p.idStr} - ${p.customerName}'),
-                        ))
-                      ],
-                      onChanged: _onProjectSelected,
+                  : ElevatedButton.icon(
+                      onPressed: () {
+                        showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
+                          builder: (_) => FractionallySizedBox(
+                            heightFactor: 0.8,
+                            child: ProjectSearchSheet(
+                              projects: _projects,
+                              onSelect: (p) {
+                                Navigator.pop(context);
+                                _onProjectSelected(p);
+                              },
+                            ),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.search),
+                      label: Text(
+                        _selectedProject == null ? 'Tap to Select Customer Project' : 'Change Selected Project',
+                        style: GoogleFonts.inter(fontWeight: FontWeight.bold),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF0F172A),
+                        foregroundColor: Colors.white,
+                        side: const BorderSide(color: Color(0xFF334155)),
+                        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                        alignment: Alignment.centerLeft,
+                      ),
                     ),
                 const SizedBox(height: 12),
                 if (_selectedProject != null) ...[
@@ -415,100 +434,104 @@ class _QuotationScreenState extends State<QuotationScreen> {
             const SizedBox(height: 16),
 
             // ── Material Table ───────────────────────────────────────────
-            Container(
-              decoration: BoxDecoration(
-                color: const Color(0xFF1E293B),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFF334155)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Material Details Table',
-                              style: GoogleFonts.inter(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 15,
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Container(
+                width: 750, // Force a wider width for better layout on mobile
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1E293B),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFF334155)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Material Details Table',
+                                style: GoogleFonts.inter(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                ),
                               ),
-                            ),
-                            Text(
-                              _loadingInventory
-                                  ? 'Loading inventory...'
-                                  : 'Search ${_inventoryProducts.length} stock products',
-                              style: GoogleFonts.inter(color: const Color(0xFF94A3B8), fontSize: 12),
-                            ),
-                          ],
-                        ),
-                        ElevatedButton.icon(
-                          onPressed: _addItem,
-                          icon: const Icon(Icons.add, size: 16),
-                          label: Text('Add Row', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold)),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF334155),
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              Text(
+                                _loadingInventory
+                                    ? 'Loading inventory...'
+                                    : '${_inventoryProducts.length} stock products available',
+                                style: GoogleFonts.inter(color: const Color(0xFF94A3B8), fontSize: 12),
+                              ),
+                            ],
                           ),
-                        ),
-                      ],
+                          ElevatedButton.icon(
+                            onPressed: _addItem,
+                            icon: const Icon(Icons.add, size: 16),
+                            label: Text('Add Row', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF334155),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
 
-                  // Column Headers
-                  Container(
-                    margin: const EdgeInsets.only(top: 12),
-                    color: const Color(0xFF6B9E38),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    child: Row(children: [
-                      SizedBox(
-                        width: 28,
-                        child: Text('#', style: GoogleFonts.inter(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 11)),
-                      ),
-                      Expanded(
-                        flex: 4,
-                        child: Text('MATERIAL DETAIL', style: GoogleFonts.inter(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 11)),
-                      ),
-                      Expanded(
-                        flex: 2,
-                        child: Text('QTY', textAlign: TextAlign.center, style: GoogleFonts.inter(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 11)),
-                      ),
-                      Expanded(
-                        flex: 2,
-                        child: Text('BRAND', textAlign: TextAlign.center, style: GoogleFonts.inter(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 11)),
-                      ),
-                      Expanded(
-                        flex: 2,
-                        child: Text('DESCRIPTION', textAlign: TextAlign.center, style: GoogleFonts.inter(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 11)),
-                      ),
-                      const SizedBox(width: 28),
-                    ]),
-                  ),
+                    // Column Headers
+                    Container(
+                      margin: const EdgeInsets.only(top: 12),
+                      color: const Color(0xFF6B9E38),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      child: Row(children: [
+                        SizedBox(
+                          width: 28,
+                          child: Text('#', style: GoogleFonts.inter(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 11)),
+                        ),
+                        Expanded(
+                          flex: 4,
+                          child: Text('MATERIAL DETAIL', style: GoogleFonts.inter(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 11)),
+                        ),
+                        Expanded(
+                          flex: 2,
+                          child: Text('QTY', textAlign: TextAlign.center, style: GoogleFonts.inter(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 11)),
+                        ),
+                        Expanded(
+                          flex: 2,
+                          child: Text('BRAND', textAlign: TextAlign.center, style: GoogleFonts.inter(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 11)),
+                        ),
+                        Expanded(
+                          flex: 2,
+                          child: Text('DESCRIPTION', textAlign: TextAlign.center, style: GoogleFonts.inter(color: Colors.black, fontWeight: FontWeight.w900, fontSize: 11)),
+                        ),
+                        const SizedBox(width: 28),
+                      ]),
+                    ),
 
-                  // Rows
-                  ..._items.asMap().entries.map((entry) {
-                    final idx = entry.key;
-                    final item = entry.value;
-                    return _MaterialRow(
-                      idx: idx,
-                      item: item,
-                      inventoryProducts: _inventoryProducts,
-                      loadingInventory: _loadingInventory,
-                      onDelete: () => _removeItem(idx),
-                      onSelectProduct: (prod) => _selectInventoryProduct(idx, prod),
-                      onChanged: () => setState(() {}),
-                    );
-                  }),
-                  const SizedBox(height: 8),
-                ],
+                    // Rows
+                    ..._items.asMap().entries.map((entry) {
+                      final idx = entry.key;
+                      final item = entry.value;
+                      return _MaterialRow(
+                        idx: idx,
+                        item: item,
+                        inventoryProducts: _inventoryProducts,
+                        loadingInventory: _loadingInventory,
+                        onDelete: () => _removeItem(idx),
+                        onSelectProduct: (prod) => _selectInventoryProduct(idx, prod),
+                        onChanged: () => setState(() {}),
+                      );
+                    }),
+                    const SizedBox(height: 8),
+                  ],
+                ),
               ),
             ),
 
@@ -761,9 +784,6 @@ class _MaterialRowState extends State<_MaterialRow> {
   late TextEditingController _qtyCtrl;
   late TextEditingController _brandCtrl;
   late TextEditingController _unitCtrl;
-  late TextEditingController _searchCtrl;
-  bool _showDropdown = false;
-  List<InventoryProduct> _filtered = [];
 
   @override
   void initState() {
@@ -772,7 +792,6 @@ class _MaterialRowState extends State<_MaterialRow> {
     _qtyCtrl = TextEditingController(text: widget.item.quantity);
     _brandCtrl = TextEditingController(text: widget.item.brand);
     _unitCtrl = TextEditingController(text: widget.item.unit);
-    _searchCtrl = TextEditingController();
   }
 
   @override
@@ -795,34 +814,13 @@ class _MaterialRowState extends State<_MaterialRow> {
     _qtyCtrl.dispose();
     _brandCtrl.dispose();
     _unitCtrl.dispose();
-    _searchCtrl.dispose();
     super.dispose();
-  }
-
-  void _onSearch(String query) {
-    setState(() {
-      _showDropdown = true;
-      if (query.isEmpty) {
-        _filtered = widget.inventoryProducts.take(20).toList();
-      } else {
-        final q = query.toLowerCase();
-        _filtered = widget.inventoryProducts.where((p) =>
-          p.name.toLowerCase().contains(q) ||
-          p.brand.toLowerCase().contains(q) ||
-          p.category.toLowerCase().contains(q) ||
-          p.productCode.toLowerCase().contains(q) ||
-          p.specification.toLowerCase().contains(q)
-        ).take(15).toList();
-      }
-    });
   }
 
   void _selectProduct(InventoryProduct product) {
     _descCtrl.text = product.name;
     _brandCtrl.text = product.brand.isNotEmpty ? product.brand : product.category;
     _unitCtrl.text = product.specification.isNotEmpty ? product.specification : product.unit;
-    _searchCtrl.clear();
-    setState(() => _showDropdown = false);
     widget.item.description = product.name;
     widget.item.brand = _brandCtrl.text;
     widget.item.unit = _unitCtrl.text;
@@ -850,10 +848,11 @@ class _MaterialRowState extends State<_MaterialRow> {
             ),
           ),
 
-          // Material Detail Column (description + inventory search)
+          // Material Detail Column (description + search button)
           Expanded(
             flex: 4,
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 TextField(
                   controller: _descCtrl,
@@ -864,128 +863,33 @@ class _MaterialRowState extends State<_MaterialRow> {
                   },
                   decoration: _cellDecoration('e.g. SOLAR PANELS'),
                 ),
-                const SizedBox(height: 4),
-                // Inventory Search
-                Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    TextField(
-                      controller: _searchCtrl,
-                      style: GoogleFonts.inter(color: const Color(0xFF0F172A), fontSize: 11),
-                      onChanged: _onSearch,
-                      onTap: () {
-                        setState(() {
-                          _filtered = widget.inventoryProducts.take(20).toList();
-                          _showDropdown = true;
-                        });
-                      },
-                      decoration: InputDecoration(
-                        hintText: widget.loadingInventory
-                            ? '⏳ Loading inventory...'
-                            : '🔍 Search inventory...',
-                        hintStyle: GoogleFonts.inter(color: const Color(0xFF854D00), fontSize: 10),
-                        filled: true,
-                        fillColor: const Color(0xFFFEF9C3),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(4),
-                          borderSide: const BorderSide(color: Color(0xFFEAB308)),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(4),
-                          borderSide: const BorderSide(color: Color(0xFFEAB308), width: 1.5),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(4),
-                          borderSide: const BorderSide(color: Color(0xFFD97706), width: 2),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                        isDense: true,
-                        suffixIcon: _searchCtrl.text.isNotEmpty
-                            ? GestureDetector(
-                                onTap: () {
-                                  _searchCtrl.clear();
-                                  setState(() => _showDropdown = false);
-                                },
-                                child: const Icon(Icons.close, size: 14, color: Color(0xFF92400E)),
-                              )
-                            : null,
-                      ),
-                    ),
-                    // Dropdown
-                    if (_showDropdown && _filtered.isNotEmpty)
-                      Positioned(
-                        top: 32,
-                        left: 0,
-                        right: 0,
-                        child: Material(
-                          elevation: 8,
-                          borderRadius: BorderRadius.circular(6),
-                          color: Colors.white,
-                          child: Container(
-                            constraints: const BoxConstraints(maxHeight: 200),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: const Color(0xFF94A3B8)),
-                            ),
-                            child: ListView.separated(
-                              padding: EdgeInsets.zero,
-                              shrinkWrap: true,
-                              itemCount: _filtered.length,
-                              separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFE2E8F0)),
-                              itemBuilder: (context, i) {
-                                final p = _filtered[i];
-                                return InkWell(
-                                  onTap: () => _selectProduct(p),
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Row(
-                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            Expanded(
-                                              child: Text(
-                                                p.name,
-                                                style: GoogleFonts.inter(
-                                                  color: const Color(0xFF0F172A),
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 12,
-                                                ),
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                            ),
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                              decoration: BoxDecoration(
-                                                color: const Color(0xFFE2E8F0),
-                                                borderRadius: BorderRadius.circular(4),
-                                              ),
-                                              child: Text(
-                                                p.productCode,
-                                                style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.bold),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        if (p.brand.isNotEmpty || p.category.isNotEmpty)
-                                          Padding(
-                                            padding: const EdgeInsets.only(top: 2),
-                                            child: Text(
-                                              '${p.brand.isNotEmpty ? "Brand: ${p.brand}" : ""}${p.brand.isNotEmpty && p.category.isNotEmpty ? " • " : ""}${p.category.isNotEmpty ? p.category : ""}',
-                                              style: GoogleFonts.inter(color: const Color(0xFFB45309), fontSize: 10, fontWeight: FontWeight.w600),
-                                            ),
-                                          ),
-                                      ],
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
+                const SizedBox(height: 6),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      builder: (_) => FractionallySizedBox(
+                        heightFactor: 0.8,
+                        child: ProductSearchSheet(
+                          products: widget.inventoryProducts,
+                          onSelect: (p) {
+                            Navigator.pop(context);
+                            _selectProduct(p);
+                          },
                         ),
                       ),
-                  ],
+                    );
+                  },
+                  icon: const Icon(Icons.search, size: 14),
+                  label: Text('Select Product', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.bold)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF334155),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                    minimumSize: const Size(0, 32),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
                 ),
               ],
             ),
