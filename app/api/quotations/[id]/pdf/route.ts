@@ -76,11 +76,11 @@ export async function GET(
   <div class="container">
     <div class="logo-header">
       <img src="/qutaionlogo.png" alt="Excellent Solar Logo" onerror="this.onerror=null; this.src='/logo.png';" />
-      \${quotation.project_latitude && quotation.project_longitude ? \`
       <div class="qr-container">
-        <img src="https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=\${encodeURIComponent(\`Name: \${customer.name || qAny.customer_name}\\nLocation: \${quotation.remarks || customer.city || 'Location'}\\nMap: https://maps.google.com/?q=\${quotation.project_latitude},\${quotation.project_longitude}\`)}" alt="QR Code" />
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=\${encodeURIComponent(\`Name: \${customer.name || qAny.customer_name}\\nLocation: \${quotation.remarks || customer.city || 'Location'}\\nMap: \${quotation.project_latitude && quotation.project_longitude ? \`https://maps.google.com/?q=\${quotation.project_latitude},\${quotation.project_longitude}\` : \`https://maps.google.com/?q=\${encodeURIComponent(quotation.remarks || customer.city || 'Punjab')}\`}\`)}" alt="QR Code" />
         <span>Scan for Map</span>
-      </div>\` : ''}
+      </div>
+
     </div>
 
     <div class="address-box">
