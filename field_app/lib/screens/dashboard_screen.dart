@@ -480,7 +480,7 @@ class _FieldDashboardScreenState extends State<FieldDashboardScreen> {
                     onTap: () {
                       Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => const PaymentScreen()),
+                        MaterialPageRoute(builder: (context) => PaymentScreen()),
                       );
                     },
                   ),
