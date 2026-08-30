@@ -216,21 +216,34 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   }
 
   Future<void> _checkPermissions() async {
+    final prefs = await SharedPreferences.getInstance();
+    final bool dismissed = prefs.getBool('permission_dismissed') ?? false;
+    if (dismissed) return;
+
     bool hasNotification = await Permission.notification.isGranted;
     bool hasBatteryIgnore = await Permission.ignoreBatteryOptimizations.isGranted;
+
+    if (!hasNotification) await Permission.notification.request();
+    if (!hasBatteryIgnore) await Permission.ignoreBatteryOptimizations.request();
+
+    hasNotification = await Permission.notification.isGranted;
+    hasBatteryIgnore = await Permission.ignoreBatteryOptimizations.isGranted;
 
     if (!hasNotification || !hasBatteryIgnore) {
       if (mounted) {
         showDialog(
           context: context,
           builder: (context) => AlertDialog(
-            title: const Text('Permissions Required'),
+            title: const Text('Permissions Recommended'),
             content: const Text(
-                'Excellent Solar Field App requires background execution and notifications to alert you of new jobs immediately. Please enable them in your device settings for the app to function properly.'),
+                'Excellent Solar Field App works best with background execution and notifications to alert you of new jobs immediately. Please enable them in your device settings.'),
             actions: [
               TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('OK'),
+                onPressed: () {
+                  prefs.setBool('permission_dismissed', true);
+                  Navigator.pop(context);
+                },
+                child: const Text('Ignore'),
               ),
               TextButton(
                 onPressed: () {
