@@ -1,6 +1,12 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
+import 'package:url_launcher/url_launcher.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import '../services/api_service.dart';
+import '../main.dart' show baseUrl;
 import 'login_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -10,6 +16,7 @@ class ProfileScreen extends StatefulWidget {
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
+
 class _ProfileScreenState extends State<ProfileScreen> {
   int _workerId = 0;
   String _workerName = '';
@@ -17,6 +24,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String _workerRole = '';
   String _workerMobile = '';
   bool _isLoading = true;
+  String _appVersion = 'Loading...';
+  String _buildNumber = '';
 
   @override
   void initState() {
@@ -26,12 +35,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _loadProfile() async {
     final prefs = await SharedPreferences.getInstance();
+    final packageInfo = await PackageInfo.fromPlatform();
+    
     setState(() {
       _workerId = prefs.getInt('worker_id') ?? 0;
       _workerName = prefs.getString('worker_name') ?? 'User';
       _workerEmail = prefs.getString('worker_email') ?? '';
       _workerRole = prefs.getString('worker_role') ?? 'ADMIN';
       _workerMobile = prefs.getString('worker_mobile') ?? '';
+      _appVersion = packageInfo.version;
+      _buildNumber = packageInfo.buildNumber;
       _isLoading = false;
     });
   }
@@ -46,6 +59,62 @@ class _ProfileScreenState extends State<ProfileScreen> {
         MaterialPageRoute(builder: (context) => const LoginScreen()),
         (route) => false,
       );
+    }
+  }
+
+  Future<void> _checkForUpdatesManually() async {
+    try {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(child: CircularProgressIndicator()),
+      );
+
+      final response = await ApiService.get(Uri.parse('$baseUrl/api/mobile/app-version'));
+      
+      if (!mounted) return;
+      Navigator.pop(context); // Close loading
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final latestVersion = data['latest_version'];
+        
+        if (latestVersion != null && latestVersion != _appVersion) {
+          showDialog(
+            context: context,
+            builder: (context) => AlertDialog(
+              title: const Text('Update Available'),
+              content: Text('Version $latestVersion is available! Would you like to update now?'),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    if (data['apk_url'] != null) {
+                      launchUrl(Uri.parse(data['apk_url']), mode: LaunchMode.externalApplication);
+                    }
+                  },
+                  child: const Text('Download'),
+                ),
+              ],
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('You are already on the latest version!'), backgroundColor: Colors.green),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context); // Close loading if error
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to check for updates. Please try again.')),
+        );
+      }
     }
   }
 
@@ -151,21 +220,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       borderRadius: BorderRadius.circular(12),
                       side: const BorderSide(color: Color(0xFFE5E7EB)),
                     ),
-                    child: const ListTile(
-                      leading: Icon(Icons.info_outline, color: Colors.green),
-                      title: Text('App Version', style: TextStyle(fontWeight: FontWeight.bold)),
-                      subtitle: Text('v1.7.6 (Build 15) • Excellent Solar Field App'),
-
-
-                      trailing: Chip(
+                    child: ListTile(
+                      leading: const Icon(Icons.info_outline, color: Colors.green),
+                      title: const Text('App Version', style: TextStyle(fontWeight: FontWeight.bold)),
+                      subtitle: Text('v$_appVersion (Build $_buildNumber) • Excellent Solar Field App'),
+                      trailing: const Chip(
                         backgroundColor: Colors.green,
-                        label: Text('LATEST', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                        label: Text('INSTALLED', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
                       ),
                     ),
                   ),
 
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 12),
 
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: _checkForUpdatesManually,
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        side: const BorderSide(color: Colors.blue),
+                        foregroundColor: Colors.blue,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      icon: const Icon(Icons.system_update),
+                      label: const Text('Check for Updates', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
 
                   SizedBox(
                     width: double.infinity,
