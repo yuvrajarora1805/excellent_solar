@@ -273,7 +273,10 @@ class _QuotationScreenState extends State<QuotationScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Autocomplete<InventoryProduct>(
-                        displayStringForOption: (p) => p.name,
+                        displayStringForOption: (p) {
+                          if (p.name.isNotEmpty) return p.name;
+                          return p.productCode;
+                        },
                         optionsBuilder: (textEditingValue) {
                           if (textEditingValue.text.isEmpty) return const Iterable<InventoryProduct>.empty();
                           final q = textEditingValue.text.toLowerCase();
@@ -282,7 +285,7 @@ class _QuotationScreenState extends State<QuotationScreen> {
                         onSelected: (p) {
                           setDialogState(() {
                             selectedProduct = p;
-                            brandCtrl.text = p.brand.isNotEmpty ? p.brand : p.category;
+                            brandCtrl.text = p.brand.isNotEmpty ? p.brand : (p.category.isNotEmpty ? p.category : (p.productCode.isNotEmpty ? p.productCode : 'EXCELLENT'));
                             specCtrl.text = p.specification.isNotEmpty ? p.specification : p.unit;
                           });
                         },
