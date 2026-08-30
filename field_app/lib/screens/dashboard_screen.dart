@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import '../services/api_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../main.dart' show baseUrl;
 import 'quotation_screen.dart';
 
@@ -49,7 +50,10 @@ class _FieldDashboardScreenState extends State<FieldDashboardScreen> {
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final latestVersion = data['latest_version'] ?? '1.5.0';
-        const currentVersion = '1.7.6';
+        
+        // Dynamically get the installed version instead of hardcoding
+        final packageInfo = await PackageInfo.fromPlatform();
+        final currentVersion = packageInfo.version;
 
         if (latestVersion != currentVersion) {
           if (!mounted) return;
