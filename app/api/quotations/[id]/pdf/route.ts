@@ -81,7 +81,7 @@ export async function GET(
     <div class="logo-header">
       <img src="/qutaionlogo.png" alt="Excellent Solar Logo" onerror="this.onerror=null; this.src='/logo.png';" />
       <div class="qr-container">
-        <img src="https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=\${encodeURIComponent(quotation.project_latitude && quotation.project_longitude ? \`https://maps.google.com/?q=\${quotation.project_latitude},\${quotation.project_longitude}\` : \`https://maps.google.com/?q=\${quotation.remarks || customer.city || 'Punjab'}\`)}" alt="QR Code" />
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=\${encodeURIComponent((quotation.project_latitude && quotation.project_longitude) ? \`https://maps.google.com/?q=\${quotation.project_latitude},\${quotation.project_longitude}\` : (customer.latitude && customer.longitude) ? \`https://maps.google.com/?q=\${customer.latitude},\${customer.longitude}\` : \`https://maps.google.com/?q=\${quotation.remarks || customer.city || 'Punjab'}\`)}" alt="QR Code" />
         <span>Scan for Map</span>
       </div>
 
