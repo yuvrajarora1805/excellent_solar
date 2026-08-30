@@ -12,6 +12,7 @@ interface FlasherPanel {
   id?: number;
   sr_no: number | string;
   box_no: string;
+  invoice_no?: string;
   module_sr_no: string;
   pmax: string | number;
   voc: string | number;
@@ -86,6 +87,7 @@ export default function FlasherReportsPage() {
             id: s.id,
             sr_no: idx + 1,
             box_no: box_no,
+            invoice_no: s.invoice_no || '—',
             module_sr_no: s.serial_number,
             pmax, voc, isc, vmp, imp, ff, eff,
           };
@@ -269,6 +271,7 @@ export default function FlasherReportsPage() {
               <tr>
                 <th className="p-3 w-16 text-center">Sr. No.</th>
                 <th className="p-3">Box No.</th>
+                <th className="p-3">Invoice No.</th>
                 <th className="p-3 text-amber-300">Module Sr. No. (Unique Key)</th>
                 <th className="p-3 text-right">Pmax (W)</th>
                 <th className="p-3 text-right">Voc (V)</th>
@@ -284,6 +287,7 @@ export default function FlasherReportsPage() {
                 <tr key={idx} className="hover:bg-amber-50/50 dark:hover:bg-slate-800 transition-colors">
                   <td className="p-3 text-center text-slate-500 font-mono">{p.sr_no}</td>
                   <td className="p-3 font-mono">{p.box_no}</td>
+                  <td className="p-3 font-mono">{p.invoice_no}</td>
                   <td className="p-3 font-mono font-bold text-blue-700 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-950/20">
                     {p.module_sr_no}
                   </td>
