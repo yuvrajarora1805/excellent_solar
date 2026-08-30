@@ -40,6 +40,31 @@ interface SurveyData {
   photos?: SurveyPhoto[];
 }
 
+const formatCategoryName = (category?: string) => {
+  if (!category) return 'General Document';
+  const categoryMap: Record<string, string> = {
+    pspclBill: 'PSPCL Electricity Bill',
+    pspcl_bill: 'PSPCL Electricity Bill',
+    pspcl: 'PSPCL Electricity Bill',
+    electricity_bill: 'Electricity Bill',
+    site_photo: 'Site Survey Photo',
+    roof_photo: 'Roof Photo',
+    structure_photo: 'Structure Photo',
+    earthing: 'Earthing & Safety',
+    inverter: 'Inverter Installation',
+    panel: 'Solar Panel Array',
+    wiring: 'DC/AC Wiring',
+    net_meter: 'Net Meter Installation',
+    bi_directional_meter: 'Bi-Directional Meter',
+  };
+  if (categoryMap[category]) return categoryMap[category];
+  return category
+    .replace(/([A-Z])/g, ' $1')
+    .replace(/_/g, ' ')
+    .trim()
+    .replace(/\w\S*/g, (w) => w.charAt(0).toUpperCase() + w.slice(1));
+};
+
 export default function SurveyDetailsPage() {
   const { id } = useParams();
   const router = useRouter();
@@ -321,7 +346,7 @@ export default function SurveyDetailsPage() {
                       )}
                     </div>
                     <div className="p-3 bg-surface text-center border-t border-outline-variant flex-1 flex flex-col">
-                      <span className="text-sm font-medium truncate block mb-2" title={photo.category}>{photo.category}</span>
+                      <span className="text-sm font-medium truncate block mb-2" title={formatCategoryName(photo.category)}>{formatCategoryName(photo.category)}</span>
                       
                       {photo.status === 'REJECTED' && photo.rejection_reason && (
                         <span className="text-xs text-red-500 block mb-2 px-1 text-left line-clamp-2" title={photo.rejection_reason}>

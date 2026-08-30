@@ -41,7 +41,13 @@ const discomRoutes: string[] = [
   '/documents',
 ];
 
-
+const surveyViewerRoutes: string[] = [
+  '/dashboard',
+  '/site-documents',
+  '/survey',
+  '/installation',
+  '/documents',
+];
 
 export default auth((req) => {
   const { pathname } = req.nextUrl;
@@ -100,10 +106,15 @@ export default auth((req) => {
     hasAccess = installationRoutes.some((route) => pathname.startsWith(route));
   } else if (userRole === 'DISCOM') {
     hasAccess = discomRoutes.some((route) => pathname.startsWith(route));
+  } else if (userRole === 'SURVEY_VIEWER') {
+    if (pathname === '/dashboard') {
+      return NextResponse.redirect(new URL('/site-documents', req.url));
+    }
+    hasAccess = surveyViewerRoutes.some((route) => pathname.startsWith(route));
   }
 
   if (!hasAccess) {
-    return NextResponse.redirect(new URL('/dashboard', req.url));
+    return NextResponse.redirect(userRole === 'SURVEY_VIEWER' ? new URL('/site-documents', req.url) : new URL('/dashboard', req.url));
   }
 
   return NextResponse.next();

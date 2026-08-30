@@ -39,12 +39,22 @@ export default function NewOrderPage() {
   const [vehiclePhotoPath, setVehiclePhotoPath] = useState('');
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
-  // Products & Scanning
+  // Products & Stock Item Selection
   const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [selectedProductId, setSelectedProductId] = useState<number | string>('');
   const [quantity, setQuantity] = useState<number>(1);
   const [unitPrice, setUnitPrice] = useState<number>(0);
+
+  // Multi-Item Order List (Barcode & Non-Barcode)
+  const [orderItems, setOrderItems] = useState<Array<{
+    product_id: number;
+    product_name: string;
+    product_code: string;
+    quantity: number;
+    unit_price: number;
+    line_total: number;
+  }>>([]);
 
   // Barcode Scanner Input
   const [scannedSerialInput, setScannedSerialInput] = useState('');
@@ -75,6 +85,52 @@ export default function NewOrderPage() {
       })
       .catch(console.error);
   }, []);
+
+  const handleAddNonBarcodeItem = () => {
+    const prod = products.find(p => p.id === Number(selectedProductId));
+    if (!prod) return;
+
+    const existingIdx = orderItems.findIndex(i => i.product_id === prod.id);
+    if (existingIdx >= 0) {
+      const updated = [...orderItems];
+      const newQty = updated[existingIdx].quantity + quantity;
+      updated[existingIdx] = {
+        ...updated[existingIdx],
+        quantity: newQty,
+        unit_price: unitPrice,
+        line_total: newQty * unitPrice,
+      };
+      setOrderItems(updated);
+    } else {
+      setOrderItems([
+        ...orderItems,
+        {
+          product_id: prod.id,
+          product_name: prod.name,
+          product_code: prod.product_code || 'ITEM',
+          quantity: quantity,
+          unit_price: unitPrice,
+          line_total: quantity * unitPrice,
+        },
+      ]);
+    }
+  };
+
+  const handleRemoveOrderItem = (index: number) => {
+    setOrderItems(orderItems.filter((_, i) => i !== index));
+  };
+
+  const handleItemPriceChange = (index: number, field: 'quantity' | 'unit_price', val: number) => {
+    const updated = [...orderItems];
+    const qty = field === 'quantity' ? val : updated[index].quantity;
+    const price = field === 'unit_price' ? val : updated[index].unit_price;
+    updated[index] = {
+      ...updated[index],
+      [field]: val,
+      line_total: qty * price,
+    };
+    setOrderItems(updated);
+  };
 
   const handleCustomerSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const custId = e.target.value;
@@ -164,8 +220,40 @@ export default function NewOrderPage() {
       return;
     }
 
-    const effectiveQty = scannedSerials.length > 0 ? scannedSerials.length : quantity;
-    const totalAmount = effectiveQty * unitPrice;
+    let finalItems = [...orderItems];
+
+    // If scanned serials exist for a panel model but panel item isn't in finalItems yet
+    if (scannedSerials.length > 0) {
+      const panelProdId = Number(selectedProductId || 1);
+      const panelProd = products.find(p => p.id === panelProdId);
+      const existingPanelIdx = finalItems.findIndex(i => i.product_id === panelProdId);
+
+      if (existingPanelIdx >= 0) {
+        finalItems[existingPanelIdx].quantity = scannedSerials.length;
+        finalItems[existingPanelIdx].line_total = scannedSerials.length * finalItems[existingPanelIdx].unit_price;
+      } else {
+        finalItems.push({
+          product_id: panelProdId,
+          product_name: panelProd?.name || 'Solar Panel Array',
+          product_code: panelProd?.product_code || 'PANEL',
+          quantity: scannedSerials.length,
+          unit_price: unitPrice,
+          line_total: scannedSerials.length * unitPrice,
+        });
+      }
+    } else if (finalItems.length === 0) {
+      const prod = products.find(p => p.id === Number(selectedProductId));
+      finalItems.push({
+        product_id: Number(selectedProductId || 1),
+        product_name: prod?.name || 'Solar Material Item',
+        product_code: prod?.product_code || 'ITEM',
+        quantity: quantity,
+        unit_price: unitPrice,
+        line_total: quantity * unitPrice,
+      });
+    }
+
+    const totalAmount = finalItems.reduce((sum, item) => sum + item.line_total, 0);
 
     try {
       setSubmitting(true);
@@ -183,13 +271,11 @@ export default function NewOrderPage() {
           driver_mobile: driverMobile,
           vehicle_photo_path: vehiclePhotoPath,
           total_amount: totalAmount,
-          items: [
-            {
-              product_id: Number(selectedProductId || 1),
-              quantity: effectiveQty,
-              unit_price: unitPrice,
-            },
-          ],
+          items: finalItems.map(i => ({
+            product_id: i.product_id,
+            quantity: i.quantity,
+            unit_price: i.unit_price,
+          })),
           serials: scannedSerials,
           dispatchImmediately,
         }),
@@ -341,34 +427,56 @@ export default function NewOrderPage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="pt-4 space-y-4">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
             <div>
-              <label className="block text-xs font-bold mb-1">Select Solar Panel Product Model</label>
+              <label className="block text-xs font-bold mb-1">Select Available Stock Product (Barcode & Non-Barcode)</label>
               <select
                 value={selectedProductId}
                 onChange={handleProductSelect}
                 className="w-full p-2 border rounded-md text-sm bg-background font-medium"
               >
                 {products.map(p => (
-                  <option key={p.id} value={p.id}>{p.name} ({p.product_code}) - Stock: {p.current_stock}</option>
+                  <option key={p.id} value={p.id}>{p.name} ({p.product_code}) - Available Stock: {p.current_stock}</option>
                 ))}
               </select>
             </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="block text-xs font-bold mb-1">Quantity</label>
+                <Input
+                  type="number"
+                  min="1"
+                  value={quantity}
+                  onChange={(e) => setQuantity(Math.max(1, Number(e.target.value)))}
+                  placeholder="Qty"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold mb-1">Unit Price (₹)</label>
+                <Input
+                  type="number"
+                  value={unitPrice}
+                  onChange={(e) => setUnitPrice(Number(e.target.value))}
+                  placeholder="Unit Price"
+                />
+              </div>
+            </div>
             <div>
-              <label className="block text-xs font-bold mb-1">Price per Panel (INR ₹)</label>
-              <Input
-                type="number"
-                value={unitPrice}
-                onChange={(e) => setUnitPrice(Number(e.target.value))}
-                placeholder="Unit Price"
-              />
+              <Button
+                type="button"
+                onClick={handleAddNonBarcodeItem}
+                className="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold"
+              >
+                + Add Non-Barcode Item to Order
+              </Button>
             </div>
           </div>
 
-          {/* Barcode Scanner Input */}
+          {/* Barcode Scanner Input for Solar Panels */}
           <div className="bg-slate-900 p-4 rounded-lg text-white space-y-2">
-            <label className="block text-xs font-bold text-amber-400 uppercase tracking-wider">
-              Scan 1D/2D Barcode or QR Code / Unique Serial Number (Module Sr. No.)
+            <label className="block text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center justify-between">
+              <span>Scan 1D/2D Barcode or QR Code / Unique Serial Number (Module Sr. No.)</span>
+              <span className="text-emerald-400 font-mono text-[11px]">Auto-Validates & Registers</span>
             </label>
             <form onSubmit={handleAddSerialBarcode} className="flex gap-2">
               <Input
@@ -395,12 +503,74 @@ export default function NewOrderPage() {
             </div>
           )}
 
+          {/* Order Items Table (Barcode + Non-Barcode Stock Items) */}
+          {orderItems.length > 0 && (
+            <div className="border rounded-lg overflow-hidden text-xs">
+              <div className="bg-slate-100 dark:bg-slate-800 px-3 py-2 font-bold flex justify-between items-center">
+                <span>Order Dispatched Items Table ({orderItems.length} Products)</span>
+                <span className="text-blue-700 dark:text-blue-400 font-extrabold text-sm">
+                  Subtotal: ₹{orderItems.reduce((acc, i) => acc + i.line_total, 0).toLocaleString('en-IN')}
+                </span>
+              </div>
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50 dark:bg-slate-900 border-b font-bold text-slate-700 dark:text-slate-300">
+                    <th className="p-2">Product</th>
+                    <th className="p-2 text-right">Qty</th>
+                    <th className="p-2 text-right">Unit Price (₹)</th>
+                    <th className="p-2 text-right">Line Total (₹)</th>
+                    <th className="p-2 text-center">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {orderItems.map((item, idx) => (
+                    <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-900/50">
+                      <td className="p-2 font-bold text-slate-900 dark:text-white">
+                        {item.product_name} <span className="font-mono text-slate-400 font-normal">({item.product_code})</span>
+                      </td>
+                      <td className="p-2 text-right">
+                        <input
+                          type="number"
+                          min="1"
+                          value={item.quantity}
+                          onChange={(e) => handleItemPriceChange(idx, 'quantity', Number(e.target.value))}
+                          className="w-16 p-1 border rounded text-right font-bold text-xs"
+                        />
+                      </td>
+                      <td className="p-2 text-right">
+                        <input
+                          type="number"
+                          min="0"
+                          value={item.unit_price}
+                          onChange={(e) => handleItemPriceChange(idx, 'unit_price', Number(e.target.value))}
+                          className="w-24 p-1 border rounded text-right font-bold text-xs"
+                        />
+                      </td>
+                      <td className="p-2 text-right font-bold text-blue-700 dark:text-blue-400">
+                        ₹{item.line_total?.toLocaleString('en-IN')}
+                      </td>
+                      <td className="p-2 text-center">
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveOrderItem(idx)}
+                          className="text-red-500 hover:text-red-700"
+                        >
+                          <Trash2 className="w-4 h-4 inline" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
           {/* Scanned Serials List */}
           {scannedSerials.length > 0 && (
             <div className="border rounded-lg overflow-hidden text-xs">
-              <div className="bg-slate-100 dark:bg-slate-800 px-3 py-2 font-bold flex justify-between">
-                <span>Scanned Solar Panel Serials List ({scannedSerials.length})</span>
-                <span>Total Amount: ₹{(scannedSerials.length * unitPrice).toLocaleString('en-IN')}</span>
+              <div className="bg-blue-50 dark:bg-blue-950/40 border-b border-blue-200 dark:border-blue-800 px-3 py-2 font-bold flex justify-between">
+                <span className="text-blue-900 dark:text-blue-200">Scanned Solar Panel Barcodes List ({scannedSerials.length})</span>
+                <span className="text-blue-900 dark:text-blue-200">Panels Amount: ₹{(scannedSerials.length * unitPrice).toLocaleString('en-IN')}</span>
               </div>
               <div className="max-h-48 overflow-y-auto divide-y">
                 {scannedSerials.map((s, i) => (

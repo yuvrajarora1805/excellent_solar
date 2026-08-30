@@ -26,8 +26,13 @@ export const installationDb = {
 
     if (!installation) return null;
 
-    const photos = await query<InstallationPhoto>(
-      'SELECT * FROM installation_photos WHERE installation_id = ? ORDER BY created_at ASC',
+    const photos = await query<any>(
+      `SELECT ip.*, COALESCE(u.name, iu.name, 'Installer') as uploader_name, COALESCE(u.role, iu.role, 'INSTALLATION') as uploader_role
+       FROM installation_photos ip
+       LEFT JOIN users u ON ip.uploaded_by = u.id
+       LEFT JOIN installations i ON ip.installation_id = i.id
+       LEFT JOIN users iu ON i.created_by = iu.id
+       WHERE ip.installation_id = ? ORDER BY ip.created_at ASC`,
       [installation.id]
     );
 
@@ -47,8 +52,13 @@ export const installationDb = {
 
     if (!installation) return null;
 
-    const photos = await query<InstallationPhoto>(
-      'SELECT * FROM installation_photos WHERE installation_id = ? ORDER BY created_at ASC',
+    const photos = await query<any>(
+      `SELECT ip.*, COALESCE(u.name, iu.name, 'Installer') as uploader_name, COALESCE(u.role, iu.role, 'INSTALLATION') as uploader_role
+       FROM installation_photos ip
+       LEFT JOIN users u ON ip.uploaded_by = u.id
+       LEFT JOIN installations i ON ip.installation_id = i.id
+       LEFT JOIN users iu ON i.created_by = iu.id
+       WHERE ip.installation_id = ? ORDER BY ip.created_at ASC`,
       [id]
     );
 

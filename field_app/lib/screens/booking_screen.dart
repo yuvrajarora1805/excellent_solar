@@ -12,6 +12,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../main.dart' show baseUrl;
 import 'product_picker_screen.dart';
+import 'quotation_screen.dart';
 class OnGridBookingForm extends StatefulWidget {
   const OnGridBookingForm({super.key});
 
@@ -503,6 +504,36 @@ class _OnGridBookingFormState extends State<OnGridBookingForm> {
             const SizedBox(height: 24),
 
             // SUBMIT ACTIONS
+            OutlinedButton.icon(
+              onPressed: () {
+                final initialProds = _selectedProducts.map((p) => {
+                  'id': p.product.id,
+                  'name': p.product.name,
+                  'quantity': p.quantity,
+                  'selling_price': p.product.price,
+                  'unit': p.product.unit,
+                }).toList();
+
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => QuotationScreen(
+                      customerName: _customerNameCtrl.text,
+                      mobileNumber: _mobileNumberCtrl.text,
+                      capacityKw: _proposedLoadCtrl.text,
+                      initialProducts: initialProds,
+                    ),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.picture_as_pdf, color: Colors.amber),
+              label: const Text('Generate PDF Quotation for Selected Products', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.amber)),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: Colors.amber, width: 1.5),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+            ),
+            const SizedBox(height: 12),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF7C5800),

@@ -26,6 +26,9 @@ class _DiscomDetailScreenState extends State<DiscomDetailScreen> {
   bool _isSaving = false;
   Map<String, dynamic>? _fullDetails;
   
+  String _meterStatus = 'PENDING';
+  String _meterEffect = 'NO';
+
   final ImagePicker _picker = ImagePicker();
 
   @override
@@ -54,6 +57,9 @@ class _DiscomDetailScreenState extends State<DiscomDetailScreen> {
             _processingFeeController.text = _fullDetails!['processing_fee']?.toString() ?? '';
             _jeNameController.text = _fullDetails!['je_name'] ?? '';
             _jePhoneController.text = _fullDetails!['je_phone'] ?? '';
+
+            _meterStatus = _fullDetails!['meter_status'] ?? 'PENDING';
+            _meterEffect = _fullDetails!['meter_effect'] ?? 'NO';
             
             _isLoading = false;
           });
@@ -104,6 +110,8 @@ class _DiscomDetailScreenState extends State<DiscomDetailScreen> {
             'processing_fee': _processingFeeController.text.isNotEmpty ? double.parse(_processingFeeController.text) : null,
             'je_name': _jeNameController.text,
             'je_phone': _jePhoneController.text,
+            'meter_status': _meterStatus,
+            'meter_effect': _meterEffect,
           }
         }),
       );
@@ -493,16 +501,40 @@ class _DiscomDetailScreenState extends State<DiscomDetailScreen> {
                     Text(app['customer_name'] ?? '', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                     Text('Project ID: ${app['project_id']}'),
                     const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.blue.shade50,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        app['status'] ?? 'UNKNOWN',
-                        style: TextStyle(color: Colors.blue.shade700, fontWeight: FontWeight.bold, fontSize: 12),
-                      ),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.shade50,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            app['status'] ?? 'UNKNOWN',
+                            style: TextStyle(color: Colors.blue.shade700, fontWeight: FontWeight.bold, fontSize: 12),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        if (_fullDetails?['np_confirmed'] == 1 || _fullDetails?['np_confirmed'] == true)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.green.shade50,
+                              border: Border.all(color: Colors.green.shade400),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Row(
+                              children: [
+                                Icon(Icons.verified, size: 12, color: Colors.green),
+                                SizedBox(width: 4),
+                                Text(
+                                  'NP Confirmed',
+                                  style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 11),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
                     ),
                   ],
                 ),
@@ -524,6 +556,38 @@ class _DiscomDetailScreenState extends State<DiscomDetailScreen> {
             TextField(
               controller: _npNumberController,
               decoration: const InputDecoration(labelText: 'NP Number', border: OutlineInputBorder(), prefixIcon: Icon(Icons.numbers)),
+            ),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              value: _meterStatus,
+              decoration: const InputDecoration(
+                labelText: 'Meter Status',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.speed),
+              ),
+              items: const [
+                DropdownMenuItem(value: 'PENDING', child: Text('Pending')),
+                DropdownMenuItem(value: 'AVAILABLE', child: Text('Available')),
+              ],
+              onChanged: (val) {
+                if (val != null) setState(() => _meterStatus = val);
+              },
+            ),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              value: _meterEffect,
+              decoration: const InputDecoration(
+                labelText: 'Meter Effect',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.bolt),
+              ),
+              items: const [
+                DropdownMenuItem(value: 'NO', child: Text('No')),
+                DropdownMenuItem(value: 'YES', child: Text('Yes')),
+              ],
+              onChanged: (val) {
+                if (val != null) setState(() => _meterEffect = val);
+              },
             ),
             const SizedBox(height: 16),
             TextField(

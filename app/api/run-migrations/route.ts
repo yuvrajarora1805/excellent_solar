@@ -267,11 +267,11 @@ export async function GET() {
 
     await safeAlter('products', `
       ALTER TABLE products 
-      ADD COLUMN reserved_stock INT DEFAULT 0
-    `);
-
-    await safeAlter('products', `
-      ALTER TABLE products 
+      ADD COLUMN reserved_stock INT DEFAULT 0,
+      ADD COLUMN brand VARCHAR(100) DEFAULT NULL,
+      ADD COLUMN model VARCHAR(100) DEFAULT NULL,
+      ADD COLUMN specification TEXT DEFAULT NULL,
+      ADD COLUMN unit VARCHAR(50) DEFAULT 'Piece',
       ADD COLUMN selling_price DECIMAL(10, 2) DEFAULT NULL
     `);
 
@@ -279,9 +279,11 @@ export async function GET() {
     await safeAlter('quotations', `
       ALTER TABLE quotations 
       ADD COLUMN project_id INT,
+      ADD COLUMN customer_id INT,
+      ADD COLUMN rate_per_watt VARCHAR(50),
       ADD COLUMN valid_until DATE,
-      ADD COLUMN system_type VARCHAR(100),
-      ADD COLUMN capacity_kw DECIMAL(10, 2),
+      ADD COLUMN system_type VARCHAR(255),
+      ADD COLUMN capacity_kw VARCHAR(50),
       ADD COLUMN system_template_id INT,
       ADD COLUMN subtotal DECIMAL(12, 2),
       ADD COLUMN discount_amount DECIMAL(12, 2),
@@ -295,7 +297,17 @@ export async function GET() {
       ADD COLUMN sent_at TIMESTAMP NULL,
       ADD COLUMN accepted_at TIMESTAMP NULL,
       ADD COLUMN rejected_at TIMESTAMP NULL,
-      ADD COLUMN rejection_reason TEXT
+      ADD COLUMN rejection_reason TEXT,
+      MODIFY COLUMN system_type VARCHAR(255) NULL,
+      MODIFY COLUMN capacity_kw VARCHAR(50) NULL,
+      MODIFY COLUMN status VARCHAR(50) DEFAULT 'DRAFT'
+    `);
+
+    await safeAlter('quotation_items', `
+      ALTER TABLE quotation_items
+      ADD COLUMN brand VARCHAR(100) NULL,
+      MODIFY COLUMN quantity VARCHAR(50) NULL,
+      MODIFY COLUMN unit VARCHAR(255) NULL
     `);
 
     return NextResponse.json({ success: true, messages: results });

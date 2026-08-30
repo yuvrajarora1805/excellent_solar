@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Search, Truck, ShoppingBag, UserCheck, CheckCircle2, Clock, Camera } from 'lucide-react';
+import { Plus, Search, Truck, ShoppingBag, UserCheck, CheckCircle2, Clock, Camera, Eye, X } from 'lucide-react';
 
 interface Order {
   id: number;
@@ -27,6 +27,7 @@ export default function OrdersDashboardPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [orderTypeTab, setOrderTypeTab] = useState<'ALL' | 'PROJECT' | 'RETAIL'>('ALL');
+  const [previewPhoto, setPreviewPhoto] = useState<{ url: string; title: string } | null>(null);
 
   useEffect(() => {
     fetchOrders();
@@ -203,12 +204,20 @@ export default function OrdersDashboardPage() {
                   </td>
                   <td className="p-3">
                     {o.vehicle_number ? (
-                      <div className="flex items-center gap-1.5 font-mono text-slate-800 dark:text-slate-200">
-                        <Truck className="w-3.5 h-3.5 text-blue-600" />
-                        <span className="font-bold">{o.vehicle_number}</span>
-                        {o.driver_name && <span className="text-[10px] text-slate-500">({o.driver_name})</span>}
-                        {o.vehicle_photo_path && <Camera className="w-3.5 h-3.5 text-emerald-600 ml-1" />}
-
+                      <div className="flex flex-col gap-1">
+                        <div className="flex items-center gap-1.5 font-mono text-slate-800 dark:text-slate-200">
+                          <Truck className="w-3.5 h-3.5 text-blue-600" />
+                          <span className="font-bold">{o.vehicle_number}</span>
+                          {o.driver_name && <span className="text-[10px] text-slate-500">({o.driver_name})</span>}
+                        </div>
+                        {o.vehicle_photo_path && (
+                          <button
+                            onClick={() => setPreviewPhoto({ url: o.vehicle_photo_path!, title: `Vehicle Proof - Order ${o.order_number} (${o.vehicle_number})` })}
+                            className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-600 hover:text-emerald-700 hover:underline w-fit"
+                          >
+                            <Camera className="w-3.5 h-3.5" /> View Delivery Photo
+                          </button>
+                        )}
                       </div>
                     ) : (
                       <span className="text-slate-400 italic">No vehicle assigned</span>
@@ -226,10 +235,20 @@ export default function OrdersDashboardPage() {
                       {o.status}
                     </span>
                   </td>
-                  <td className="p-3 text-center">
+                  <td className="p-3 text-center flex items-center justify-center gap-2">
+                    {o.vehicle_photo_path && (
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        className="h-7 text-xs bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-300 gap-1 font-bold"
+                        onClick={() => setPreviewPhoto({ url: o.vehicle_photo_path!, title: `Vehicle Delivery Proof - ${o.order_number}` })}
+                      >
+                        <Eye className="w-3.5 h-3.5" /> Photo
+                      </Button>
+                    )}
                     <Link href={`/orders/${o.id}`}>
-                      <Button size="sm" variant="outline" className="h-7 text-xs">
-                        View Details & Serials
+                      <Button size="sm" variant="outline" className="h-7 text-xs font-semibold">
+                        Details & Serials
                       </Button>
                     </Link>
                   </td>
@@ -246,6 +265,33 @@ export default function OrdersDashboardPage() {
           </table>
         </CardContent>
       </Card>
+
+      {/* Lightbox Vehicle Photo Modal */}
+      {previewPhoto && (
+        <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={() => setPreviewPhoto(null)}>
+          <div className="relative max-w-3xl w-full bg-slate-900 rounded-xl overflow-hidden shadow-2xl p-2" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center px-4 py-3 text-white border-b border-slate-800">
+              <span className="font-bold text-sm flex items-center gap-2">
+                <Truck className="w-4 h-4 text-emerald-400" />
+                {previewPhoto.title}
+              </span>
+              <button onClick={() => setPreviewPhoto(null)} className="p-1 hover:bg-slate-800 rounded-full">
+                <X className="w-5 h-5 text-slate-400 hover:text-white" />
+              </button>
+            </div>
+            <div className="p-4 flex items-center justify-center max-h-[80vh] overflow-auto bg-slate-950">
+              <img
+                src={previewPhoto.url}
+                alt="Vehicle Delivery Proof"
+                className="max-h-[75vh] w-auto object-contain rounded border border-slate-800"
+                onError={(e) => {
+                  (e.target as HTMLElement).setAttribute('src', '/logo.png');
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

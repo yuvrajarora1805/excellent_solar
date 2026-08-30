@@ -65,12 +65,13 @@ export async function POST(request: Request) {
     // 2. Insert Project with all technical data
     const projectResult = await query(
       `INSERT INTO projects (
-        project_id, customer_id, status, created_by,
-        account_number, subdivision, sanctioned_load, solar_load,
+        project_id, customer_id, status, created_by, discom,
+        account_number, consumer_number, subdivision, sanctioned_load, solar_load,
         site_address, capacity, geotag_location, site_photo_path
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, 'PSPCL', ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         projectId, customerId, 'NEW', workerId,
+        pspclAccountNo || null,
         pspclAccountNo || null,
         pspclSubDiv || null,
         sanctionedLoad ? parseFloat(sanctionedLoad) : null,

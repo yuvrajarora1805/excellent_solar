@@ -62,6 +62,35 @@ async function run() {
       `);
     } catch(e) { if(e.code !== 'ER_DUP_FIELDNAME') console.error("Error altering products:", e.message); }
 
+    console.log("Altering discom_applications (for np_confirmed, meter_status, meter_effect, office_approval)...");
+    try {
+      await conn.query(`ALTER TABLE discom_applications 
+        ADD COLUMN np_confirmed TINYINT(1) DEFAULT 0,
+        ADD COLUMN np_confirmed_by INT NULL,
+        ADD COLUMN np_confirmed_at TIMESTAMP NULL,
+        ADD COLUMN meter_status VARCHAR(50) DEFAULT 'PENDING',
+        ADD COLUMN meter_effect VARCHAR(50) DEFAULT 'NO',
+        ADD COLUMN meter_verified_by INT NULL,
+        ADD COLUMN meter_verified_at TIMESTAMP NULL,
+        ADD COLUMN office_approval_status VARCHAR(50) DEFAULT 'PENDING',
+        ADD COLUMN office_approval_remarks TEXT NULL
+      `);
+    } catch(e) { if(e.code !== 'ER_DUP_FIELDNAME') console.error("Error altering discom_applications:", e.message); }
+
+    console.log("Altering users table (expanding role column to VARCHAR(100))...");
+    try {
+      await conn.query(`ALTER TABLE users MODIFY COLUMN role VARCHAR(100) DEFAULT 'WORKER'`);
+    } catch(e) { console.error("Error altering users role:", e.message); }
+
+    console.log("Altering site_survey_photos & installation_photos for uploaded_by...");
+    try {
+      await conn.query(`ALTER TABLE site_survey_photos ADD COLUMN uploaded_by INT NULL`);
+    } catch(e) { if(e.code !== 'ER_DUP_FIELDNAME') console.error("Error altering site_survey_photos:", e.message); }
+
+    try {
+      await conn.query(`ALTER TABLE installation_photos ADD COLUMN uploaded_by INT NULL`);
+    } catch(e) { if(e.code !== 'ER_DUP_FIELDNAME') console.error("Error altering installation_photos:", e.message); }
+
     console.log("Done updating schema!");
     conn.end();
   } catch (error) {

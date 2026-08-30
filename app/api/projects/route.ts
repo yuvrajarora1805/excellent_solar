@@ -12,10 +12,17 @@ export async function GET(request: NextRequest) {
     const statusParam = searchParams.get('status');
     const status = statusParam ? (statusParam as ProjectStatus) : undefined;
 
-    const [projects, total] = await Promise.all([
+    const [rawProjects, total] = await Promise.all([
       projectDb.findAll({ limit, offset, search, status }),
       projectDb.count({ search, status }),
     ]);
+
+    const projects = rawProjects.map((p: any) => ({
+      ...p,
+      full_address: [p.customer_address, p.customer_city, p.customer_district, p.customer_state]
+        .filter(Boolean)
+        .join(', ') || 'N/A',
+    }));
 
     return NextResponse.json({ projects, total });
   } catch (error) {
@@ -40,7 +47,7 @@ export async function POST(request: NextRequest) {
       status: 'NEW' as ProjectStatus,
       account_number: body.account_number || null,
       consumer_number: body.consumer_number || null,
-      discom: body.discom || null,
+      discom: body.discom || 'PSPCL',
       subdivision: body.subdivision || null,
       division: body.division || null,
       sanctioned_load: body.sanctioned_load || null,

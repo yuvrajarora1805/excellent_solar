@@ -13,6 +13,9 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+  const [isEditingPrices, setIsEditingPrices] = useState(false);
+  const [editableItems, setEditableItems] = useState<any[]>([]);
+  const [savingPrices, setSavingPrices] = useState(false);
 
   useEffect(() => {
     fetchOrder();
@@ -25,11 +28,47 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
       if (res.ok) {
         const data = await res.json();
         setOrder(data.order);
+        setEditableItems(data.order.items || []);
       }
     } catch (err) {
       console.error('Failed to fetch order:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handlePriceChange = (index: number, field: 'quantity' | 'unit_price', val: number) => {
+    const updated = [...editableItems];
+    const qty = field === 'quantity' ? val : updated[index].quantity;
+    const price = field === 'unit_price' ? val : updated[index].unit_price;
+    updated[index] = {
+      ...updated[index],
+      [field]: val,
+      line_total: qty * price,
+    };
+    setEditableItems(updated);
+  };
+
+  const handleSavePrices = async () => {
+    try {
+      setSavingPrices(true);
+      const res = await fetch(`/api/orders/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: editableItems }),
+      });
+      if (res.ok) {
+        alert('Order prices & quantities updated successfully!');
+        setIsEditingPrices(false);
+        fetchOrder();
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to update prices');
+      }
+    } catch (err) {
+      alert('Error updating prices');
+    } finally {
+      setSavingPrices(false);
     }
   };
 
@@ -62,13 +101,28 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   if (!order) return <div className="p-8 text-center text-red-500">Order not found</div>;
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto pb-12 print:p-0 print:max-w-none">
+    <div className="space-y-6 max-w-4xl mx-auto pb-12 print:p-0 print:m-0 print:max-w-none print:w-[210mm]">
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media print {
+          @page { size: A4; margin: 10mm; }
+          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+      `}} />
       {/* Header & Actions */}
       <div className="flex items-center justify-between print:hidden">
         <Button variant="outline" size="sm" onClick={() => router.back()}>
           <ArrowLeft className="w-4 h-4 mr-1" /> Back to Orders
         </Button>
         <div className="flex gap-2">
+          {!isEditingPrices ? (
+            <Button onClick={() => setIsEditingPrices(true)} variant="outline" className="border-amber-500 text-amber-700 hover:bg-amber-50 font-bold">
+              ✏️ Edit Prices / Quantities
+            </Button>
+          ) : (
+            <Button onClick={handleSavePrices} disabled={savingPrices} className="bg-amber-600 hover:bg-amber-700 text-white font-bold">
+              {savingPrices ? 'Saving Prices...' : '💾 Save Updated Prices'}
+            </Button>
+          )}
           {order.status !== 'DISPATCHED' && order.status !== 'DELIVERED' && (
             <Button onClick={handleDispatch} disabled={updating} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold">
               <Truck className="w-4 h-4 mr-2" />
@@ -121,12 +175,32 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
             <p className="text-slate-600 mt-1">
               Status: <span className="font-bold uppercase text-emerald-700">{order.status}</span>
             </p>
+            {order.vehicle_photo_path && (
+              <div className="mt-2 border rounded p-1 bg-slate-50 inline-block max-w-[200px]">
+                <span className="text-[9px] font-bold text-slate-500 block mb-1 uppercase">Captured Vehicle Delivery Photo:</span>
+                <img
+                  src={order.vehicle_photo_path}
+                  alt="Vehicle Proof"
+                  className="max-h-28 w-auto object-contain rounded border vehicle-proof-img"
+                  onError={(e) => {
+                    (e.target as HTMLElement).style.display = 'none';
+                  }}
+                />
+              </div>
+            )}
           </div>
         </div>
 
         {/* Order Items Table */}
         <div className="mb-4">
-          <h3 className="text-xs font-extrabold uppercase mb-2 text-slate-700">Order Items & Pricing</h3>
+          <div className="flex justify-between items-center mb-2">
+            <h3 className="text-xs font-extrabold uppercase text-slate-700">Order Items & Pricing</h3>
+            {isEditingPrices && (
+              <span className="text-xs font-bold text-amber-600 animate-pulse">
+                ✏️ Price Editing Mode Active - Update Unit Price / Quantity and click Save
+              </span>
+            )}
+          </div>
           <table className="w-full text-xs border-collapse border border-black text-left">
             <thead>
               <tr className="bg-slate-100 border-b border-black font-bold">
@@ -139,21 +213,56 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
               </tr>
             </thead>
             <tbody>
-              {order.items?.map((item, i) => (
-                <tr key={i} className="border-b border-black font-medium">
-                  <td className="p-2 border border-black text-center">{i + 1}</td>
-                  <td className="p-2 border border-black font-mono">{item.product_code}</td>
-                  <td className="p-2 border border-black font-bold">{item.product_name}</td>
-                  <td className="p-2 border border-black text-right font-bold">{item.quantity}</td>
-                  <td className="p-2 border border-black text-right">₹{item.unit_price.toLocaleString('en-IN')}</td>
-                  <td className="p-2 border border-black text-right font-bold">₹{item.line_total.toLocaleString('en-IN')}</td>
-                </tr>
-              ))}
+              {!isEditingPrices
+                ? order.items?.map((item, i) => (
+                    <tr key={i} className="border-b border-black font-medium">
+                      <td className="p-2 border border-black text-center">{i + 1}</td>
+                      <td className="p-2 border border-black font-mono">{item.product_code}</td>
+                      <td className="p-2 border border-black font-bold">{item.product_name}</td>
+                      <td className="p-2 border border-black text-right font-bold">{item.quantity}</td>
+                      <td className="p-2 border border-black text-right">₹{item.unit_price.toLocaleString('en-IN')}</td>
+                      <td className="p-2 border border-black text-right font-bold">₹{item.line_total.toLocaleString('en-IN')}</td>
+                    </tr>
+                  ))
+                : editableItems.map((item, i) => (
+                    <tr key={i} className="border-b border-black font-medium bg-amber-50/50">
+                      <td className="p-2 border border-black text-center">{i + 1}</td>
+                      <td className="p-2 border border-black font-mono">{item.product_code}</td>
+                      <td className="p-2 border border-black font-bold">{item.product_name}</td>
+                      <td className="p-2 border border-black text-right">
+                        <input
+                          type="number"
+                          min="1"
+                          value={item.quantity}
+                          onChange={(e) => handlePriceChange(i, 'quantity', Number(e.target.value))}
+                          className="w-16 p-1 border rounded text-right font-bold text-xs"
+                        />
+                      </td>
+                      <td className="p-2 border border-black text-right">
+                        <input
+                          type="number"
+                          min="0"
+                          value={item.unit_price}
+                          onChange={(e) => handlePriceChange(i, 'unit_price', Number(e.target.value))}
+                          className="w-24 p-1 border rounded text-right font-bold text-xs"
+                        />
+                      </td>
+                      <td className="p-2 border border-black text-right font-bold">
+                        ₹{item.line_total?.toLocaleString('en-IN')}
+                      </td>
+                    </tr>
+                  ))}
             </tbody>
             <tfoot>
               <tr className="bg-slate-100 font-extrabold text-sm border-t border-black">
                 <td colSpan={5} className="p-2 text-right border border-black">Total Order Amount:</td>
-                <td className="p-2 text-right text-blue-800 border border-black">₹{order.total_amount.toLocaleString('en-IN')}</td>
+                <td className="p-2 text-right text-blue-800 border border-black">
+                  ₹
+                  {(!isEditingPrices
+                    ? order.total_amount
+                    : editableItems.reduce((acc, curr) => acc + (curr.line_total || 0), 0)
+                  ).toLocaleString('en-IN')}
+                </td>
               </tr>
             </tfoot>
           </table>
@@ -184,7 +293,13 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
         </div>
 
         {/* Signatures */}
-        <div className="grid grid-cols-2 gap-8 pt-8 mt-8 border-t border-black text-xs font-bold text-center">
+        <div className="grid grid-cols-3 gap-8 pt-8 mt-8 border-t border-black text-xs font-bold text-center">
+          <div>
+            <p className="mb-8">Customer / Receiver Signature</p>
+            <div className="border-t border-dashed border-slate-400 pt-1">
+              {order.customer_name || 'Customer Signature'}
+            </div>
+          </div>
           <div>
             <p className="mb-8">Driver / Transport Signature</p>
             <div className="border-t border-dashed border-slate-400 pt-1">
@@ -192,9 +307,9 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
             </div>
           </div>
           <div>
-            <p className="mb-8">Authorized Signatory - Excellent Solar</p>
+            <p className="mb-8">Authorized Signatory</p>
             <div className="border-t border-dashed border-slate-400 pt-1">
-              Authorized Signature & Stamp
+              Excellent Solar Stamp
             </div>
           </div>
         </div>

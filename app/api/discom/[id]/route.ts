@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { discomDb, documentDb, jeVerificationDb, sdoVerificationDb, xenVerificationDb } from '@/lib/db-helpers/discom';
+import { DiscomStatus } from '@/types';
 import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
 
@@ -23,10 +24,58 @@ export async function GET(
       return NextResponse.json({ error: 'Application not found' }, { status: 404 });
     }
 
+    const { query } = await import('@/lib/db');
+
     const documents = await documentDb.findByApplicationId(id);
     const jeVerification = await jeVerificationDb.findByApplicationId(id);
     const sdoVerification = await sdoVerificationDb.findByApplicationId(id);
     const xenVerification = await xenVerificationDb.findByApplicationId(id);
+
+    // Fetch associated store & challan dispatch data for this project/customer
+    let storeChallans: any[] = [];
+    let materialIssues: any[] = [];
+    if (application.project_id) {
+      // 1. Fetch dispatch orders / vehicle challans
+      storeChallans = await query(
+        `SELECT o.*, c.name as customer_name
+         FROM orders o
+         LEFT JOIN customers c ON o.customer_id = c.id
+         WHERE o.customer_id = (SELECT customer_id FROM projects WHERE id = ?)
+         ORDER BY o.created_at DESC`,
+        [application.project_id]
+      ) as any[];
+
+      // Attach items for each challan
+      for (const challan of storeChallans) {
+        challan.items = await query(
+          `SELECT oi.*, p.name as product_name, p.product_code, p.unit
+           FROM order_items oi
+           JOIN products p ON oi.product_id = p.id
+           WHERE oi.order_id = ?`,
+          [challan.id]
+        );
+      }
+
+      // 2. Fetch material issues for this project
+      materialIssues = await query(
+        `SELECT mi.*, u.name as created_by_name
+         FROM material_issues mi
+         LEFT JOIN users u ON mi.created_by = u.id
+         WHERE mi.project_id = ?
+         ORDER BY mi.issue_date DESC`,
+        [application.project_id]
+      ) as any[];
+
+      for (const mi of materialIssues) {
+        mi.items = await query(
+          `SELECT mii.*, p.name as product_name, p.product_code
+           FROM material_issue_items mii
+           JOIN products p ON mii.product_id = p.id
+           WHERE mii.material_issue_id = ?`,
+          [mi.id]
+        );
+      }
+    }
 
     return NextResponse.json({
       ...application,
@@ -34,6 +83,8 @@ export async function GET(
       je_verification_status: jeVerification?.status || 'PENDING',
       sdo_verification_status: sdoVerification?.status || 'PENDING',
       xen_verification_status: xenVerification?.status || 'PENDING',
+      store_challans: storeChallans,
+      material_issues: materialIssues,
     });
   } catch (error) {
     console.error('Error fetching DISCOM application:', error);
@@ -41,7 +92,7 @@ export async function GET(
   }
 }
 
-// PUT /api/discom/[id] - Update verifications
+// PUT /api/discom/[id] - Update verifications, NP confirmation, meter status & office approvals
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -52,9 +103,27 @@ export async function PUT(
     if (isNaN(id)) return NextResponse.json({ error: 'Invalid ID' }, { status: 400 });
 
     const body = await request.json();
-    const { stage, status, action, updateData } = body; 
+    const { stage, status, action, updateData, np_number, meter_status, meter_effect, remarks } = body; 
 
-    if (action === 'update_fields' && updateData) {
+    if (action === 'confirm_np') {
+      await discomDb.update(id, {
+        np_number: np_number || updateData?.np_number,
+        np_confirmed: 1,
+        np_confirmed_at: new Date(),
+      });
+    } else if (action === 'verify_meter') {
+      await discomDb.update(id, {
+        meter_status: meter_status || 'AVAILABLE',
+        meter_effect: meter_effect || 'YES',
+        meter_verified_at: new Date(),
+      });
+    } else if (action === 'office_approve') {
+      await discomDb.update(id, {
+        office_approval_status: status || 'APPROVED',
+        office_approval_remarks: remarks || null,
+        status: (status === 'APPROVED' ? DiscomStatus.APPROVED : DiscomStatus.DRAFT) as any,
+      });
+    } else if (action === 'update_fields' && updateData) {
       await discomDb.update(id, updateData);
     } else if (stage === 'je') {
       await jeVerificationDb.createOrUpdate({ discom_application_id: id, status });
@@ -63,7 +132,7 @@ export async function PUT(
     } else if (stage === 'xen') {
       await xenVerificationDb.createOrUpdate({ discom_application_id: id, status });
     } else {
-      return NextResponse.json({ error: 'Invalid verification stage or action' }, { status: 400 });
+      await discomDb.update(id, body);
     }
 
     return NextResponse.json({ success: true, message: 'Status updated' });

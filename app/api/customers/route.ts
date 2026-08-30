@@ -10,10 +10,17 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(searchParams.get('offset') || '0');
     const search = searchParams.get('search') || undefined;
 
-    const [customers, total] = await Promise.all([
+    const [rawCustomers, total] = await Promise.all([
       customerDb.findAll({ limit, offset, search }),
       customerDb.count(search),
     ]);
+
+    const customers = rawCustomers.map((c: any) => ({
+      ...c,
+      full_address: [c.address, c.city, c.district, c.state]
+        .filter(Boolean)
+        .join(', ') || 'N/A',
+    }));
 
     return NextResponse.json({ customers, total });
   } catch (error) {

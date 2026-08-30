@@ -19,21 +19,27 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   try {
     const { id } = await params;
     const body = await req.json();
-    const { status, user_id } = body;
-
-    if (!status) {
-      return NextResponse.json({ error: 'status is required' }, { status: 400 });
-    }
+    const { status, items, user_id } = body;
 
     const userId = user_id || 1;
-    await orderDb.updateStatus(Number(id), status, userId);
+    let message = 'Order updated successfully!';
+
+    if (items && Array.isArray(items)) {
+      await orderDb.updateItems(Number(id), items);
+      message = 'Order items and prices updated!';
+    }
+
+    if (status) {
+      await orderDb.updateStatus(Number(id), status, userId);
+      message = `Order status updated to ${status}. Stock and serial status synced!`;
+    }
 
     return NextResponse.json({
       success: true,
-      message: `Order status updated to ${status}. Stock and serial status synced!`,
+      message,
     });
   } catch (error: any) {
-    console.error('Error updating order status:', error);
-    return NextResponse.json({ error: error.message || 'Failed to update order status' }, { status: 500 });
+    console.error('Error updating order:', error);
+    return NextResponse.json({ error: error.message || 'Failed to update order' }, { status: 500 });
   }
 }

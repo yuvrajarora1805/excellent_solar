@@ -5,6 +5,7 @@ export enum Role {
   MARKETING = 'MARKETING',
   INSTALLATION = 'INSTALLATION',
   DISCOM = 'DISCOM',
+  SURVEY_VIEWER = 'SURVEY_VIEWER',
 }
 
 
@@ -206,6 +207,15 @@ export interface DiscomApplication {
   created_at: Date;
   updated_at: Date;
   np_number?: string | null;
+  np_confirmed?: boolean | number | null;
+  np_confirmed_by?: number | null;
+  np_confirmed_at?: string | Date | null;
+  meter_status?: string | null;
+  meter_effect?: string | null;
+  meter_verified_by?: number | null;
+  meter_verified_at?: string | Date | null;
+  office_approval_status?: string | null;
+  office_approval_remarks?: string | null;
   application_date?: string | Date | null;
   processing_fee?: number | null;
   je_approval_status?: string | null;
@@ -612,6 +622,8 @@ export interface Quotation {
   id: number;
   quotation_number: string;
   project_id: number;
+  customer_id?: number;
+  customer_name?: string;
   quotation_date: Date;
   valid_until?: Date;
   system_type?: SystemType;

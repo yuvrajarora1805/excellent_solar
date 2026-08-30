@@ -24,7 +24,7 @@ export default function NewProjectPage() {
     customer_id: '',
     account_number: '',
     consumer_number: '',
-    discom: '',
+    discom: 'PSPCL',
     subdivision: '',
     division: '',
     sanctioned_load: '',

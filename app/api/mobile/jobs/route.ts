@@ -150,7 +150,15 @@ export async function GET(request: Request) {
     });
 
     let finalJobs = formattedJobs;
-    if (sectionParam) {
+
+    // Role-specific job section filtering
+    if (userRole === 'MARKETING' || userRole === 'SALES') {
+      // Marketing/Sales ONLY sees Site Survey jobs (with updated approval statuses)
+      finalJobs = formattedJobs.filter(j => j.section === 'SURVEY');
+    } else if (userRole === 'INSTALLATION' || userRole === 'WORKER') {
+      // Installation workers ONLY see Installation jobs
+      finalJobs = formattedJobs.filter(j => j.section === 'INSTALLATION');
+    } else if (sectionParam) {
       finalJobs = formattedJobs.filter(j => j.section === sectionParam.toUpperCase());
     }
 

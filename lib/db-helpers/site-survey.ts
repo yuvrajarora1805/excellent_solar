@@ -29,8 +29,13 @@ export const siteSurveyDb = {
 
     if (!survey) return null;
 
-    const photos = await query<SiteSurveyPhoto>(
-      'SELECT * FROM site_survey_photos WHERE site_survey_id = ? ORDER BY created_at ASC',
+    const photos = await query<any>(
+      `SELECT ssp.*, COALESCE(u.name, su.name, 'Field Worker') as uploader_name, COALESCE(u.role, su.role, 'MARKETING') as uploader_role
+       FROM site_survey_photos ssp
+       LEFT JOIN users u ON ssp.uploaded_by = u.id
+       LEFT JOIN site_surveys ss ON ssp.site_survey_id = ss.id
+       LEFT JOIN users su ON ss.created_by = su.id
+       WHERE ssp.site_survey_id = ? ORDER BY ssp.created_at ASC`,
       [survey.id]
     );
 
@@ -50,8 +55,13 @@ export const siteSurveyDb = {
 
     if (!survey) return null;
 
-    const photos = await query<SiteSurveyPhoto>(
-      'SELECT * FROM site_survey_photos WHERE site_survey_id = ? ORDER BY created_at ASC',
+    const photos = await query<any>(
+      `SELECT ssp.*, COALESCE(u.name, su.name, 'Field Worker') as uploader_name, COALESCE(u.role, su.role, 'MARKETING') as uploader_role
+       FROM site_survey_photos ssp
+       LEFT JOIN users u ON ssp.uploaded_by = u.id
+       LEFT JOIN site_surveys ss ON ssp.site_survey_id = ss.id
+       LEFT JOIN users su ON ss.created_by = su.id
+       WHERE ssp.site_survey_id = ? ORDER BY ssp.created_at ASC`,
       [id]
     );
 

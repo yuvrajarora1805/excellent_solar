@@ -103,7 +103,9 @@ def parse_flasher_report(pdf):
                         "vmp": clean_row[6] if len(clean_row) > 6 else "41.20",
                         "imp": clean_row[7] if len(clean_row) > 7 else "15.00",
                         "ff": clean_row[8] if len(clean_row) > 8 else "80.50",
-                        "eff": clean_row[9] if len(clean_row) > 9 else "22.80"
+                        "eff": clean_row[9] if len(clean_row) > 9 else "22.80",
+                        "invoice_no": result.get("invoice_no", ""),
+                        "date": result.get("date", "")
                     })
 
     # Regex Fallback if pdfplumber table extraction returned 0 modules
@@ -121,7 +123,9 @@ def parse_flasher_report(pdf):
                 "vmp": "41.20",
                 "imp": "15.00",
                 "ff": "80.50",
-                "eff": "22.80"
+                "eff": "22.80",
+                "invoice_no": result.get("invoice_no", ""),
+                "date": result.get("date", "")
             })
 
     result["modules"] = all_modules

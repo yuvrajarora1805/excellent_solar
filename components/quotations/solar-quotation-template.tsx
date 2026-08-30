@@ -6,8 +6,8 @@ export interface SolarQuotationItem {
   sr_no: number | string;
   material: string;
   quantity: string;
-  unit_price?: string;
-  line_total?: string;
+  brand: string;
+  description: string;
 }
 
 export interface SolarQuotationData {
@@ -17,28 +17,28 @@ export interface SolarQuotationData {
   capacity: string;
   location: string;
   materials: SolarQuotationItem[];
-  subtotal?: string;
-  discount_amount?: string;
-  gst_amount?: string;
   rate_per_watt?: string;
   total_cost: string;
   gst_info?: string;
   installation_discom_fee?: string;
   bank_details?: string;
   terms?: string[];
+  created_by_name?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 const DEFAULT_MATERIALS: SolarQuotationItem[] = [
-  { sr_no: 1, material: 'SOLAR PANELS (615 W WAAREE TOPCON)', quantity: '325', unit_price: '-', line_total: '-' },
-  { sr_no: 2, material: 'INVERTER (WAAREE/LUMINOUS)', quantity: '2', unit_price: '-', line_total: '-' },
-  { sr_no: 3, material: 'EARTHING (3 METER COPPER BONDED)', quantity: '5+1', unit_price: '-', line_total: '-' },
-  { sr_no: 4, material: 'LIGTNING ARRESTER (1 METER)', quantity: '2', unit_price: '-', line_total: '-' },
-  { sr_no: 5, material: 'STRUCTURE (70 MM HEIGHT ALUMINIUM)', quantity: '200 KW', unit_price: '-', line_total: '-' },
-  { sr_no: 6, material: 'EARTHING WIRE (HAVELLS 4/6MM)', quantity: 'AS PER REQUIRED', unit_price: '-', line_total: '-' },
-  { sr_no: 7, material: 'SERVICE WIRE (150 MM ALUMINIUM)', quantity: '50 MTR MAXI.', unit_price: '-', line_total: '-' },
-  { sr_no: 8, material: 'DC WIRE (6 MM WAAREE/HAVELLS)', quantity: 'AS PER REQUIRED', unit_price: '-', line_total: '-' },
-  { sr_no: 9, material: 'ACDB (HAVELLS)', quantity: '1', unit_price: '-', line_total: '-' },
-  { sr_no: 10, material: 'DCDB', quantity: 'N.A', unit_price: '-', line_total: '-' },
+  { sr_no: 1, material: 'SOLAR PANELS', quantity: '0', brand: 'WAAREE TOPCON', description: '615 W' },
+  { sr_no: 2, material: 'INVERTER', quantity: '0', brand: 'WAAREE/LUMINOUS', description: '8 YEARS WARRANTY' },
+  { sr_no: 3, material: 'EARTHING', quantity: '0', brand: '3 METER', description: 'COPPER BONDED WITH CHEMICAL' },
+  { sr_no: 4, material: 'LIGTNING ARRESTER', quantity: '0', brand: '1 METER', description: 'COPPER BONDED' },
+  { sr_no: 5, material: 'STRUCTURE', quantity: '0', brand: '70 MM HEIGHT', description: 'ALUMINIUM' },
+  { sr_no: 6, material: 'EARTHING WIRE', quantity: '0', brand: 'HAVELLS', description: '4 MM & 6MM' },
+  { sr_no: 7, material: 'SERVICE WIRE', quantity: '0', brand: 'AS PER PSPCL', description: '150 MM ALUMINIUM' },
+  { sr_no: 8, material: 'DC WIRE', quantity: '0', brand: 'WAAREE/HAVELLS', description: '6 MM' },
+  { sr_no: 9, material: 'ACDB', quantity: '0', brand: 'HAVELLS', description: '' },
+  { sr_no: 10, material: 'DCDB', quantity: '0', brand: 'N.A', description: '' },
 ];
 
 export const SolarQuotationTemplate: React.FC<{ data: Partial<SolarQuotationData> }> = ({ data }) => {
@@ -50,52 +50,64 @@ export const SolarQuotationTemplate: React.FC<{ data: Partial<SolarQuotationData
   ];
 
   return (
-    <div className="bg-white text-black font-sans p-8 mx-auto border border-black shadow-lg w-[210mm] min-h-[297mm] box-border relative print:shadow-none print:border-none print:p-8 print:m-0 print:w-[210mm]">
+    <div className="bg-white text-black font-sans p-6 mx-auto border border-black shadow-lg w-full max-w-[210mm] min-h-[297mm] box-border relative print:shadow-none print:border-none print:p-6 print:m-0 print:w-[210mm]">
       {/* Header Logo */}
-      <div className="text-center mb-4 flex justify-center">
-        <img src="/qutaionlogo.png" alt="Excellent Solar Logo" className="h-28 object-contain" />
+      <div className="text-center mb-3 flex justify-center relative">
+        <img src="/qutaionlogo.png" alt="Excellent Solar Logo" className="h-24 object-contain mx-auto" />
+        
+        {/* QR Code */}
+        {data.latitude && data.longitude && (
+          <div className="absolute top-0 right-0 flex flex-col items-center">
+            <img 
+              src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(`Name: ${data.customer_name}\nLocation: ${data.location}\nMap: https://maps.google.com/?q=${data.latitude},${data.longitude}`)}`} 
+              alt="Location QR" 
+              className="w-16 h-16 border border-gray-300 shadow-sm" 
+            />
+            <span className="text-[8px] mt-0.5 font-bold">Scan for Map</span>
+          </div>
+        )}
       </div>
 
       {/* Address Header Box */}
-      <div className="border border-black text-[11px] font-semibold text-center py-1.5 px-2 mb-2 leading-tight">
-        ADD.Vijay Nagar, Moga Road, Near Grain Market Gate 1, Kotkapura, Faridkot.
+      <div className="border border-black text-[11px] font-semibold text-center py-1 px-2 mb-2 leading-tight">
+        ADD. Vijay Nagar, Moga Road, Near Grain Market Gate 1, Kotkapura, Faridkot.
         <br />
-        Phone: +91 98581-09000, 77196-52727, 76108-00035 Email:excellentsolarkkp@gmail.com
+        Phone: +91 98581-09000, 77196-52727, 76108-00035 Email: excellentsolarkkp@gmail.com
       </div>
 
       {/* Customer & Project Spec Box */}
       <table className="w-full border-collapse border border-black mb-2 text-xs">
         <tbody>
           <tr className="border-b border-black">
-            <td className="p-1.5 font-bold border-r border-black w-[20%]">Customer Name</td>
-            <td className="p-1.5 font-bold border-r border-black w-[30%] uppercase">{data.customer_name || 'M.G PIPE INDUSTRIES'}</td>
-            <td className="p-1.5 font-bold border-r border-black w-[20%]">Date</td>
-            <td className="p-1.5 font-bold w-[30%]">{data.date || '10/08/2026'}</td>
+            <td className="p-1.5 font-bold border-r border-black w-[15%]">To</td>
+            <td className="p-1.5 font-bold border-r border-black w-[25%] uppercase">{data.customer_name || 'GPS Quila Kotkapura'}</td>
+            <td className="p-1.5 font-bold border-r border-black w-[15%]">DATE :</td>
+            <td className="p-1.5 font-bold w-[45%]">{data.date || '30/8/2026'}</td>
           </tr>
           <tr className="border-b border-black">
-            <td className="p-1.5 font-bold border-r border-black w-[20%]">Project Type</td>
-            <td className="p-1.5 font-bold border-r border-black w-[30%] uppercase">{data.project_type || 'ONGRID SOLAR'}</td>
-            <td className="p-1.5 font-bold border-r border-black w-[20%] align-middle" rowSpan={2}>Location</td>
-            <td className="p-1.5 font-bold w-[30%] uppercase align-middle" rowSpan={2}>{data.location || 'JALALABAD'}</td>
+            <td className="p-1.5 font-bold border-r border-black w-[15%]">Project Type</td>
+            <td className="p-1.5 font-bold border-r border-black w-[25%] uppercase">{data.project_type || 'ONGRID SOLAR'}</td>
+            <td className="p-1.5 font-bold border-r border-black w-[15%]" rowSpan={2}>Location</td>
+            <td className="p-1.5 font-bold uppercase w-[45%] align-top" rowSpan={2}>{data.location || 'JALALABAD'}</td>
           </tr>
           <tr>
-            <td className="p-1.5 font-bold border-r border-black w-[20%] text-[10px] leading-tight">PROPOSED<br />CAPACITY</td>
-            <td className="p-1.5 font-extrabold border-r border-black w-[30%] text-sm">{data.capacity || '200 KW'}</td>
+            <td className="p-1.5 font-bold border-r border-black text-[10px] leading-tight w-[15%]">PROPOSED<br />CAPACITY</td>
+            <td className="p-1.5 font-extrabold border-r border-black text-sm uppercase w-[25%]">{data.capacity || '200 KW'}</td>
           </tr>
         </tbody>
       </table>
 
-      {/* Material Detail Table */}
+      {/* Material Detail Table (Exact 5 Columns matching user image) */}
       <table className="w-full border-collapse border border-black mb-2 text-[11px]">
         <thead>
           <tr className="bg-[#6b9e38] text-black font-extrabold border-b border-black text-center">
             <th className="border border-black p-1.5 w-[8%]">Sr No.</th>
-            <th className="border border-black p-1.5 text-center w-[45%]">MATERIAL DETAIL</th>
-            <th className="border border-black p-1.5 text-center w-[15%]">UNIT PRICE (₹)</th>
-            <th className="border border-black p-1.5 w-[12%] leading-tight text-[10px]">
+            <th className="border border-black p-1.5 text-center w-[35%]">MATERIAL DETAIL</th>
+            <th className="border border-black p-1.5 text-center w-[17%] leading-tight">
               QUANTI<br />TY
             </th>
-            <th className="border border-black p-1.5 text-center w-[20%]">TOTAL (₹)</th>
+            <th className="border border-black p-1.5 text-center w-[20%]">BRAND</th>
+            <th className="border border-black p-1.5 text-center w-[20%]">Description</th>
           </tr>
         </thead>
         <tbody>
@@ -103,48 +115,42 @@ export const SolarQuotationTemplate: React.FC<{ data: Partial<SolarQuotationData
             <tr key={idx} className={`border-b border-black text-center font-bold ${idx % 2 === 0 ? 'bg-[#ffffe0]' : 'bg-white'}`}>
               <td className="border border-black p-1.5 font-normal">{m.sr_no || idx + 1}</td>
               <td className="border border-black p-1.5 text-left font-black italic uppercase">{m.material}</td>
-              <td className="border border-black p-1.5 uppercase font-extrabold">{m.unit_price}</td>
-              <td className="border border-black p-1.5 font-extrabold uppercase">{m.quantity}</td>
-              <td className="border border-black p-1.5 uppercase text-center font-extrabold">{m.line_total}</td>
+              <td className="border border-black p-1.5 font-black uppercase text-center">{m.quantity}</td>
+              <td className="border border-black p-1.5 font-extrabold uppercase text-center">{m.brand || 'N.A'}</td>
+              <td className="border border-black p-1.5 font-extrabold uppercase text-center">{m.description || 'N.A'}</td>
             </tr>
           ))}
         </tbody>
       </table>
 
-      {/* Commercial Summary Box */}
-      <table className="w-full border-collapse border border-black mb-2 text-xs bg-[#e64a19] text-white font-bold">
+      {/* Commercial Summary Box (Orange/Coral matching user image) */}
+      <table className="w-full border-collapse border border-black mb-2 text-xs bg-[#d84315] text-white font-bold">
         <tbody>
           <tr className="border-b border-black">
-            <td className="border-r border-black p-1.5 w-[75%] text-right pr-4">Subtotal (INR)</td>
-            <td className="p-1.5 text-center text-sm">{data.subtotal || '0'}</td>
+            <td className="border-r border-black p-1.5 w-[65%]">Total Project Rate/Watt (INR)</td>
+            <td className="border-r border-black p-1.5 text-center w-[20%] text-sm font-black">{data.rate_per_watt || '23.50'}/-</td>
+            <td className="p-1.5 text-center w-[15%] text-[10px] uppercase font-black">{data.gst_info || 'GST EXTRA 8.9%'}</td>
           </tr>
           <tr className="border-b border-black">
-            <td className="border-r border-black p-1.5 text-right pr-4">Discount (INR)</td>
-            <td className="p-1.5 text-center text-sm">{data.discount_amount || '0'}</td>
+            <td className="border-r border-black p-1.5">Total Project Cost (INR)</td>
+            <td className="border-r border-black p-1.5 text-center text-sm font-black">{data.total_cost || '47,00,000'}/-</td>
+            <td className="p-1.5 text-center text-[10px] uppercase font-black">{data.gst_info || 'GST EXTRA (8.9%)'}</td>
           </tr>
           <tr className="border-b border-black">
-            <td className="border-r border-black p-1.5 text-right pr-4">{data.gst_info || 'GST (18%)'}</td>
-            <td className="p-1.5 text-center text-sm">{data.gst_amount || '0'}</td>
-          </tr>
-          <tr className="border-b border-black">
-            <td className="border-r border-black p-1.5 text-right pr-4">Total Project Cost (INR)</td>
-            <td className="p-1.5 text-center text-base font-black">{data.total_cost || '0'}</td>
+            <td className="border-r border-black p-1.5 text-[10px] uppercase">INSTALLATION AND DISCOM FEE/APPROVAL</td>
+            <td className="border-r border-black p-1.5 text-center font-black">INCLUDED</td>
+            <td className="p-1.5 text-center font-black">INCLUDED</td>
           </tr>
           <tr>
-            <td colSpan={2} className="p-1.5 text-center bg-[#fff59d] text-black font-black border-t border-black text-[11px] italic">
+            <td colSpan={3} className="p-1.5 text-center bg-[#fff59d] text-black font-black border-t border-black text-[11px] italic">
               {data.bank_details || 'BANK:- AXIS BANK KKP, NAME EXCELLENT SOLAR , A/C NO 922030040457208 , IFSC UTIB0000577'}
             </td>
           </tr>
         </tbody>
       </table>
 
-      {/* Indicative Note */}
-      <p className="text-center italic text-[11px] font-serif mb-1">
-        Note: Prices are indicative and subject to final site inspection and design.
-      </p>
-
       {/* Terms & Conditions Box */}
-      <div className="border border-black mb-3 text-xs">
+      <div className="border border-black mb-4 text-xs">
         <div className="bg-[#6b9e38] text-black font-extrabold text-center py-0.5 border-b border-black">
           Terms & Conditions:
         </div>
@@ -156,13 +162,10 @@ export const SolarQuotationTemplate: React.FC<{ data: Partial<SolarQuotationData
       </div>
 
       {/* Signature & Stamp Section */}
-      <div className="text-center mt-4">
-        <p className="italic text-xs font-serif mb-4 font-bold">
-          For any clarifications or site survey scheduling, feel free to contact us.
-        </p>
-        <div className="inline-block text-center font-bold">
-          <p className="text-xs">Authorized Signatory</p>
-          <p className="text-sm font-black">Excellent Solar</p>
+      <div className="flex justify-end items-end pt-2 border-t border-slate-200">
+        <div className="text-center font-bold">
+          <p className="text-xs mb-8">Authorized Signatory</p>
+          <p className="text-sm font-black border-t border-dashed border-black pt-1">Excellent Solar</p>
         </div>
       </div>
     </div>

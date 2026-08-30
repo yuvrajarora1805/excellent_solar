@@ -205,7 +205,42 @@ export default function DiscomApplicationDetailsPage() {
             </div>
             <div className="flex justify-between">
               <span className="text-on-surface-variant">NP Number:</span>
-              <span className="font-medium text-on-surface">{application.np_number || 'N/A'}</span>
+              <div className="flex items-center gap-2">
+                <span className="font-medium text-on-surface">{application.np_number || 'N/A'}</span>
+                {application.np_confirmed ? (
+                  <span className="px-2 py-0.5 text-xs font-bold bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300 rounded border border-green-300">
+                    Confirmed
+                  </span>
+                ) : application.np_number ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="h-6 px-2 text-xs text-amber-700 border-amber-400 hover:bg-amber-50"
+                    onClick={async () => {
+                      try {
+                        const res = await fetch(`/api/discom/${id}`, {
+                          method: 'PUT',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ action: 'confirm_np', np_number: application.np_number })
+                        });
+                        if (res.ok) fetchApplication();
+                      } catch (e) { console.error(e); }
+                    }}
+                  >
+                    Confirm NP
+                  </Button>
+                ) : null}
+              </div>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-on-surface-variant">Office Approval Status:</span>
+              <span className={`font-bold text-xs px-2.5 py-0.5 rounded ${
+                application.office_approval_status === 'APPROVED' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' :
+                application.office_approval_status === 'REJECTED' ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300' :
+                'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+              }`}>
+                {application.office_approval_status || 'PENDING'}
+              </span>
             </div>
             <div className="flex justify-between">
               <span className="text-on-surface-variant">Application Date:</span>
@@ -240,62 +275,130 @@ export default function DiscomApplicationDetailsPage() {
               <span className="font-medium text-on-surface">{application.submission_date ? new Date(application.submission_date).toLocaleDateString() : 'N/A'}</span>
             </div>
           </div>
-        </div>
-
-        {/* Verification Status */}
-        <div className="bg-surface-container-lowest border border-outline-variant rounded p-6 industrial-shadow">
-          <div className="flex justify-between items-center mb-4 pb-2 border-b border-outline-variant">
-            <h3 className="text-lg font-bold text-on-surface">Verification Status</h3>
-            <Button variant="outline" size="sm" onClick={() => setIsVerificationModalOpen(true)}>
-              <Edit className="w-4 h-4 mr-2" /> Manage
+          
+          {/* Office Approval Actions Bar */}
+          <div className="mt-6 pt-4 border-t border-outline-variant flex flex-wrap items-center gap-3">
+            <span className="text-xs font-semibold text-slate-500">Office Person Approval:</span>
+            <Button
+              size="sm"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white h-8 text-xs"
+              onClick={async () => {
+                try {
+                  const res = await fetch(`/api/discom/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ action: 'office_approve', status: 'APPROVED', remarks: 'Approved by Office' })
+                  });
+                  if (res.ok) fetchApplication();
+                } catch (e) { alert('Approval failed'); }
+              }}
+            >
+              Approve DISCOM Application
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="text-rose-600 border-rose-300 hover:bg-rose-50 h-8 text-xs"
+              onClick={async () => {
+                const reason = prompt('Enter rejection reason:');
+                if (reason) {
+                  try {
+                    const res = await fetch(`/api/discom/${id}`, {
+                      method: 'PUT',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ action: 'office_approve', status: 'REJECTED', remarks: reason })
+                    });
+                    if (res.ok) fetchApplication();
+                  } catch (e) { alert('Rejection failed'); }
+                }
+              }}
+            >
+              Reject
             </Button>
           </div>
-          <div className="space-y-4 text-sm">
-            
-            <div className="flex items-center gap-3">
-              {application.je_verification_status === 'APPROVED' ? 
-                <CheckCircle2 className="w-5 h-5 text-green-600" /> : 
-                <Clock className="w-5 h-5 text-amber-500" />
-              }
-              <div>
-                <p className="font-medium">JE Verification</p>
-                <p className="text-xs text-on-surface-variant">Status: {application.je_verification_status || 'PENDING'}</p>
+        </div>
+
+        {/* Verification Status & DISCOM Meter Details */}
+        <div className="bg-surface-container-lowest border border-outline-variant rounded p-6 industrial-shadow space-y-6">
+          <div>
+            <div className="flex justify-between items-center mb-4 pb-2 border-b border-outline-variant">
+              <h3 className="text-lg font-bold text-on-surface">Verification Status</h3>
+              <Button variant="outline" size="sm" onClick={() => setIsVerificationModalOpen(true)}>
+                <Edit className="w-4 h-4 mr-2" /> Manage
+              </Button>
+            </div>
+            <div className="space-y-3 text-sm">
+              <div className="flex items-center gap-3">
+                {application.je_verification_status === 'APPROVED' ? 
+                  <CheckCircle2 className="w-5 h-5 text-green-600" /> : 
+                  <Clock className="w-5 h-5 text-amber-500" />
+                }
+                <div>
+                  <p className="font-medium">JE Verification</p>
+                  <p className="text-xs text-on-surface-variant">Status: {application.je_verification_status || 'PENDING'}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                {application.sdo_verification_status === 'APPROVED' ? 
+                  <CheckCircle2 className="w-5 h-5 text-green-600" /> : 
+                  <Clock className="w-5 h-5 text-amber-500" />
+                }
+                <div>
+                  <p className="font-medium">SDO Verification</p>
+                  <p className="text-xs text-on-surface-variant">Status: {application.sdo_verification_status || 'PENDING'}</p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                {application.xen_verification_status === 'APPROVED' ? 
+                  <CheckCircle2 className="w-5 h-5 text-green-600" /> : 
+                  <Clock className="w-5 h-5 text-amber-500" />
+                }
+                <div>
+                  <p className="font-medium">XEN Verification</p>
+                  <p className="text-xs text-on-surface-variant">Status: {application.xen_verification_status || 'PENDING'}</p>
+                </div>
               </div>
             </div>
+          </div>
 
-            <div className="flex items-center gap-3">
-              {application.sdo_verification_status === 'APPROVED' ? 
-                <CheckCircle2 className="w-5 h-5 text-green-600" /> : 
-                <Clock className="w-5 h-5 text-amber-500" />
-              }
+          {/* DISCOM Meter Status & Meter Effect Section */}
+          <div className="pt-4 border-t border-outline-variant">
+            <h4 className="font-bold text-sm text-slate-800 dark:text-slate-200 mb-3 flex items-center justify-between">
+              <span>Meter Details (From Mobile Field User)</span>
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 text-xs"
+                onClick={async () => {
+                  try {
+                    const res = await fetch(`/api/discom/${id}`, {
+                      method: 'PUT',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ action: 'verify_meter', meter_status: 'AVAILABLE', meter_effect: 'YES' })
+                    });
+                    if (res.ok) fetchApplication();
+                  } catch (e) { alert('Failed'); }
+                }}
+              >
+                Verify Meter
+              </Button>
+            </h4>
+            <div className="grid grid-cols-2 gap-3 text-xs bg-slate-50 dark:bg-slate-900 p-3 rounded border border-slate-200 dark:border-slate-800">
               <div>
-                <p className="font-medium">SDO Verification</p>
-                <p className="text-xs text-on-surface-variant">Status: {application.sdo_verification_status || 'PENDING'}</p>
+                <span className="text-slate-500 block">Meter Status:</span>
+                <span className={`font-bold ${application.meter_status === 'AVAILABLE' ? 'text-green-600' : 'text-amber-600'}`}>
+                  {application.meter_status || 'PENDING'}
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-500 block">Meter Effect:</span>
+                <span className={`font-bold ${application.meter_effect === 'YES' ? 'text-green-600' : 'text-slate-600'}`}>
+                  {application.meter_effect || 'NO'}
+                </span>
               </div>
             </div>
-
-            <div className="flex items-center gap-3">
-              {application.xen_verification_status === 'APPROVED' ? 
-                <CheckCircle2 className="w-5 h-5 text-green-600" /> : 
-                <Clock className="w-5 h-5 text-amber-500" />
-              }
-              <div>
-                <p className="font-medium">XEN Verification</p>
-                <p className="text-xs text-on-surface-variant">Status: {application.xen_verification_status || 'PENDING'}</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              {application.second_approval_status === 'APPROVED' ? 
-                <CheckCircle2 className="w-5 h-5 text-green-600" /> : 
-                <Clock className="w-5 h-5 text-amber-500" />
-              }
-              <div>
-                <p className="font-medium">Second Approval</p>
-                <p className="text-xs text-on-surface-variant">Status: {application.second_approval_status || 'PENDING'}</p>
-              </div>
-            </div>
-
           </div>
         </div>
 
@@ -327,6 +430,62 @@ export default function DiscomApplicationDetailsPage() {
             </div>
           ) : (
             <p className="text-on-surface-variant text-sm italic">No documents uploaded for this application.</p>
+          )}
+        </div>
+
+        {/* Store Data & Dispatch Challans */}
+        <div className="col-span-1 md:col-span-2 bg-surface-container-lowest border border-outline-variant rounded p-6 industrial-shadow">
+          <h3 className="text-lg font-bold text-on-surface mb-4 pb-2 border-b border-outline-variant flex items-center justify-between">
+            <span>Store & Material Dispatch Data (Challans)</span>
+            <span className="text-xs font-normal text-slate-500">
+              Associated Dispatch Orders & Issued Inventory
+            </span>
+          </h3>
+
+          {application.store_challans && application.store_challans.length > 0 ? (
+            <div className="space-y-4">
+              {application.store_challans.map((challan: any) => (
+                <div key={challan.id} className="p-4 border border-slate-200 dark:border-slate-800 rounded bg-slate-50/50 dark:bg-slate-900/40 text-sm space-y-3">
+                  <div className="flex flex-wrap justify-between items-center font-semibold text-slate-800 dark:text-slate-200">
+                    <div>
+                      <span className="text-primary font-mono mr-2">Challan #{challan.order_number}</span>
+                      <span className="text-xs bg-slate-200 dark:bg-slate-800 px-2 py-0.5 rounded">{challan.status}</span>
+                    </div>
+                    <div className="text-xs text-slate-500">
+                      Dispatched: {challan.dispatched_at ? new Date(challan.dispatched_at).toLocaleString('en-IN') : 'Pending Dispatch'}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs text-slate-600 dark:text-slate-400">
+                    <div><span className="font-semibold block text-slate-800 dark:text-slate-300">Vehicle:</span> {challan.vehicle_number || 'N/A'}</div>
+                    <div><span className="font-semibold block text-slate-800 dark:text-slate-300">Driver:</span> {challan.driver_name ? `${challan.driver_name} (${challan.driver_mobile || ''})` : 'N/A'}</div>
+                    <div><span className="font-semibold block text-slate-800 dark:text-slate-300">Delivery Address:</span> {challan.delivery_address || 'N/A'}</div>
+                    <div>
+                      <span className="font-semibold block text-slate-800 dark:text-slate-300">Vehicle Photo:</span>
+                      {challan.vehicle_photo_path ? (
+                        <a href={challan.vehicle_photo_path} target="_blank" rel="noreferrer" className="text-primary underline">View Photo</a>
+                      ) : 'None'}
+                    </div>
+                  </div>
+
+                  {challan.items && challan.items.length > 0 && (
+                    <div className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+                      <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Dispatched Items:</p>
+                      <ul className="text-xs space-y-1">
+                        {challan.items.map((it: any) => (
+                          <li key={it.id} className="flex justify-between text-slate-600 dark:text-slate-400">
+                            <span>• {it.product_name} ({it.product_code})</span>
+                            <span className="font-bold">{it.quantity} {it.unit}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-on-surface-variant text-sm italic">No store dispatch challans created yet for this project.</p>
           )}
         </div>
 

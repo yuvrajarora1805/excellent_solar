@@ -9,6 +9,7 @@ import '../services/api_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../main.dart' show baseUrl;
+import 'quotation_screen.dart';
 
 
 class FieldDashboardScreen extends StatefulWidget {
@@ -440,6 +441,28 @@ class _FieldDashboardScreenState extends State<FieldDashboardScreen> {
                   ),
                 ],
 
+                const SizedBox(height: 20),
+                Card(
+                  elevation: 0,
+                  color: Colors.amber.shade50,
+                  shape: RoundedRectangleBorder(
+                    side: BorderSide(color: Colors.amber.shade300),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    leading: const Icon(Icons.request_quote, color: Colors.amber, size: 36),
+                    title: const Text('Generate Solar Quotation', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    subtitle: const Text('Fetch products, edit prices & export official PDF'),
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const QuotationScreen()),
+                      );
+                    },
+                  ),
+                ),
                 const SizedBox(height: 24),
               ],
             ),

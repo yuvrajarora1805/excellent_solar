@@ -13,8 +13,8 @@ export async function GET(request: Request) {
 
     let sql = `SELECT *, 
       (current_stock - COALESCE(reserved_stock, 0)) AS available_stock
-      FROM products WHERE status = "Active"`;
-    let countSql = `SELECT COUNT(*) as count FROM products WHERE status = "Active"`;
+      FROM products WHERE 1=1`;
+    let countSql = `SELECT COUNT(*) as count FROM products WHERE 1=1`;
     
     let params: any[] = [];
     
@@ -55,8 +55,10 @@ export async function GET(request: Request) {
     const [products, countResult, categoryResult] = await Promise.all([
       query(sql, params),
       query(countSql, countParams),
-      query('SELECT DISTINCT category FROM products WHERE status = "Active" AND category IS NOT NULL ORDER BY category')
+      query('SELECT DISTINCT category FROM products WHERE category IS NOT NULL ORDER BY category')
     ]);
+
+    console.log('Fetched products count:', products.length, 'with conditions:', conditions);
 
     const total = (countResult as any)[0]?.count || 0;
     const categories = (categoryResult as any).map((c: any) => c.category);

@@ -283,7 +283,42 @@ export const orderDb = {
           `UPDATE orders SET status = 'DELIVERED', delivered_at = NOW() WHERE id = ?`,
           [orderId]
         );
+
+        if (order.serials) {
+          for (const s of order.serials) {
+            await conn.execute(
+              `UPDATE product_serial_numbers
+               SET status = 'DELIVERED', current_location = 'DELIVERED',
+                   remarks = CONCAT(COALESCE(remarks, ''), ' | Delivered Order #${order.order_number} to ${order.customer_name}')
+               WHERE serial_number = ?`,
+              [s.serial_number]
+            );
+          }
+        }
       }
+    });
+  },
+
+  // Update Order Items & Prices
+  updateItems: async (orderId: number, items: Array<{ id?: number; product_id: number; quantity: number; unit_price: number }>): Promise<void> => {
+    return transaction(async (conn) => {
+      let newTotal = 0;
+      for (const item of items) {
+        const lineTotal = item.quantity * item.unit_price;
+        newTotal += lineTotal;
+        if (item.id) {
+          await conn.execute(
+            `UPDATE order_items SET quantity = ?, unit_price = ?, line_total = ? WHERE id = ? AND order_id = ?`,
+            [item.quantity, item.unit_price, lineTotal, item.id, orderId]
+          );
+        } else {
+          await conn.execute(
+            `INSERT INTO order_items (order_id, product_id, quantity, unit_price, line_total) VALUES (?, ?, ?, ?, ?)`,
+            [orderId, item.product_id, item.quantity, item.unit_price, lineTotal]
+          );
+        }
+      }
+      await conn.execute(`UPDATE orders SET total_amount = ? WHERE id = ?`, [newTotal, orderId]);
     });
   },
 };

@@ -54,7 +54,7 @@ export const quotationDb = {
   // Find by ID with items
   findById: async (id: number): Promise<Quotation | null> => {
     const quotation = await queryOne<any>(
-      `SELECT q.*, p.project_id, c.name as customer_name,
+      `SELECT q.*, p.project_id, p.latitude as project_latitude, p.longitude as project_longitude, c.name as customer_name,
               u.name as created_by_name, st.name as template_name
        FROM quotations q
        LEFT JOIN projects p ON q.project_id = p.id
@@ -164,15 +164,23 @@ export const quotationDb = {
       const gstAmount = afterDiscount * 0.18; // 18% GST
       const totalAmount = afterDiscount + gstAmount;
 
+      // Ensure missing columns exist in DB table
+      try { await conn.execute(`ALTER TABLE quotations ADD COLUMN customer_id INT NULL`); } catch {}
+      try { await conn.execute(`ALTER TABLE quotations ADD COLUMN rate_per_watt VARCHAR(50) NULL`); } catch {}
+
+      const [projResult] = await conn.execute('SELECT customer_id FROM projects WHERE id = ?', [data.project_id]);
+      const customerId = (projResult as any[])[0]?.customer_id || null;
+
       // Insert quotation
       const [result] = await conn.execute(
-        `INSERT INTO quotations (quotation_number, project_id, quotation_date, valid_until, system_type, capacity_kw,
+        `INSERT INTO quotations (quotation_number, project_id, customer_id, quotation_date, valid_until, system_type, capacity_kw,
          system_template_id, subtotal, discount_amount, discount_percentage, gst_amount, gst_percentage, total_amount,
          status, terms_conditions, remarks, created_by)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           quotationNumber,
           data.project_id,
+          customerId,
           data.quotation_date,
           data.valid_until || null,
           template.system_type,
@@ -210,24 +218,40 @@ export const quotationDb = {
   // Create custom quotation
   create: async (data: Omit<Quotation, 'id' | 'quotation_number' | 'created_at' | 'updated_at' | 'created_by_user'> & { items: Array<Omit<QuotationItem, 'id' | 'quotation_id' | 'created_at'>> }, userId: number): Promise<number> => {
     return transaction(async (conn) => {
+      // Ensure missing or restricted columns exist and support flexible string formats in DB table
+      try { await conn.execute(`ALTER TABLE quotations ADD COLUMN customer_id INT NULL`); } catch {}
+      try { await conn.execute(`ALTER TABLE quotations ADD COLUMN rate_per_watt VARCHAR(50) NULL`); } catch {}
+      try { await conn.execute(`ALTER TABLE quotations MODIFY COLUMN system_type VARCHAR(255) NULL`); } catch {}
+      try { await conn.execute(`ALTER TABLE quotations MODIFY COLUMN capacity_kw VARCHAR(50) NULL`); } catch {}
+      try { await conn.execute(`ALTER TABLE quotations MODIFY COLUMN status VARCHAR(50) DEFAULT 'DRAFT'`); } catch {}
+      try { await conn.execute(`ALTER TABLE quotation_items MODIFY COLUMN quantity VARCHAR(50) NULL`); } catch {}
+      try { await conn.execute(`ALTER TABLE quotation_items MODIFY COLUMN unit VARCHAR(255) NULL`); } catch {}
+      try { await conn.execute(`ALTER TABLE quotation_items ADD COLUMN brand VARCHAR(100) NULL`); } catch {}
+
       const quotationNumber = await quotationDb.generateNumber();
 
-      // Calculate totals from items
-      const subtotal = data.items.reduce((sum, item) => sum + item.line_total, 0);
-      const discountAmount = subtotal * (data.discount_percentage / 100);
+      // Calculate totals from items or use provided total amount
+      const subtotal = data.subtotal !== undefined ? Number(data.subtotal) : data.items.reduce((sum, item) => sum + (item.line_total || 0), 0);
+      const discountAmount = data.discount_amount !== undefined ? Number(data.discount_amount) : (subtotal * ((data.discount_percentage || 0) / 100));
       const afterDiscount = subtotal - discountAmount;
-      const gstAmount = afterDiscount * (data.gst_percentage / 100);
-      const totalAmount = afterDiscount + gstAmount;
+      const gstAmount = data.gst_amount !== undefined ? Number(data.gst_amount) : (afterDiscount * ((data.gst_percentage || 8.9) / 100));
+      const totalAmount = data.total_amount !== undefined ? Number(data.total_amount) : (afterDiscount + gstAmount);
+
+      const [projResult] = await conn.execute('SELECT customer_id FROM projects WHERE id = ?', [data.project_id]);
+      const customerId = (projResult as any[])[0]?.customer_id || null;
+
+      const ratePerWatt = (data as any).rate_per_watt ? String((data as any).rate_per_watt) : null;
 
       // Insert quotation
       const [result] = await conn.execute(
-        `INSERT INTO quotations (quotation_number, project_id, quotation_date, valid_until, system_type, capacity_kw,
-         system_template_id, subtotal, discount_amount, discount_percentage, gst_amount, gst_percentage, total_amount,
+        `INSERT INTO quotations (quotation_number, project_id, customer_id, quotation_date, valid_until, system_type, capacity_kw,
+         system_template_id, subtotal, discount_amount, discount_percentage, gst_amount, gst_percentage, total_amount, rate_per_watt,
          payment_schedule, status, terms_conditions, remarks, created_by)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           quotationNumber,
           data.project_id,
+          customerId,
           data.quotation_date,
           data.valid_until || null,
           data.system_type || null,
@@ -235,12 +259,13 @@ export const quotationDb = {
           data.system_template_id || null,
           subtotal,
           discountAmount,
-          data.discount_percentage,
+          data.discount_percentage || 0,
           gstAmount,
-          data.gst_percentage,
+          data.gst_percentage || 8.9,
           totalAmount,
+          ratePerWatt,
           data.payment_schedule ? JSON.stringify(data.payment_schedule) : null,
-          data.status,
+          data.status || 'DRAFT',
           data.terms_conditions || null,
           data.remarks || null,
           userId,
@@ -251,21 +276,22 @@ export const quotationDb = {
       // Insert items
       for (const item of data.items) {
         await conn.execute(
-          `INSERT INTO quotation_items (quotation_id, product_id, description, quantity, unit, unit_price,
+          `INSERT INTO quotation_items (quotation_id, product_id, description, quantity, brand, unit, unit_price,
            discount_amount, tax_amount, line_total, sort_order, remarks)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             quotationId,
-            item.product_id || null,
-            item.description,
-            item.quantity,
+            (item as any).product_id || null,
+            item.description || '',
+            String(item.quantity ?? '0'),
+            (item as any).brand || null,
             item.unit || null,
             Number(item.unit_price || 0),
             Number(item.discount_amount || 0),
             Number(item.tax_amount || 0),
             Number(item.line_total || 0),
             item.sort_order || 0,
-            item.remarks || null,
+            (item as any).remarks || null,
           ]
         );
       }

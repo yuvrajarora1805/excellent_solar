@@ -111,6 +111,9 @@ export async function POST(req: NextRequest) {
       );
     } else {
       // Standard Job Upload (Site Survey / Installation)
+      const workerIdVal = formData.get('worker_id') || formData.get('user_id');
+      const uploaderId = workerIdVal ? parseInt(workerIdVal.toString(), 10) : 1;
+
       const projects = await query('SELECT status FROM projects WHERE id = ?', [jobId]) as any[];
       if (projects.length > 0) {
         const status = projects[0].status;
@@ -119,24 +122,24 @@ export async function POST(req: NextRequest) {
         if (isSurvey) {
           let surveys = await query('SELECT id FROM site_surveys WHERE project_id = ?', [jobId]) as any[];
           if (surveys.length === 0) {
-            await query('INSERT INTO site_surveys (project_id, created_by) VALUES (?, ?)', [jobId, 1]);
+            await query('INSERT INTO site_surveys (project_id, created_by) VALUES (?, ?)', [jobId, uploaderId]);
             surveys = await query('SELECT id FROM site_surveys WHERE project_id = ?', [jobId]) as any[];
           }
           
           await query(
-            'INSERT INTO site_survey_photos (site_survey_id, category, file_name, file_path, file_size, mime_type) VALUES (?, ?, ?, ?, ?, ?)',
-            [surveys[0].id, documentType || 'GENERAL', finalFileName, publicUrl, finalBuffer.length, mimeType]
+            'INSERT INTO site_survey_photos (site_survey_id, category, file_name, file_path, file_size, mime_type, uploaded_by) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [surveys[0].id, documentType || 'GENERAL', finalFileName, publicUrl, finalBuffer.length, mimeType, uploaderId]
           );
         } else {
           let installs = await query('SELECT id FROM installations WHERE project_id = ?', [jobId]) as any[];
           if (installs.length === 0) {
-            await query('INSERT INTO installations (project_id, created_by) VALUES (?, ?)', [jobId, 1]);
+            await query('INSERT INTO installations (project_id, created_by) VALUES (?, ?)', [jobId, uploaderId]);
             installs = await query('SELECT id FROM installations WHERE project_id = ?', [jobId]) as any[];
           }
           
           await query(
-            'INSERT INTO installation_photos (installation_id, category, file_name, file_path, file_size, mime_type) VALUES (?, ?, ?, ?, ?, ?)',
-            [installs[0].id, documentType || 'GENERAL', finalFileName, publicUrl, finalBuffer.length, mimeType]
+            'INSERT INTO installation_photos (installation_id, category, file_name, file_path, file_size, mime_type, uploaded_by) VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [installs[0].id, documentType || 'GENERAL', finalFileName, publicUrl, finalBuffer.length, mimeType, uploaderId]
           );
         }
       }

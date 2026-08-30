@@ -121,6 +121,42 @@ export const discomDb = {
       fields.push('np_number = ?');
       values.push(data.np_number || null);
     }
+    if (data.np_confirmed !== undefined) {
+      fields.push('np_confirmed = ?');
+      values.push(data.np_confirmed ? 1 : 0);
+    }
+    if (data.np_confirmed_by !== undefined) {
+      fields.push('np_confirmed_by = ?');
+      values.push(data.np_confirmed_by || null);
+    }
+    if (data.np_confirmed_at !== undefined) {
+      fields.push('np_confirmed_at = ?');
+      values.push(data.np_confirmed_at || null);
+    }
+    if (data.meter_status !== undefined) {
+      fields.push('meter_status = ?');
+      values.push(data.meter_status || 'PENDING');
+    }
+    if (data.meter_effect !== undefined) {
+      fields.push('meter_effect = ?');
+      values.push(data.meter_effect || 'NO');
+    }
+    if (data.meter_verified_by !== undefined) {
+      fields.push('meter_verified_by = ?');
+      values.push(data.meter_verified_by || null);
+    }
+    if (data.meter_verified_at !== undefined) {
+      fields.push('meter_verified_at = ?');
+      values.push(data.meter_verified_at || null);
+    }
+    if (data.office_approval_status !== undefined) {
+      fields.push('office_approval_status = ?');
+      values.push(data.office_approval_status || 'PENDING');
+    }
+    if (data.office_approval_remarks !== undefined) {
+      fields.push('office_approval_remarks = ?');
+      values.push(data.office_approval_remarks || null);
+    }
     if (data.application_date !== undefined) {
       fields.push('application_date = ?');
       values.push(data.application_date || null);
@@ -141,14 +177,6 @@ export const discomDb = {
       fields.push('je_approval_status = ?');
       values.push(data.je_approval_status);
     }
-    if (data.je_name !== undefined) {
-      fields.push('je_name = ?');
-      values.push(data.je_name);
-    }
-    if (data.je_phone !== undefined) {
-      fields.push('je_phone = ?');
-      values.push(data.je_phone);
-    }
     if (data.sdo_xen_approval_status !== undefined) {
       fields.push('sdo_xen_approval_status = ?');
       values.push(data.sdo_xen_approval_status);
@@ -156,10 +184,6 @@ export const discomDb = {
     if (data.second_approval_status !== undefined) {
       fields.push('second_approval_status = ?');
       values.push(data.second_approval_status);
-    }
-    if (data.np_number !== undefined) {
-      fields.push('np_number = ?');
-      values.push(data.np_number);
     }
     if (data.file_apply_upload_path !== undefined) {
       fields.push('file_apply_upload_path = ?');

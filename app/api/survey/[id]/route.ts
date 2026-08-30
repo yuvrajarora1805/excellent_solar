@@ -10,12 +10,40 @@ export async function GET(
   try {
     const { id: idStr } = await params;
     const id = parseInt(idStr);
-    const survey = await siteSurveyDb.findById(id);
+    
+    // First try by survey ID, then by project ID
+    let survey = await siteSurveyDb.findById(id);
     if (!survey) {
+      survey = await siteSurveyDb.findByProjectId(id);
+    }
+
+    if (!survey) {
+      // If survey row does not exist yet, check if project has photos or booking site photo
+      const projects = await query<any>('SELECT * FROM projects WHERE id = ?', [id]);
+      if (projects.length > 0) {
+        const p = projects[0];
+        const photos = await query<any>(
+          `SELECT ssp.*, COALESCE(u.name, 'Field Worker') as uploader_name, COALESCE(u.role, 'MARKETING') as uploader_role
+           FROM site_survey_photos ssp
+           LEFT JOIN users u ON ssp.uploaded_by = u.id
+           WHERE ssp.site_survey_id IN (SELECT id FROM site_surveys WHERE project_id = ?)`,
+          [id]
+        );
+        return NextResponse.json({
+          id: 0,
+          project_id: id,
+          status: p.status,
+          roof_type: 'N/A',
+          roof_condition: 'Good',
+          available_area: null,
+          photos: photos || [],
+        });
+      }
       return NextResponse.json({ error: 'Survey not found' }, { status: 404 });
     }
     return NextResponse.json(survey);
   } catch (error) {
+    console.error('Error fetching survey:', error);
     return NextResponse.json({ error: 'Failed to fetch survey' }, { status: 500 });
   }
 }

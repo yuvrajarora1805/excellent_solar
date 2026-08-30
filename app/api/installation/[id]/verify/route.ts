@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { installationDb } from '@/lib/db-helpers/installation';
 import { reservationDb } from '@/lib/db-helpers/reservations';
 import { projectDb } from '@/lib/db-helpers/projects';
+import { query } from '@/lib/db';
 
 export async function GET(
   request: NextRequest,
@@ -10,8 +11,30 @@ export async function GET(
   try {
     const { id: idStr } = await params;
     const id = parseInt(idStr);
-    const installation = await installationDb.findById(id);
+
+    let installation = await installationDb.findById(id);
     if (!installation) {
+      installation = await installationDb.findByProjectId(id);
+    }
+
+    if (!installation) {
+      const projects = await query<any>('SELECT * FROM projects WHERE id = ?', [id]);
+      if (projects.length > 0) {
+        const photos = await query<any>(
+          `SELECT ip.*, COALESCE(u.name, 'Installer') as uploader_name, COALESCE(u.role, 'INSTALLATION') as uploader_role
+           FROM installation_photos ip
+           LEFT JOIN users u ON ip.uploaded_by = u.id
+           WHERE ip.installation_id IN (SELECT id FROM installations WHERE project_id = ?)`,
+          [id]
+        );
+        return NextResponse.json({
+          id: 0,
+          project_id: id,
+          installed_capacity: null,
+          photos: photos || [],
+          reservations: [],
+        });
+      }
       return NextResponse.json({ error: 'Installation not found' }, { status: 404 });
     }
 
@@ -24,6 +47,7 @@ export async function GET(
 
     return NextResponse.json({ ...installation, reservations });
   } catch (error) {
+    console.error('Error fetching installation:', error);
     return NextResponse.json({ error: 'Failed to fetch installation' }, { status: 500 });
   }
 }

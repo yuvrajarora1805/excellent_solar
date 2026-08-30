@@ -180,6 +180,7 @@ export default function EditUserPage() {
                     <option value="MARKETING">Marketing / Sales</option>
                     <option value="INSTALLATION">Installation</option>
                     <option value="DISCOM">DISCOM</option>
+                    <option value="SURVEY_VIEWER">Site Survey & Installation Viewer</option>
 
                   </select>
                 </div>

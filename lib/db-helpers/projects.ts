@@ -6,9 +6,10 @@ export const projectDb = {
   // Find project by ID
   findById: async (id: number): Promise<Project | null> => {
     return queryOne<Project>(
-      `SELECT p.*, c.name as customer_name, c.mobile as customer_mobile
+      `SELECT p.*, c.name as customer_name, c.mobile as customer_mobile, u.name as created_by_name
        FROM projects p
        JOIN customers c ON p.customer_id = c.id
+       LEFT JOIN users u ON p.created_by = u.id
        WHERE p.id = ?`,
       [id]
     );
@@ -17,9 +18,10 @@ export const projectDb = {
   // Find project by project_id
   findByProjectId: async (projectId: string): Promise<Project | null> => {
     return queryOne<Project>(
-      `SELECT p.*, c.name as customer_name, c.mobile as customer_mobile
+      `SELECT p.*, c.name as customer_name, c.mobile as customer_mobile, u.name as created_by_name
        FROM projects p
        JOIN customers c ON p.customer_id = c.id
+       LEFT JOIN users u ON p.created_by = u.id
        WHERE p.project_id = ?`,
       [projectId]
     );
@@ -34,9 +36,10 @@ export const projectDb = {
     createdBy?: number;
     search?: string;
   }): Promise<Project[]> => {
-    let sql = `SELECT p.*, c.name as customer_name, c.mobile as customer_mobile
+    let sql = `SELECT p.*, c.name as customer_name, c.mobile as customer_mobile, c.city as customer_city, c.address as customer_address, c.district as customer_district, c.state as customer_state, u.name as created_by_name
                FROM projects p
-               JOIN customers c ON p.customer_id = c.id`;
+               JOIN customers c ON p.customer_id = c.id
+               LEFT JOIN users u ON p.created_by = u.id`;
     const params: any[] = [];
     const conditions: string[] = [];
 
