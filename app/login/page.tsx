@@ -6,8 +6,8 @@ import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('admin@excellentsolar.com');
-  const [password, setPassword] = useState('admin123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -72,7 +72,7 @@ export default function LoginPage() {
               id="email"
               name="email"
               type="email"
-              placeholder="admin@excellentsolar.com"
+              placeholder="user@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="input-base"
