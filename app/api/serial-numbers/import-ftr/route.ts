@@ -1,10 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { serialNumberDb } from '@/lib/db-helpers/serial-numbers';
-import { queryOne } from '@/lib/db';
+import { queryOne, execute } from '@/lib/db';
+
+// Auto-add invoice_no column if it doesn't exist (runs once on first call)
+let columnChecked = false;
+async function ensureInvoiceNoColumn() {
+  if (columnChecked) return;
+  try {
+    await execute(
+      `ALTER TABLE product_serial_numbers ADD COLUMN IF NOT EXISTS invoice_no VARCHAR(100) DEFAULT NULL`
+    );
+    columnChecked = true;
+  } catch (e) {
+    // Column may already exist, ignore
+    columnChecked = true;
+  }
+}
 
 
 export async function POST(req: NextRequest) {
   try {
+    // Ensure invoice_no column exists (auto-migration)
+    await ensureInvoiceNoColumn();
+
     const body = await req.json();
     const { product_id, invoice_no, warehouse_id, modules, user_id } = body;
     let targetProductId = product_id ? Number(product_id) : 0;
