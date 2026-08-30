@@ -263,8 +263,8 @@ class _QuotationScreenState extends State<QuotationScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              backgroundColor: const Color(0xFF1E293B),
-              title: Text('Add Material', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold)),
+              backgroundColor: const Color(0xFFFFFFFF),
+              title: Text('Add Material', style: GoogleFonts.inter(color: Color(0xDD000000), fontWeight: FontWeight.bold)),
               content: SizedBox(
                 width: MediaQuery.of(context).size.width * 0.9,
                 child: SingleChildScrollView(
@@ -302,7 +302,7 @@ class _QuotationScreenState extends State<QuotationScreen> {
                           return Align(
                             alignment: Alignment.topLeft,
                             child: Material(
-                              color: const Color(0xFF0F172A),
+                              color: const Color(0xFFF8F9FA),
                               elevation: 4,
                               borderRadius: BorderRadius.circular(8),
                               child: ConstrainedBox(
@@ -314,8 +314,8 @@ class _QuotationScreenState extends State<QuotationScreen> {
                                   itemBuilder: (context, index) {
                                     final p = options.elementAt(index);
                                     return ListTile(
-                                      title: Text(p.name, style: GoogleFonts.inter(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
-                                      subtitle: Text('${p.productCode} • ${p.brand}', style: GoogleFonts.inter(color: const Color(0xFF94A3B8), fontSize: 11)),
+                                      title: Text(p.name, style: GoogleFonts.inter(color: Color(0xDD000000), fontSize: 13, fontWeight: FontWeight.bold)),
+                                      subtitle: Text('${p.productCode} • ${p.brand}', style: GoogleFonts.inter(color: const Color(0xFF757575), fontSize: 11)),
                                       onTap: () => onSelected(p),
                                     );
                                   },
@@ -358,10 +358,10 @@ class _QuotationScreenState extends State<QuotationScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: Text('Cancel', style: GoogleFonts.inter(color: const Color(0xFF94A3B8))),
+                  child: Text('Cancel', style: GoogleFonts.inter(color: const Color(0xFF757575))),
                 ),
                 ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF38BDF8), foregroundColor: const Color(0xFF0F172A)),
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF7C5800), foregroundColor: const Color(0xFFF8F9FA)),
                   onPressed: () {
                     final desc = searchController?.text ?? '';
                     if (desc.isEmpty) return;
@@ -455,17 +455,17 @@ class _QuotationScreenState extends State<QuotationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: const Color(0xFFF8F9FA),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1E293B),
-        foregroundColor: Colors.white,
+        backgroundColor: const Color(0xFFFFFFFF),
+        foregroundColor: Color(0xDD000000),
         title: Text(
           'Generate Solar Quotation',
           style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 18),
         ),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
-          child: Container(color: const Color(0xFF334155), height: 1),
+          child: Container(color: const Color(0xFFE0E0E0), height: 1),
         ),
       ),
       body: SingleChildScrollView(
@@ -479,7 +479,7 @@ class _QuotationScreenState extends State<QuotationScreen> {
               icon: Icons.person_outline,
               children: [
                 _loadingProjects 
-                  ? const Padding(padding: EdgeInsets.all(8.0), child: Text('Loading projects...', style: TextStyle(color: Colors.white70)))
+                  ? const Padding(padding: EdgeInsets.all(8.0), child: Text('Loading projects...', style: TextStyle(color: Color(0x8A000000))))
                   : Autocomplete<Project>(
                       displayStringForOption: (Project option) => '${option.idStr} - ${option.customerName}',
                       optionsBuilder: (TextEditingValue textEditingValue) {
@@ -513,7 +513,7 @@ class _QuotationScreenState extends State<QuotationScreen> {
                         return Align(
                           alignment: Alignment.topLeft,
                           child: Material(
-                            color: const Color(0xFF1E293B),
+                            color: const Color(0xFFFFFFFF),
                             elevation: 4,
                             borderRadius: BorderRadius.circular(8),
                             child: ConstrainedBox(
@@ -525,8 +525,8 @@ class _QuotationScreenState extends State<QuotationScreen> {
                                 itemBuilder: (BuildContext context, int index) {
                                   final Project option = options.elementAt(index);
                                   return ListTile(
-                                    title: Text(option.customerName, style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold)),
-                                    subtitle: Text(option.idStr, style: GoogleFonts.inter(color: const Color(0xFF94A3B8))),
+                                    title: Text(option.customerName, style: GoogleFonts.inter(color: Color(0xDD000000), fontWeight: FontWeight.bold)),
+                                    subtitle: Text(option.idStr, style: GoogleFonts.inter(color: const Color(0xFF757575))),
                                     onTap: () => onSelected(option),
                                   );
                                 },
@@ -591,15 +591,15 @@ class _QuotationScreenState extends State<QuotationScreen> {
                       _loadingInventory
                           ? 'Loading inventory...'
                           : '${_inventoryProducts.length} stock products available',
-                      style: GoogleFonts.inter(color: const Color(0xFF94A3B8), fontSize: 12),
+                      style: GoogleFonts.inter(color: const Color(0xFF757575), fontSize: 12),
                     ),
                     ElevatedButton.icon(
                       onPressed: _showAddItemDialog,
                       icon: const Icon(Icons.add, size: 16),
                       label: Text('Add Item', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold)),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF334155),
-                        foregroundColor: Colors.white,
+                        backgroundColor: const Color(0xFFE0E0E0),
+                        foregroundColor: Color(0xDD000000),
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       ),
                     ),
@@ -611,7 +611,7 @@ class _QuotationScreenState extends State<QuotationScreen> {
                   Center(
                     child: Padding(
                       padding: const EdgeInsets.all(16.0),
-                      child: Text('No materials added yet.', style: GoogleFonts.inter(color: const Color(0xFF64748B))),
+                      child: Text('No materials added yet.', style: GoogleFonts.inter(color: const Color(0xFF757575))),
                     ),
                   )
                 else
@@ -624,9 +624,9 @@ class _QuotationScreenState extends State<QuotationScreen> {
                       final item = _items[index];
                       return Container(
                         decoration: BoxDecoration(
-                          color: const Color(0xFF0F172A),
+                          color: const Color(0xFFF8F9FA),
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: const Color(0xFF334155)),
+                          border: Border.all(color: const Color(0xFFE0E0E0)),
                         ),
                         padding: const EdgeInsets.all(12),
                         child: Row(
@@ -634,8 +634,8 @@ class _QuotationScreenState extends State<QuotationScreen> {
                           children: [
                             CircleAvatar(
                               radius: 12,
-                              backgroundColor: const Color(0xFF334155),
-                              child: Text('${index + 1}', style: GoogleFonts.inter(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                              backgroundColor: const Color(0xFFE0E0E0),
+                              child: Text('${index + 1}', style: GoogleFonts.inter(color: Color(0xDD000000), fontSize: 10, fontWeight: FontWeight.bold)),
                             ),
                             const SizedBox(width: 12),
                             Expanded(
@@ -644,12 +644,12 @@ class _QuotationScreenState extends State<QuotationScreen> {
                                 children: [
                                   Text(
                                     item.description,
-                                    style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                                    style: GoogleFonts.inter(color: Color(0xDD000000), fontWeight: FontWeight.bold, fontSize: 13),
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
                                     'Qty: ${item.quantity} | Brand: ${item.brand.isEmpty ? "-" : item.brand} | Spec: ${item.unit.isEmpty ? "-" : item.unit}',
-                                    style: GoogleFonts.inter(color: const Color(0xFF94A3B8), fontSize: 12),
+                                    style: GoogleFonts.inter(color: const Color(0xFF757575), fontSize: 12),
                                   ),
                                 ],
                               ),
@@ -704,15 +704,15 @@ class _QuotationScreenState extends State<QuotationScreen> {
                 Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF0F172A),
+                    color: const Color(0xFFF8F9FA),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFF334155)),
+                    border: Border.all(color: const Color(0xFFE0E0E0)),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text('TOTAL PROJECT COST', style: GoogleFonts.inter(
-                        color: const Color(0xFF94A3B8),
+                        color: const Color(0xFF757575),
                         fontWeight: FontWeight.bold,
                         fontSize: 13,
                       )),
@@ -736,7 +736,7 @@ class _QuotationScreenState extends State<QuotationScreen> {
             ElevatedButton.icon(
               onPressed: _isGenerating ? null : _generatePdf,
               icon: _isGenerating
-                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Color(0xDD000000), strokeWidth: 2))
                   : const Icon(Icons.picture_as_pdf, size: 22),
               label: Text(
                 _isGenerating ? 'Generating PDF...' : 'GENERATE & EXPORT PDF QUOTATION',
@@ -745,8 +745,8 @@ class _QuotationScreenState extends State<QuotationScreen> {
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 backgroundColor: const Color(0xFF6B9E38),
-                foregroundColor: Colors.white,
-                disabledBackgroundColor: const Color(0xFF334155),
+                foregroundColor: Color(0xDD000000),
+                disabledBackgroundColor: const Color(0xFFE0E0E0),
                 elevation: 4,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
@@ -767,28 +767,28 @@ class _QuotationScreenState extends State<QuotationScreen> {
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
+        color: const Color(0xFFFFFFFF),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFF334155)),
+        border: Border.all(color: const Color(0xFFE0E0E0)),
       ),
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(children: [
-            Icon(icon, color: titleColor ?? const Color(0xFF38BDF8), size: 18),
+            Icon(icon, color: titleColor ?? const Color(0xFF7C5800), size: 18),
             const SizedBox(width: 8),
             Text(
               title,
               style: GoogleFonts.inter(
-                color: titleColor ?? Colors.white,
+                color: titleColor ?? Color(0xDD000000),
                 fontWeight: FontWeight.bold,
                 fontSize: 14,
               ),
             ),
           ]),
           const SizedBox(height: 14),
-          Divider(color: const Color(0xFF334155), height: 1),
+          Divider(color: const Color(0xFFE0E0E0), height: 1),
           const SizedBox(height: 14),
           ...children,
         ],
@@ -799,8 +799,8 @@ class _QuotationScreenState extends State<QuotationScreen> {
   Widget _infoRow(String label, String value) {
     return Row(
       children: [
-        Text('$label: ', style: GoogleFonts.inter(color: const Color(0xFF94A3B8), fontSize: 13)),
-        Text(value, style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13)),
+        Text('$label: ', style: GoogleFonts.inter(color: const Color(0xFF757575), fontSize: 13)),
+        Text(value, style: GoogleFonts.inter(color: Color(0xDD000000), fontWeight: FontWeight.bold, fontSize: 13)),
       ],
     );
   }
@@ -816,30 +816,30 @@ class _QuotationScreenState extends State<QuotationScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: GoogleFonts.inter(color: const Color(0xFF94A3B8), fontSize: 12, fontWeight: FontWeight.w600)),
+        Text(label, style: GoogleFonts.inter(color: const Color(0xFF757575), fontSize: 12, fontWeight: FontWeight.w600)),
         const SizedBox(height: 4),
         TextField(
           controller: controller,
           focusNode: focusNode,
           keyboardType: keyboardType,
           onChanged: onChanged,
-          style: GoogleFonts.inter(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
+          style: GoogleFonts.inter(color: Color(0xDD000000), fontSize: 14, fontWeight: FontWeight.w600),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: GoogleFonts.inter(color: const Color(0xFF475569), fontSize: 13),
+            hintStyle: GoogleFonts.inter(color: const Color(0xFF9E9E9E), fontSize: 13),
             filled: true,
-            fillColor: const Color(0xFF0F172A),
+            fillColor: const Color(0xFFF8F9FA),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Color(0xFF334155)),
+              borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Color(0xFF334155)),
+              borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Color(0xFF38BDF8), width: 1.5),
+              borderSide: const BorderSide(color: Color(0xFF7C5800), width: 1.5),
             ),
             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             isDense: true,
@@ -858,13 +858,13 @@ class _QuotationScreenState extends State<QuotationScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: GoogleFonts.inter(color: const Color(0xFF94A3B8), fontSize: 12, fontWeight: FontWeight.w600)),
+        Text(label, style: GoogleFonts.inter(color: const Color(0xFF757575), fontSize: 12, fontWeight: FontWeight.w600)),
         const SizedBox(height: 4),
         Container(
           decoration: BoxDecoration(
-            color: const Color(0xFF0F172A),
+            color: const Color(0xFFF8F9FA),
             borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: const Color(0xFF334155)),
+            border: Border.all(color: const Color(0xFFE0E0E0)),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: DropdownButtonHideUnderline(
@@ -873,13 +873,13 @@ class _QuotationScreenState extends State<QuotationScreen> {
               items: items.map((item) => DropdownMenuItem<T>(
                 value: item.value,
                 child: DefaultTextStyle(
-                  style: GoogleFonts.inter(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+                  style: GoogleFonts.inter(color: Color(0xDD000000), fontSize: 13, fontWeight: FontWeight.w600),
                   child: item.child!,
                 ),
               )).toList(),
               onChanged: onChanged,
-              dropdownColor: const Color(0xFF1E293B),
-              style: GoogleFonts.inter(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+              dropdownColor: const Color(0xFFFFFFFF),
+              style: GoogleFonts.inter(color: Color(0xDD000000), fontSize: 13, fontWeight: FontWeight.w600),
               isDense: true,
               isExpanded: true,
             ),
