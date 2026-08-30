@@ -106,12 +106,6 @@ export default function LoginPage() {
             {isLoading ? 'Signing in...' : 'Sign In'}
           </button>
 
-          <div className="text-center text-label-sm text-on-surface-variant">
-            Default credentials:{' '}
-            <span className="font-technical-mono text-primary-container">
-              admin@excellentsolar.com / admin123
-            </span>
-          </div>
         </form>
       </div>
     </div>
