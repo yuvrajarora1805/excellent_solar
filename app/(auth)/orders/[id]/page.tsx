@@ -136,7 +136,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
       </div>
 
       {/* Printable Delivery Challan & Order Document */}
-      <div className="bg-white text-black p-6 border rounded-lg shadow-sm print:shadow-none print:border-none print:p-0">
+      <div className="bg-white text-black p-6 border rounded-lg shadow-sm print:shadow-none print:border-none print:p-0 print-only">
         {/* Header */}
         <div className="border-b-2 border-black pb-4 mb-4 flex justify-between items-start">
           <div>
