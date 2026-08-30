@@ -320,13 +320,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
         </div>
 
         {/* Signatures */}
-        <div className="grid grid-cols-3 gap-8 pt-8 mt-8 border-t border-black text-xs font-bold text-center">
-          <div>
-            <p className="mb-8">Customer / Receiver Signature</p>
-            <div className="border-t border-dashed border-slate-400 pt-1">
-              {order.customer_name || 'Customer Signature'}
-            </div>
-          </div>
+        <div className="grid grid-cols-2 gap-8 pt-8 mt-8 border-t border-black text-xs font-bold text-center">
           <div>
             <p className="mb-8">Store Incharge Signature</p>
             <div className="border-t border-dashed border-slate-400 pt-1">
