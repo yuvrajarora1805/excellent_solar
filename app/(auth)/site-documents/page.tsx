@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -62,6 +63,9 @@ const formatUploaderName = (name?: string, roleFallback: string = 'Field Staff')
 };
 
 export default function SiteDocumentsPage() {
+  const { data: session } = useSession();
+  const isAdmin = session?.user?.role === 'ADMIN';
+
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<number | null>(null);
   const [search, setSearch] = useState('');
@@ -337,9 +341,11 @@ export default function SiteDocumentsPage() {
                             <span className="font-bold text-slate-800 dark:text-slate-200 truncate" title={formatCategoryName(photo.category)}>
                               {formatCategoryName(photo.category)}
                             </span>
-                            <span className="text-[10px] text-amber-700 dark:text-amber-400 font-medium truncate flex items-center gap-1">
-                              👤 {formatUploaderName(photo.uploader_name, 'Field Surveyor')}
-                            </span>
+                            {isAdmin && (
+                              <span className="text-[10px] text-amber-700 dark:text-amber-400 font-medium truncate flex items-center gap-1">
+                                👤 {formatUploaderName(photo.uploader_name, 'Field Surveyor')}
+                              </span>
+                            )}
                           </div>
                         </div>
                       ))}
@@ -428,9 +434,11 @@ export default function SiteDocumentsPage() {
                             <span className="font-bold text-slate-800 dark:text-slate-200 truncate" title={formatCategoryName(photo.category)}>
                               {formatCategoryName(photo.category)}
                             </span>
-                            <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-medium truncate flex items-center gap-1">
-                              👤 {formatUploaderName(photo.uploader_name, 'Field Installer')}
-                            </span>
+                            {isAdmin && (
+                              <span className="text-[10px] text-emerald-700 dark:text-emerald-400 font-medium truncate flex items-center gap-1">
+                                👤 {formatUploaderName(photo.uploader_name, 'Field Installer')}
+                              </span>
+                            )}
                           </div>
                         </div>
                       ))}

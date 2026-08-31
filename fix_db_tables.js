@@ -3,7 +3,7 @@ const mysql = require('mysql2/promise');
 async function run() {
   try {
     const conn = await mysql.createConnection({
-      host: 'localhost', user: 'solar_user', password: 'solar123', database: 'excellent_solar'
+      host: 'localhost', port: 3309, user: 'solar_user', password: 'solar123', database: 'excellent_solar'
     });
 
     console.log("Creating project_reservations...");
@@ -19,6 +19,23 @@ async function run() {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         UNIQUE KEY(project_id, product_id)
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+    `);
+
+    console.log("Creating product_serial_numbers...");
+    await conn.query(`
+      CREATE TABLE IF NOT EXISTS product_serial_numbers (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        serial_number VARCHAR(100) NOT NULL UNIQUE,
+        product_id INT NOT NULL,
+        warehouse_id INT,
+        status VARCHAR(50) DEFAULT 'AVAILABLE',
+        order_id INT NULL,
+        project_id INT NULL,
+        notes TEXT,
+        created_by INT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
 
@@ -73,7 +90,9 @@ async function run() {
         ADD COLUMN meter_verified_by INT NULL,
         ADD COLUMN meter_verified_at TIMESTAMP NULL,
         ADD COLUMN office_approval_status VARCHAR(50) DEFAULT 'PENDING',
-        ADD COLUMN office_approval_remarks TEXT NULL
+        ADD COLUMN office_approval_remarks TEXT NULL,
+        ADD COLUMN second_approval_status VARCHAR(50) DEFAULT 'PENDING',
+        ADD COLUMN second_approval_remarks TEXT NULL
       `);
     } catch(e) { if(e.code !== 'ER_DUP_FIELDNAME') console.error("Error altering discom_applications:", e.message); }
 

@@ -32,7 +32,11 @@ export async function GET(request: NextRequest) {
 // POST /api/customers - Create customer
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    const formData = await request.formData();
+    const body: Record<string, any> = {};
+    formData.forEach((value, key) => {
+      body[key] = value;
+    });
 
     // Validate required fields
     const required = ['name', 'mobile', 'address', 'city', 'district', 'state'];

@@ -47,6 +47,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
 
+# Ensure the uploads folder has full permissions even after copy
+RUN chmod -R 777 ./public/uploads
+
 
 
 USER nextjs
