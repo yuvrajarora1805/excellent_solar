@@ -52,7 +52,7 @@ RUN chmod -R 777 ./public/uploads
 
 
 
-USER nextjs
+# USER nextjs
 
 EXPOSE 3000
 
