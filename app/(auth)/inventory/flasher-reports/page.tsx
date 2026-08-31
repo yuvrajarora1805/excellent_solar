@@ -363,6 +363,7 @@ export default function FlasherReportsPage() {
                 <th className="p-3 w-16 text-center">Sr. No.</th>
                 <th className="p-3">Box No.</th>
                 <th className="p-3">Invoice No.</th>
+                <th className="p-3">Date</th>
                 <th className="p-3 text-amber-300">Module Sr. No. (Unique Key)</th>
                 <th className="p-3 text-right">Pmax (W)</th>
                 <th className="p-3 text-right">Voc (V)</th>
@@ -379,6 +380,7 @@ export default function FlasherReportsPage() {
                   <td className="p-3 text-center text-slate-500 font-mono">{p.sr_no}</td>
                   <td className="p-3 font-mono">{p.box_no}</td>
                   <td className="p-3 font-mono text-slate-600 dark:text-slate-400">{p.invoice_no || '—'}</td>
+                  <td className="p-3 font-mono text-slate-600 dark:text-slate-400">{p.date || '—'}</td>
                   <td className="p-3 font-mono font-bold text-blue-700 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-950/20">
                     {p.module_sr_no}
                   </td>
