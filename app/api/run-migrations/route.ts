@@ -265,6 +265,21 @@ export async function GET() {
       ADD COLUMN installation_date DATE NULL
     `);
 
+    await safeAlter('discom_applications', `
+      ALTER TABLE discom_applications 
+      ADD COLUMN np_confirmed TINYINT(1) DEFAULT 0,
+      ADD COLUMN np_confirmed_by INT NULL,
+      ADD COLUMN np_confirmed_at TIMESTAMP NULL,
+      ADD COLUMN meter_status VARCHAR(50) DEFAULT 'PENDING',
+      ADD COLUMN meter_effect VARCHAR(50) DEFAULT 'NO',
+      ADD COLUMN meter_verified_by INT NULL,
+      ADD COLUMN meter_verified_at TIMESTAMP NULL,
+      ADD COLUMN office_approval_status VARCHAR(50) DEFAULT 'PENDING',
+      ADD COLUMN office_approval_remarks TEXT NULL,
+      ADD COLUMN second_approval_status VARCHAR(50) DEFAULT 'PENDING',
+      ADD COLUMN second_approval_remarks TEXT NULL
+    `);
+
     await safeAlter('products', `
       ALTER TABLE products 
       ADD COLUMN reserved_stock INT DEFAULT 0,
