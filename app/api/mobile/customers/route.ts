@@ -8,7 +8,7 @@ export async function GET(request: Request) {
 
     // Fetch all customers, along with their linked project IDs if they exist
     const customersQuery = await query(`
-      SELECT c.id, c.name, c.mobile, c.email, c.address, c.city, c.district, c.state, c.status, p.project_id
+      SELECT c.id, c.name, c.mobile, c.email, c.address, c.city, c.district, c.state, p.project_id, p.status
       FROM customers c
       LEFT JOIN projects p ON c.id = p.customer_id
       ORDER BY c.created_at DESC
