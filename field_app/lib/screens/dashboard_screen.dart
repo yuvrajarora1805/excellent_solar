@@ -12,6 +12,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../main.dart' show baseUrl;
 import 'quotation_screen.dart';
 import 'payment_screen.dart';
+import 'customers_screen.dart';
 
 
 class FieldDashboardScreen extends StatefulWidget {
@@ -443,6 +444,28 @@ class _FieldDashboardScreenState extends State<FieldDashboardScreen> {
                 ],
 
                 const SizedBox(height: 20),
+                Card(
+                  elevation: 0,
+                  color: Colors.blue.shade50,
+                  shape: RoundedRectangleBorder(
+                    side: BorderSide(color: Colors.blue.shade200),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    leading: const Icon(Icons.people_alt, color: Colors.blue, size: 36),
+                    title: const Text('Customer Directory', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    subtitle: const Text('View customer details and contact them'),
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const CustomersScreen()),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 12),
                 Card(
                   elevation: 0,
                   color: Colors.amber.shade50,
