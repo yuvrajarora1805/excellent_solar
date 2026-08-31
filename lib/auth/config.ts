@@ -58,11 +58,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             isPasswordValid = await compare(password.toLowerCase(), user.password);
           }
           
-          // Fallback: If someone manually set a plain text password in the database
-          if (!isPasswordValid && password === user.password) {
-            isPasswordValid = true;
-          }
-          
           console.log("Password valid:", isPasswordValid);
 
           if (!isPasswordValid) {
