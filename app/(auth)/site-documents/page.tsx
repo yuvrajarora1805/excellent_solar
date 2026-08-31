@@ -82,6 +82,11 @@ export default function SiteDocumentsPage() {
   const [previewImage, setPreviewImage] = useState<{ url: string; title: string } | null>(null);
   const [activeTab, setActiveTab] = useState<'survey' | 'installation'>('survey');
 
+  // DISCOM Integration State
+  const [npNumber, setNpNumber] = useState('');
+  const [applicationDate, setApplicationDate] = useState('');
+  const [submittingDiscom, setSubmittingDiscom] = useState(false);
+
   useEffect(() => {
     fetchProjects();
   }, []);
@@ -89,6 +94,8 @@ export default function SiteDocumentsPage() {
   useEffect(() => {
     if (selectedProjectId) {
       fetchProjectDocuments(selectedProjectId);
+      setNpNumber('');
+      setApplicationDate('');
     }
   }, [selectedProjectId]);
 
@@ -141,33 +148,63 @@ export default function SiteDocumentsPage() {
 
   const handleDownloadZip = async (type: 'survey' | 'installation') => {
     if (!selectedProjectId) return;
-    setDownloadingZip(type);
     try {
-      const response = await fetch(`/api/projects/${selectedProjectId}/download-zip?type=${type}`);
-      if (!response.ok) {
-        const err = await response.json();
-        alert(err.error || 'Failed to download ZIP');
-        return;
-      }
-      const blob = await response.blob();
+      setDownloadingZip(type);
+      const res = await fetch(`/api/site-documents/download-zip?projectId=${selectedProjectId}&type=${type}`);
+      if (!res.ok) throw new Error('Failed to download ZIP');
+      
+      const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      
-      const currentProject = projects.find(p => p.id === selectedProjectId);
-      const code = currentProject?.project_id || `Project_${selectedProjectId}`;
-      a.download = `${code}_${type}_photos.zip`;
+      a.download = `project-${selectedProjectId}-${type}-documents.zip`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
-      a.remove();
-    } catch (err) {
-      console.error('Error downloading zip:', err);
-      alert('Error downloading ZIP archive');
+    } catch (error) {
+      console.error('Download error:', error);
+      alert('Failed to download ZIP. Make sure files exist.');
     } finally {
       setDownloadingZip(null);
     }
   };
+
+  const handleDiscomSubmit = async () => {
+    if (!selectedProjectId) return;
+    if (!npNumber.trim()) {
+      alert("Please enter the NP Number / File Number.");
+      return;
+    }
+    
+    setSubmittingDiscom(true);
+    try {
+      const res = await fetch('/api/discom/applications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          project_id: selectedProjectId,
+          np_number: npNumber,
+          application_date: applicationDate || undefined
+        }),
+      });
+      
+      if (res.ok) {
+        alert("Project successfully submitted to DISCOM Application tracker!");
+        setNpNumber('');
+        setApplicationDate('');
+      } else {
+        const data = await res.json();
+        alert(data.error || "Failed to submit to DISCOM");
+      }
+    } catch (error) {
+      console.error(error);
+      alert("An error occurred while submitting.");
+    } finally {
+      setSubmittingDiscom(false);
+    }
+  };
+
+  const selectedProject = projects.find(p => p.id === selectedProjectId);
 
   const filteredProjects = projects.filter(p =>
     (p.project_id && p.project_id.toLowerCase().includes(search.toLowerCase())) ||
@@ -241,6 +278,36 @@ export default function SiteDocumentsPage() {
                 </span>
               )}
             </div>
+          </div>
+
+          {/* Direct DISCOM Submit Block */}
+          <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-5 border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col sm:flex-row items-end gap-4">
+            <div className="flex-1 w-full space-y-1">
+              <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">File Number (NP Number) <span className="text-red-500">*</span></label>
+              <Input 
+                placeholder="Enter NP Number..." 
+                value={npNumber} 
+                onChange={(e) => setNpNumber(e.target.value)} 
+                className="bg-white dark:bg-slate-900"
+              />
+            </div>
+            <div className="flex-1 w-full space-y-1">
+              <label className="text-sm font-semibold text-slate-700 dark:text-slate-300">Application Date</label>
+              <Input 
+                type="date"
+                value={applicationDate} 
+                onChange={(e) => setApplicationDate(e.target.value)} 
+                className="bg-white dark:bg-slate-900"
+              />
+            </div>
+            <Button 
+              onClick={handleDiscomSubmit} 
+              disabled={submittingDiscom || !npNumber.trim()} 
+              className="bg-blue-600 hover:bg-blue-700 text-white w-full sm:w-auto h-10 font-bold"
+            >
+              <ShieldCheck className="w-4 h-4 mr-2" />
+              {submittingDiscom ? 'Submitting...' : 'Mark as Done & Send to DISCOM'}
+            </Button>
           </div>
 
           {/* Separate Tab Switcher Header */}
