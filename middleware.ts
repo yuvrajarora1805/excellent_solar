@@ -47,6 +47,7 @@ const surveyViewerRoutes: string[] = [
   '/survey',
   '/installation',
   '/documents',
+  '/discom',
 ];
 
 export default auth((req) => {
@@ -66,25 +67,55 @@ export default auth((req) => {
 
   // Handle all API routes (/api/...)
   if (pathname.startsWith('/api/')) {
-    // 1. Allow authenticated Web Session (NextAuth)
-    if (isLoggedIn) {
-      return NextResponse.next();
-    }
-
-    // 2. Allow requests with valid Mobile Bearer JWT token
-    const authHeader = req.headers.get('authorization');
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.split(' ')[1];
-      try {
-        const JWT_SECRET = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET || 'fallback_secret_for_development';
-        jwt.verify(token, JWT_SECRET);
-        return NextResponse.next();
-      } catch (error) {
-        return NextResponse.json({ error: 'Unauthorized: Invalid token' }, { status: 401 });
+    let apiUserRole = req.auth?.user?.role;
+    
+    // Check for Mobile Bearer JWT token if no Web Session
+    if (!apiUserRole) {
+      const authHeader = req.headers.get('authorization');
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        const token = authHeader.split(' ')[1];
+        try {
+          const JWT_SECRET = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET || 'fallback_secret_for_development';
+          const decoded = jwt.verify(token, JWT_SECRET) as any;
+          apiUserRole = decoded.role;
+        } catch (error) {
+          return NextResponse.json({ error: 'Unauthorized: Invalid token' }, { status: 401 });
+        }
       }
     }
 
-    return NextResponse.json({ error: 'Unauthorized: Access denied' }, { status: 401 });
+    if (!apiUserRole) {
+      return NextResponse.json({ error: 'Unauthorized: Access denied' }, { status: 401 });
+    }
+
+    // Role-based access control for API routes
+    if (apiUserRole === 'ADMIN') {
+      return NextResponse.next();
+    }
+
+    let hasApiAccess = false;
+    
+    // Check if the API route starts with one of the allowed page routes
+    if (apiUserRole === 'MARKETING') {
+      hasApiAccess = marketingRoutes.some((route) => pathname.startsWith(`/api${route}`));
+    } else if (apiUserRole === 'INSTALLATION') {
+      hasApiAccess = installationRoutes.some((route) => pathname.startsWith(`/api${route}`));
+    } else if (apiUserRole === 'DISCOM') {
+      hasApiAccess = discomRoutes.some((route) => pathname.startsWith(`/api${route}`));
+    } else if (apiUserRole === 'SURVEY_VIEWER') {
+      hasApiAccess = surveyViewerRoutes.some((route) => pathname.startsWith(`/api${route}`));
+    }
+
+    // Common APIs accessible to any authenticated user
+    if (pathname.startsWith('/api/dashboard') || pathname.startsWith('/api/profile')) {
+      hasApiAccess = true;
+    }
+
+    if (!hasApiAccess) {
+      return NextResponse.json({ error: 'Forbidden: Insufficient role permissions' }, { status: 403 });
+    }
+
+    return NextResponse.next();
   }
 
   // Not logged in web pages -> Redirect to login
