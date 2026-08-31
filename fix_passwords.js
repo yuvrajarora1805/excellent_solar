@@ -1,4 +1,3 @@
-require('dotenv').config({ path: '.env.local' });
 const mysql = require('mysql2/promise');
 const bcrypt = require('bcryptjs');
 
