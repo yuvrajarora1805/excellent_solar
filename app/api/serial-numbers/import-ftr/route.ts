@@ -42,12 +42,12 @@ export async function POST(req: NextRequest) {
       if (prodRes?.id) {
         targetProductId = prodRes.id;
       } else {
-        await queryOne<{ id: number }>(
+        const { insert } = await import('@/lib/db');
+        const insertId = await insert(
           `INSERT INTO products (product_code, name, category, unit, current_stock) 
            VALUES ('BIN-21-615', 'Solar Panel 540W/550W (BIN-21-615)', 'SOLAR_PANEL', 'Piece', 0)`
         );
-        const fetchedProd = await queryOne<{ id: number }>('SELECT id FROM products WHERE product_code = "BIN-21-615" LIMIT 1');
-        targetProductId = fetchedProd?.id || 1;
+        targetProductId = insertId;
       }
     }
 
