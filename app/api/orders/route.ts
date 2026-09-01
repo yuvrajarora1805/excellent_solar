@@ -55,17 +55,70 @@ export async function POST(req: NextRequest) {
 
       // Mobile app bug workaround: The mobile app hardcodes product_id = 1.
       // We must look up the real product_id using the serial number.
-      let realProductId: number | null = null;
+      let finalItems = items;
+      let finalSerials = serials || [];
+
       if (Array.isArray(serials) && serials.length > 0) {
-        // Just take the first serial and find its product_id
-        const firstSerial = serials[0].serial_number;
-        const [serialRows]: any = await (await import('@/lib/db')).query(
-          'SELECT product_id FROM product_serial_numbers WHERE serial_number = ? LIMIT 1',
-          [firstSerial]
+        const { query } = await import('@/lib/db');
+        const serialNumbers = serials.map(s => s.serial_number);
+        
+        // Fetch real product_id for all scanned serials
+        const placeholders = serialNumbers.map(() => '?').join(',');
+        const [serialRows]: any = await query(
+          `SELECT ps.serial_number, ps.product_id, p.selling_price 
+           FROM product_serial_numbers ps 
+           JOIN products p ON ps.product_id = p.id 
+           WHERE ps.serial_number IN (${placeholders})`,
+          serialNumbers
         );
+
         if (serialRows && serialRows.length > 0) {
-          realProductId = serialRows[0].product_id;
+          // Map serial number to its product_id
+          const serialMap = new Map();
+          for (const row of serialRows) {
+            serialMap.set(row.serial_number, {
+              product_id: row.product_id,
+              selling_price: row.selling_price
+            });
+          }
+
+          // Build final serials array
+          finalSerials = serials.map((s: any) => {
+            const realData = serialMap.get(s.serial_number);
+            if (!realData) {
+              throw new Error(`Serial number ${s.serial_number} not found in inventory.`);
+            }
+            return {
+              product_id: realData.product_id,
+              serial_number: s.serial_number,
+            };
+          });
+
+          // Build final items array grouped by product_id
+          const itemsMap = new Map();
+          for (const s of finalSerials) {
+            const pId = s.product_id;
+            if (!itemsMap.has(pId)) {
+               const pData = serialMap.get(s.serial_number);
+               itemsMap.set(pId, {
+                 product_id: pId,
+                 quantity: 0,
+                 unit_price: Number(pData.selling_price || items[0]?.unit_price || 0)
+               });
+            }
+            itemsMap.get(pId).quantity += 1;
+          }
+          finalItems = Array.from(itemsMap.values());
+        } else {
+          throw new Error("None of the scanned serial numbers were found in inventory.");
         }
+      } else {
+        // If no serials are provided, just sanitize items
+        finalItems = items.map((i: any) => ({
+          product_id: Number(i.product_id),
+          quantity: Number(i.quantity),
+          unit_price: Number(i.unit_price || 0),
+        }));
       }
 
       const orderId = await orderDb.create({
@@ -79,17 +132,8 @@ export async function POST(req: NextRequest) {
         driver_mobile,
         vehicle_photo_path,
         total_amount: Number(total_amount || 0),
-        items: items.map((i: any) => ({
-          product_id: realProductId ? realProductId : Number(i.product_id),
-          quantity: Number(i.quantity),
-          unit_price: Number(i.unit_price || 0),
-        })),
-        serials: Array.isArray(serials)
-          ? serials.map((s: any) => ({
-              product_id: realProductId ? realProductId : Number(s.product_id),
-              serial_number: s.serial_number,
-            }))
-          : [],
+        items: finalItems,
+        serials: finalSerials,
         userId,
         dispatchImmediately: Boolean(dispatchImmediately),
       });

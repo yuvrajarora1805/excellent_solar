@@ -192,13 +192,13 @@ export const orderDb = {
           [orderId, s.product_id, s.serial_number]
         );
 
-          // Update or Upsert Serial Status in Inventory to DISPATCHED
+          // Update or Upsert Serial Status in Inventory to ISSUED
           await conn.execute(
             `INSERT INTO product_serial_numbers (product_id, serial_number, status, current_location, remarks)
-             VALUES (?, ?, 'DISPATCHED', 'DISPATCHED', ?)
+             VALUES (?, ?, 'ISSUED', 'ISSUED', ?)
              ON DUPLICATE KEY UPDATE
-                 status = 'DISPATCHED',
-                 current_location = 'DISPATCHED',
+                 status = 'ISSUED',
+                 current_location = 'ISSUED',
                  remarks = CONCAT(COALESCE(remarks, ''), ' | Dispatched Order #${orderNumber} (${data.customer_name})')`,
             [s.product_id, s.serial_number, `Dispatched Order #${orderNumber} (${data.customer_name})`]
           );
@@ -249,7 +249,7 @@ export const orderDb = {
           for (const s of order.serials) {
             await conn.execute(
               `UPDATE product_serial_numbers
-               SET status = 'DISPATCHED', current_location = 'DISPATCHED',
+               SET status = 'ISSUED', current_location = 'ISSUED',
                    remarks = CONCAT(COALESCE(remarks, ''), ' | Dispatched Order #${order.order_number} to ${order.customer_name}')
                WHERE serial_number = ?`,
               [s.serial_number]
