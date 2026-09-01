@@ -71,11 +71,17 @@ export async function GET(request: Request) {
     // final List<dynamic> data = jsonDecode(response.body);
     // If I return an object, it throws an error on mobile.
     // I can make it return a list if a specific flag is passed, or if 'limit' is NOT present!
+    const formattedProducts = products.map((p: any) => ({
+      ...p,
+      available_stock: parseInt(p.available_stock, 10) || 0,
+      current_stock: parseInt(p.current_stock, 10) || 0,
+    }));
+
     if (!limitParam) {
-      return NextResponse.json(products);
+      return NextResponse.json(formattedProducts);
     }
 
-    return NextResponse.json({ products, total, categories });
+    return NextResponse.json({ products: formattedProducts, total, categories });
   } catch (error) {
     console.error('Error fetching products:', error);
     return NextResponse.json({ error: 'Failed to fetch products' }, { status: 500 });

@@ -163,7 +163,7 @@ class _CustomersScreenState extends State<CustomersScreen> {
                                 ],
                               ),
                               subtitle: Padding(
-                                padding: const EdgeInsets.top(8.0),
+                                padding: const EdgeInsets.only(top: 8.0),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
