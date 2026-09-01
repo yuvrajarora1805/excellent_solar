@@ -59,18 +59,23 @@ export async function POST(req: NextRequest) {
       let finalSerials = serials || [];
 
       if (Array.isArray(serials) && serials.length > 0) {
+        console.log("Original serials received from mobile app:", JSON.stringify(serials));
         const { query } = await import('@/lib/db');
-        const serialNumbers = serials.map(s => s.serial_number);
+        
+        // Clean and trim the serial numbers just in case there's whitespace
+        const serialNumbers = serials.map(s => String(s.serial_number || '').trim());
+        console.log("Cleaned serial numbers for DB lookup:", serialNumbers);
         
         // Fetch real product_id for all scanned serials
         const placeholders = serialNumbers.map(() => '?').join(',');
-        const [serialRows]: any = await query(
+        const serialRows: any = await query(
           `SELECT ps.serial_number, ps.product_id, p.selling_price 
            FROM product_serial_numbers ps 
            JOIN products p ON ps.product_id = p.id 
            WHERE ps.serial_number IN (${placeholders})`,
           serialNumbers
         );
+        console.log("DB lookup returned:", JSON.stringify(serialRows));
 
         if (serialRows && serialRows.length > 0) {
           // Map serial number to its product_id
