@@ -53,31 +53,46 @@ export async function POST(req: NextRequest) {
 
     const userId = user_id || 1;
 
-    const orderId = await orderDb.create({
-      order_type: order_type || 'RETAIL',
-      customer_id: customer_id ? Number(customer_id) : undefined,
-      customer_name,
-      customer_mobile,
-      delivery_address,
-      vehicle_number,
-      driver_name,
-      driver_mobile,
-      vehicle_photo_path,
-      total_amount: Number(total_amount || 0),
-      items: items.map((i: any) => ({
-        product_id: Number(i.product_id),
-        quantity: Number(i.quantity),
-        unit_price: Number(i.unit_price || 0),
-      })),
-      serials: Array.isArray(serials)
-        ? serials.map((s: any) => ({
-            product_id: Number(s.product_id),
-            serial_number: s.serial_number,
-          }))
-        : [],
-      userId,
-      dispatchImmediately: Boolean(dispatchImmediately),
-    });
+      // Mobile app bug workaround: The mobile app hardcodes product_id = 1.
+      // We must look up the real product_id using the serial number.
+      let realProductId: number | null = null;
+      if (Array.isArray(serials) && serials.length > 0) {
+        // Just take the first serial and find its product_id
+        const firstSerial = serials[0].serial_number;
+        const [serialRows]: any = await (await import('@/lib/db')).query(
+          'SELECT product_id FROM product_serial_numbers WHERE serial_number = ? LIMIT 1',
+          [firstSerial]
+        );
+        if (serialRows && serialRows.length > 0) {
+          realProductId = serialRows[0].product_id;
+        }
+      }
+
+      const orderId = await orderDb.create({
+        order_type: order_type || 'RETAIL',
+        customer_id: customer_id ? Number(customer_id) : undefined,
+        customer_name,
+        customer_mobile,
+        delivery_address,
+        vehicle_number,
+        driver_name,
+        driver_mobile,
+        vehicle_photo_path,
+        total_amount: Number(total_amount || 0),
+        items: items.map((i: any) => ({
+          product_id: realProductId ? realProductId : Number(i.product_id),
+          quantity: Number(i.quantity),
+          unit_price: Number(i.unit_price || 0),
+        })),
+        serials: Array.isArray(serials)
+          ? serials.map((s: any) => ({
+              product_id: realProductId ? realProductId : Number(s.product_id),
+              serial_number: s.serial_number,
+            }))
+          : [],
+        userId,
+        dispatchImmediately: Boolean(dispatchImmediately),
+      });
 
     return NextResponse.json({
       success: true,
