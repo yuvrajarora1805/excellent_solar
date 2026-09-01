@@ -26,6 +26,8 @@ const marketingRoutes: string[] = [
   '/projects',
   '/quotations',
   '/survey',
+  '/inventory',
+  '/orders',
 ];
 
 const installationRoutes: string[] = [
