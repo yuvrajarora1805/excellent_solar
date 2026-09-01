@@ -33,7 +33,15 @@ export async function POST(req: NextRequest) {
     const { product_id, invoice_no, warehouse_id, modules, user_id } = body;
     let targetProductId = product_id ? Number(product_id) : 0;
 
-    // Only auto-resolve product if no product_id was provided from the UI
+    // Verify if the provided product_id actually exists
+    if (targetProductId) {
+      const exists = await queryOne<{ id: number }>('SELECT id FROM products WHERE id = ? LIMIT 1', [targetProductId]);
+      if (!exists) {
+        targetProductId = 0; // Force auto-resolve since it doesn't exist
+      }
+    }
+
+    // Only auto-resolve product if no valid product_id was provided from the UI
     if (!targetProductId) {
       let prodRes = await queryOne<{ id: number }>('SELECT id FROM products WHERE product_code = "BIN-21-615" LIMIT 1');
       if (!prodRes) {
