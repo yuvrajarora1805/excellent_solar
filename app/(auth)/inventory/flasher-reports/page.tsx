@@ -56,15 +56,14 @@ export default function FlasherReportsPage() {
     }
   };
 
-  // Flasher Report Header Info
   const [headerInfo, setHeaderInfo] = useState({
-    brand: 'WAAREE ENERGIES LIMITED',
+    brand: '—',
     report_title: 'Flasher Report',
-    customer: 'M/S Excellent Solar',
+    customer: '—',
     oa_no: '—',
     invoice_no: '—',
     date: '—',
-    module_model: 'BIN-21-615',
+    module_model: '—',
     quantity: '0 Nos.',
   });
 
@@ -125,6 +124,21 @@ export default function FlasherReportsPage() {
         });
 
         setPanels(serialsList);
+
+        if (rawList.length > 0) {
+          const first = rawList[0];
+          setHeaderInfo(prev => ({
+            ...prev,
+            brand: first.brand || '—',
+            module_model: first.product_code || first.product_name || '—',
+          }));
+        } else {
+          setHeaderInfo(prev => ({
+            ...prev,
+            brand: '—',
+            module_model: '—',
+          }));
+        }
       } else {
         setPanels([]);
       }
