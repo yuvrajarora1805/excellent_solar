@@ -57,6 +57,7 @@ const orderManagerRoutes: string[] = [
   '/dashboard',
   '/orders',
   '/inventory',
+  '/serial-numbers',
   '/api/mobile/customers',
   '/api/mobile/projects',
 ];
