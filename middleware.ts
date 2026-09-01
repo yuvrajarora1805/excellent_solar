@@ -53,6 +53,14 @@ const surveyViewerRoutes: string[] = [
   '/discom',
 ];
 
+const orderManagerRoutes: string[] = [
+  '/dashboard',
+  '/orders',
+  '/inventory',
+  '/api/mobile/customers',
+  '/api/mobile/projects',
+];
+
 export default auth((req) => {
   const { pathname } = req.nextUrl;
   const isLoggedIn = !!req.auth;
@@ -107,6 +115,11 @@ export default auth((req) => {
       hasApiAccess = discomRoutes.some((route) => pathname.startsWith(`/api${route}`));
     } else if (apiUserRole === 'SURVEY_VIEWER') {
       hasApiAccess = surveyViewerRoutes.some((route) => pathname.startsWith(`/api${route}`));
+    } else if (apiUserRole === 'ORDER_MANAGER') {
+      hasApiAccess = orderManagerRoutes.some((route) => pathname.startsWith(`/api${route}`) || pathname.startsWith(route));
+      // orderManagerRoutes has '/inventory', so pathname.startsWith('/api/inventory') matches
+      // But wait, the standard map uses `/api${route}`. I will use `/api${route}`
+      hasApiAccess = orderManagerRoutes.some((route) => pathname.startsWith(route.startsWith('/api') ? route : `/api${route}`));
     }
 
     // Common APIs accessible to any authenticated user
@@ -145,6 +158,8 @@ export default auth((req) => {
       return NextResponse.redirect(new URL('/site-documents', req.url));
     }
     hasAccess = surveyViewerRoutes.some((route) => pathname.startsWith(route));
+  } else if (userRole === 'ORDER_MANAGER') {
+    hasAccess = orderManagerRoutes.some((route) => pathname.startsWith(route));
   }
 
   if (!hasAccess) {
