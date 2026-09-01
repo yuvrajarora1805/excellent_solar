@@ -33,6 +33,7 @@ const installationRoutes: string[] = [
   '/inventory',
   '/installation',
   '/service',
+  '/serial-numbers',
 ];
 
 const discomRoutes: string[] = [
