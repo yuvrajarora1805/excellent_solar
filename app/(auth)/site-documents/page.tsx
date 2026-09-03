@@ -150,8 +150,11 @@ export default function SiteDocumentsPage() {
     if (!selectedProjectId) return;
     try {
       setDownloadingZip(type);
-      const res = await fetch(`/api/site-documents/download-zip?projectId=${selectedProjectId}&type=${type}`);
-      if (!res.ok) throw new Error('Failed to download ZIP');
+      const res = await fetch(`/api/projects/${selectedProjectId}/download-zip?type=${type}`);
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || 'Failed to download ZIP');
+      }
       
       const blob = await res.blob();
       const url = window.URL.createObjectURL(blob);
@@ -161,9 +164,10 @@ export default function SiteDocumentsPage() {
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
-    } catch (error) {
+      document.body.removeChild(a);
+    } catch (error: any) {
       console.error('Download error:', error);
-      alert('Failed to download ZIP. Make sure files exist.');
+      alert(`Failed to download ZIP: ${error.message || 'Make sure files exist.'}`);
     } finally {
       setDownloadingZip(null);
     }

@@ -1,10 +1,37 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import JSZip from 'jszip';
-import { readFile } from 'fs/promises';
+import { readFile, access } from 'fs/promises';
 import path from 'path';
 
 export const runtime = 'nodejs';
+
+/**
+ * Resolve a stored file_path to an absolute disk path.
+ * Files may be stored in:
+ *  1. public/uploads/...  (Next.js public dir)
+ *  2. app/uploads/...     (direct write from mobile upload route)
+ */
+async function resolveFilePath(filePath: string): Promise<string | null> {
+  const rel = filePath.startsWith('/') ? filePath.slice(1) : filePath;
+
+  const candidates = [
+    path.join(process.cwd(), 'public', rel),
+    path.join(process.cwd(), 'app', rel),
+    path.join(process.cwd(), rel),
+  ];
+
+  for (const candidate of candidates) {
+    try {
+      await access(candidate);
+      return candidate;
+    } catch {
+      // not found at this path, try next
+    }
+  }
+  return null;
+}
+
 
 export async function GET(
   request: NextRequest,
@@ -42,11 +69,13 @@ export async function GET(
       const folder = zip.folder('Site_Survey_Photos');
       for (const photo of surveyPhotos) {
         try {
-          // Resolve file path
-          const relPath = photo.file_path.startsWith('/') ? photo.file_path.slice(1) : photo.file_path;
-          const absPath = path.join(process.cwd(), 'public', relPath);
+          const absPath = await resolveFilePath(photo.file_path);
+          if (!absPath) {
+            console.warn('File not found on disk, skipping:', photo.file_path);
+            continue;
+          }
           const content = await readFile(absPath);
-          const fname = photo.file_name || path.basename(relPath);
+          const fname = photo.file_name || path.basename(photo.file_path);
           folder?.file(`${photo.category || 'GENERAL'}_${fname}`, content);
           fileCount++;
         } catch (e) {
@@ -67,10 +96,13 @@ export async function GET(
       const folder = zip.folder('Installation_Photos');
       for (const photo of installPhotos) {
         try {
-          const relPath = photo.file_path.startsWith('/') ? photo.file_path.slice(1) : photo.file_path;
-          const absPath = path.join(process.cwd(), 'public', relPath);
+          const absPath = await resolveFilePath(photo.file_path);
+          if (!absPath) {
+            console.warn('File not found on disk, skipping:', photo.file_path);
+            continue;
+          }
           const content = await readFile(absPath);
-          const fname = photo.file_name || path.basename(relPath);
+          const fname = photo.file_name || path.basename(photo.file_path);
           folder?.file(`${photo.category || 'GENERAL'}_${fname}`, content);
           fileCount++;
         } catch (e) {
@@ -85,10 +117,13 @@ export async function GET(
       const folder = zip.folder('General_Photos');
       for (const photo of generalPhotos) {
         try {
-          const relPath = photo.file_path.startsWith('/') ? photo.file_path.slice(1) : photo.file_path;
-          const absPath = path.join(process.cwd(), 'public', relPath);
+          const absPath = await resolveFilePath(photo.file_path);
+          if (!absPath) {
+            console.warn('File not found on disk, skipping:', photo.file_path);
+            continue;
+          }
           const content = await readFile(absPath);
-          const fname = photo.file_name || path.basename(relPath);
+          const fname = photo.file_name || path.basename(photo.file_path);
           folder?.file(`${photo.category || 'GENERAL'}_${fname}`, content);
           fileCount++;
         } catch (e) {

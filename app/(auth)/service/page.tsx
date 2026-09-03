@@ -399,6 +399,7 @@ function NewTicketForm({ onSuccess, onCancel }: any) {
   const [formData, setFormData] = useState({
     project_id: '',
     customer_id: '',
+    customer_name: '',
     issue_category: 'INVERTER',
     issue_type: 'BREAKDOWN',
     priority: 'MEDIUM',
@@ -435,8 +436,8 @@ function NewTicketForm({ onSuccess, onCancel }: any) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.project_id || !formData.customer_id) {
-      alert('Please select a valid project');
+    if (!formData.description.trim()) {
+      alert('Please enter a description of the issue');
       return;
     }
     try {
@@ -456,16 +457,15 @@ function NewTicketForm({ onSuccess, onCancel }: any) {
       <div className="grid grid-cols-1 gap-4">
         <div>
           <label className="block text-label-bold text-on-surface mb-1">
-            Select Project
+            Select Project <span className="text-on-surface-variant font-normal text-xs">(Optional)</span>
           </label>
           <select
             value={formData.project_id}
             onChange={handleProjectChange}
             className="input-base cursor-pointer"
-            required
             disabled={isLoading}
           >
-            <option value="">{isLoading ? 'Loading projects...' : 'Select a project...'}</option>
+            <option value="">{isLoading ? 'Loading projects...' : '— No project (walk-in / general) —'}</option>
             {projects.map((p) => (
               <option key={p.id} value={p.id}>
                 {p.project_id} - {p.customer_name} ({p.customer_mobile})
@@ -473,6 +473,20 @@ function NewTicketForm({ onSuccess, onCancel }: any) {
             ))}
           </select>
         </div>
+        {!formData.project_id && (
+          <div>
+            <label className="block text-label-bold text-on-surface mb-1">
+              Customer Name <span className="text-on-surface-variant font-normal text-xs">(if no project selected)</span>
+            </label>
+            <input
+              type="text"
+              value={formData.customer_name}
+              onChange={(e) => setFormData({ ...formData, customer_name: e.target.value })}
+              placeholder="Enter customer name..."
+              className="input-base"
+            />
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-4">

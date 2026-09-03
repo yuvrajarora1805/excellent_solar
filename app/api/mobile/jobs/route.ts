@@ -94,10 +94,10 @@ export async function GET(request: Request) {
           section = 'SURVEY';
           break;
         case 'SURVEY_SUBMITTED':
-          displayStatus = 'Survey Submitted (Pending Review)';
-          isSurvey = true;
-          isActionable = false;
-          section = 'SURVEY';
+          displayStatus = 'Installation Pending (Survey Done)';
+          isSurvey = false;
+          isActionable = true;
+          section = 'INSTALLATION';
           break;
         case 'SURVEY_VERIFIED':
         case 'MATERIAL_ALLOCATED':
