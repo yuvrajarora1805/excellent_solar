@@ -29,7 +29,18 @@ export async function GET() {
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `);
-    results.push('Created orders table');
+    
+    // Migration: add project_id to existing orders table if it doesn't exist
+    try {
+      await execute(`
+        ALTER TABLE orders ADD COLUMN project_id INT NULL AFTER customer_id;
+      `);
+    } catch (e: any) {
+      if (e.code !== 'ER_DUP_FIELDNAME') {
+        throw e;
+      }
+    }
+    results.push('Created orders table and ensured project_id column exists');
 
     await execute(`
       CREATE TABLE IF NOT EXISTS order_items (

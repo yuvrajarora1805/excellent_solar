@@ -38,9 +38,8 @@ export default function ProjectDetailsPage() {
           const list = ordersData.orders || [];
           // Filter matching orders for this customer / project
           const matching = list.filter((o: any) =>
-            o.customer_id === projectData.customer_id ||
-            (o.customer_name && projectData.customer_name && o.customer_name.toLowerCase().includes(projectData.customer_name.toLowerCase())) ||
-            (o.order_number && projectData.project_id && o.order_number.includes(projectData.id))
+            (o.project_id && o.project_id === projectData.id) ||
+            (!o.project_id && o.customer_id === projectData.customer_id)
           );
           
           // Fetch full items & scanned serials for matching orders

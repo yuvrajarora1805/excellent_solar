@@ -28,6 +28,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const {
       order_type,
+      project_id,
       customer_id,
       customer_name,
       customer_mobile,
@@ -66,10 +67,10 @@ export async function POST(req: NextRequest) {
         const serialNumbers = serials.map(s => String(s.serial_number || '').trim());
         console.log("Cleaned serial numbers for DB lookup:", serialNumbers);
         
-        // Fetch real product_id for all scanned serials
+        // Fetch real product_id for all scanned serials and check their current status
         const placeholders = serialNumbers.map(() => '?').join(',');
         const serialRows: any = await query(
-          `SELECT ps.serial_number, ps.product_id, p.selling_price 
+          `SELECT ps.serial_number, ps.product_id, p.selling_price, ps.status
            FROM product_serial_numbers ps 
            JOIN products p ON ps.product_id = p.id 
            WHERE ps.serial_number IN (${placeholders})`,
@@ -81,6 +82,10 @@ export async function POST(req: NextRequest) {
           // Map serial number to its product_id
           const serialMap = new Map();
           for (const row of serialRows) {
+            // Prevent dispatching an already dispatched serial
+            if (row.status === 'ISSUED' || row.status === 'DISPATCHED') {
+              return NextResponse.json({ error: `Serial number ${row.serial_number} has already been dispatched.` }, { status: 400 });
+            }
             serialMap.set(row.serial_number, {
               product_id: row.product_id,
               selling_price: row.selling_price
@@ -128,6 +133,7 @@ export async function POST(req: NextRequest) {
 
       const orderId = await orderDb.create({
         order_type: order_type || 'RETAIL',
+        project_id: project_id ? Number(project_id) : undefined,
         customer_id: customer_id ? Number(customer_id) : undefined,
         customer_name,
         customer_mobile,

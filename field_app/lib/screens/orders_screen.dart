@@ -446,7 +446,7 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
       final serialsList = _scannedPanels.map((p) => {'product_id': 1, 'serial_number': p.serialNumber}).toList();
       final body = {
         'order_type': _orderType,
-        'customer_id': _selectedCustomerIdStr != null ? int.tryParse(_selectedCustomerIdStr!) : null,
+        'project_id': _selectedProjectIdStr != null ? int.tryParse(_selectedProjectIdStr!) : null,
         'customer_name': _customerNameController.text.trim(),
         'customer_mobile': _customerMobileController.text.trim(),
         'delivery_address': _deliveryAddressController.text.trim(),
@@ -552,9 +552,9 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Registered Customer Dropdown
+                  // Registered Project Dropdown
                   if (_orderType == 'PROJECT') ...[
-                    _loadingCustomers
+                    _loadingProjects
                         ? const Center(child: Padding(padding: EdgeInsets.all(12.0), child: CircularProgressIndicator()))
                         : Container(
                             padding: const EdgeInsets.all(12),
@@ -568,9 +568,9 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
                               children: [
                                 const Row(
                                   children: [
-                                    Icon(Icons.person_search, size: 18, color: Colors.purple),
+                                    Icon(Icons.work, size: 18, color: Colors.purple),
                                     SizedBox(width: 6),
-                                    Text('Select Registered Customer / Project', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.purple)),
+                                    Text('Select Registered Project', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.purple)),
                                   ],
                                 ),
                                 const SizedBox(height: 8),
@@ -580,17 +580,17 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
                                     filled: true,
                                     border: OutlineInputBorder(),
                                     isDense: true,
-                                    hintText: '-- Select Customer --',
+                                    hintText: '-- Select Project --',
                                   ),
-                                  value: _selectedCustomerIdStr,
-                                  items: _customersList.map<DropdownMenuItem<String>>((c) {
-                                    final String idStr = c['id'].toString();
+                                  value: _selectedProjectIdStr,
+                                  items: _projectsList.map<DropdownMenuItem<String>>((p) {
+                                    final String idStr = p['id'].toString();
                                     return DropdownMenuItem<String>(
                                       value: idStr,
-                                      child: Text('${c['name']} (${c['mobile'] ?? ''}) - ${c['city'] ?? ''}', overflow: TextOverflow.ellipsis),
+                                      child: Text('${p['project_id']} - ${p['customer_name']}', overflow: TextOverflow.ellipsis),
                                     );
                                   }).toList(),
-                                  onChanged: _onCustomerSelected,
+                                  onChanged: _onProjectSelected,
                                 ),
                               ],
                             ),

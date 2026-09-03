@@ -133,6 +133,7 @@ export const orderDb = {
   // Create Order with Items and Barcode-Scanned Serial Numbers
   create: async (data: {
     order_type: 'PROJECT' | 'RETAIL';
+    project_id?: number;
     customer_id?: number;
     customer_name: string;
     customer_mobile?: string;
@@ -142,8 +143,8 @@ export const orderDb = {
     driver_mobile?: string;
     vehicle_photo_path?: string;
     total_amount: number;
-    items: Array<{ product_id: number; quantity: number; unit_price: number }>;
-    serials: Array<{ product_id: number; serial_number: string }>;
+    items: OrderItem[];
+    serials: OrderSerial[];
     userId: number;
     dispatchImmediately?: boolean;
   }): Promise<number> => {
@@ -152,12 +153,13 @@ export const orderDb = {
       const initialStatus = data.dispatchImmediately ? 'DISPATCHED' : 'READY_FOR_DISPATCH';
 
       const [res] = await conn.execute(
-        `INSERT INTO orders (order_number, order_type, customer_id, customer_name, customer_mobile, delivery_address,
+        `INSERT INTO orders (order_number, order_type, project_id, customer_id, customer_name, customer_mobile, delivery_address,
          vehicle_number, driver_name, driver_mobile, vehicle_photo_path, total_amount, status, created_by, dispatched_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ${data.dispatchImmediately ? 'NOW()' : 'NULL'})`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ${data.dispatchImmediately ? 'NOW()' : 'NULL'})`,
         [
           orderNumber,
           data.order_type,
+          data.project_id || null,
           data.customer_id || null,
           data.customer_name,
           data.customer_mobile || null,
