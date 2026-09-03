@@ -31,6 +31,12 @@ export async function GET(request: Request) {
           AND (
             ? = 'ADMIN'
             OR ? = 'MANAGER'
+            OR (? = 'INSTALLATION' AND p.status IN (
+              'SURVEY_SUBMITTED','SURVEY_VERIFIED','MATERIAL_ALLOCATED',
+              'INSTALLATION_STARTED','INSTALLATION_COMPLETED','FINAL_VERIFICATION'
+            ))
+            OR (? = 'MARKETING' AND p.status IN ('NEW','SITE_SURVEY','SURVEY_SUBMITTED','SURVEY_VERIFIED'))
+            OR (? = 'SALES' AND p.status IN ('NEW','SITE_SURVEY','SURVEY_SUBMITTED','SURVEY_VERIFIED'))
             OR p.created_by = ?
             OR p.assigned_to = ?
             OR ss.created_by = ?
@@ -40,6 +46,9 @@ export async function GET(request: Request) {
       `;
       
       jobs = await query(sql, [
+        userRole,
+        userRole,
+        userRole,
         userRole,
         userRole,
         workerId,
