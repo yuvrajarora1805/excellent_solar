@@ -263,9 +263,9 @@ class CreateOrderBottomSheet extends StatefulWidget {
 
 class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
   String _orderType = 'PROJECT';
-  String? _selectedCustomerIdStr;
-  List<dynamic> _customersList = [];
-  bool _loadingCustomers = false;
+  String? _selectedProjectIdStr;
+  List<dynamic> _projectsList = [];
+  bool _loadingProjects = false;
 
   final _customerNameController = TextEditingController();
   final _customerMobileController = TextEditingController();
@@ -281,43 +281,43 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
   @override
   void initState() {
     super.initState();
-    _fetchCustomers();
+    _fetchProjects();
   }
 
-  Future<void> _fetchCustomers() async {
+  Future<void> _fetchProjects() async {
     try {
-      if (mounted) setState(() => _loadingCustomers = true);
-      final response = await ApiService.get(Uri.parse('$baseUrl/api/customers?limit=100'));
+      if (mounted) setState(() => _loadingProjects = true);
+      final response = await ApiService.get(Uri.parse('$baseUrl/api/projects?limit=100'));
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final List<dynamic> fetched = data is List ? data : (data['customers'] ?? []);
+        final List<dynamic> fetched = data is List ? data : (data['projects'] ?? []);
         if (!mounted) return;
         setState(() {
-          _customersList = fetched;
-          _loadingCustomers = false;
+          _projectsList = fetched;
+          _loadingProjects = false;
         });
       } else {
         if (!mounted) return;
-        setState(() => _loadingCustomers = false);
+        setState(() => _loadingProjects = false);
       }
     } catch (e) {
       if (!mounted) return;
-      setState(() => _loadingCustomers = false);
+      setState(() => _loadingProjects = false);
     }
   }
 
-  void _onCustomerSelected(String? custIdStr) {
+  void _onProjectSelected(String? projIdStr) {
     setState(() {
-      _selectedCustomerIdStr = custIdStr;
-      if (custIdStr != null) {
-        final cust = _customersList.firstWhere(
-          (c) => c['id'].toString() == custIdStr,
+      _selectedProjectIdStr = projIdStr;
+      if (projIdStr != null) {
+        final proj = _projectsList.firstWhere(
+          (p) => p['id'].toString() == projIdStr,
           orElse: () => null,
         );
-        if (cust != null) {
-          _customerNameController.text = cust['name'] ?? '';
-          _customerMobileController.text = cust['mobile'] ?? '';
-          _deliveryAddressController.text = cust['address'] ?? '';
+        if (proj != null) {
+          _customerNameController.text = proj['customer_name'] ?? '';
+          _customerMobileController.text = proj['customer_mobile'] ?? '';
+          _deliveryAddressController.text = proj['customer_address'] ?? proj['site_address'] ?? '';
         }
       }
     });
