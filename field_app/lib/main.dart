@@ -19,6 +19,7 @@ import 'screens/dashboard_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/discom_screen.dart';
 import 'screens/orders_screen.dart';
+import 'screens/scan_inventory_screen.dart';
 
 const String baseUrl = 'https://es.omvky.com';
 

@@ -495,7 +495,6 @@ class _FieldDashboardScreenState extends State<FieldDashboardScreen> {
                     ),
                   ),
                 ],
-                ],
 
                 if (isSalesRole || isAdmin) ...[
                   const SizedBox(height: 20),
