@@ -321,6 +321,15 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       ));
     }
 
+    if (uRole == 'ADMIN' || uRole == 'INVENTORY_MANAGER' || uRole == 'INVENTORY') {
+      _screens.add(const ScanInventoryScreen());
+      _destinations.add(const NavigationDestination(
+        icon: Icon(Icons.inventory_2_outlined),
+        selectedIcon: Icon(Icons.inventory_2),
+        label: 'Inventory',
+      ));
+    }
+
     if (uRole == 'ADMIN' || uRole == 'SALES' || uRole == 'MARKETING') {
       _screens.add(const OnGridBookingForm());
       _destinations.add(const NavigationDestination(

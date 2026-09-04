@@ -1,9 +1,22 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:http/http.dart' as http;
 import '../services/api_service.dart';
 import '../main.dart' show baseUrl;
+
+class ScannedInventoryItem {
+  final String modelNumber;
+  final String serialNumber;
+  final String rawInput;
+
+  ScannedInventoryItem({
+    required this.modelNumber,
+    required this.serialNumber,
+    required this.rawInput,
+  });
+}
 
 class ScanInventoryScreen extends StatefulWidget {
   const ScanInventoryScreen({super.key});
@@ -13,44 +26,64 @@ class ScanInventoryScreen extends StatefulWidget {
 }
 
 class _ScanInventoryScreenState extends State<ScanInventoryScreen> {
-  MobileScannerController cameraController = MobileScannerController();
-  bool _isProcessing = false;
-  String _statusMessage = 'Point camera at QR code';
+  final MobileScannerController _cameraController = MobileScannerController(
+    detectionSpeed: DetectionSpeed.noDuplicates,
+  );
+  
+  final List<ScannedInventoryItem> _scannedItems = [];
+  final Set<String> _processingSerials = {};
+  bool _isSubmitting = false;
 
   @override
   void dispose() {
-    cameraController.dispose();
+    _cameraController.dispose();
     super.dispose();
   }
 
-  Future<void> _processBarcode(String barcode) async {
-    if (_isProcessing) return;
-    setState(() {
-      _isProcessing = true;
-      _statusMessage = 'Processing code: $barcode';
-    });
+  void _onBarcodeDetected(BarcodeCapture capture) {
+    if (_isSubmitting) return;
 
-    try {
-      // Decode the QR format: <ModelNumber> <SerialNumber>
-      final parts = barcode.trim().split(' ');
-      if (parts.length < 2) {
-        setState(() {
-          _statusMessage = 'Invalid QR format. Expected "MODEL SERIAL"';
-          _isProcessing = false;
-        });
-        return;
-      }
+    for (final barcode in capture.barcodes) {
+      final String? rawVal = barcode.rawValue?.trim();
+      if (rawVal == null || rawVal.isEmpty) continue;
+
+      final parts = rawVal.split(' ');
+      if (parts.length < 2) continue; // Invalid format for our QR
 
       final modelNumber = parts[0];
       final serialNumber = parts.sublist(1).join(' ');
 
+      if (_processingSerials.contains(serialNumber)) continue;
+      _processingSerials.add(serialNumber);
+
+      SystemSound.play(SystemSoundType.click);
+      HapticFeedback.mediumImpact();
+
+      setState(() {
+        _scannedItems.insert(0, ScannedInventoryItem(
+          modelNumber: modelNumber,
+          serialNumber: serialNumber,
+          rawInput: rawVal,
+        ));
+      });
+    }
+  }
+
+  Future<void> _submitBulkScan() async {
+    if (_scannedItems.isEmpty) return;
+
+    setState(() => _isSubmitting = true);
+
+    try {
+      final itemsPayload = _scannedItems.map((item) => {
+        'model_number': item.modelNumber,
+        'serial_number': item.serialNumber,
+      }).toList();
+
       final response = await ApiService.post(
-        Uri.parse('$baseUrl/api/mobile/inventory/scan'),
+        Uri.parse('$baseUrl/api/mobile/inventory/bulk-scan'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'model_number': modelNumber,
-          'serial_number': serialNumber,
-        }),
+        body: jsonEncode({'items': itemsPayload}),
       );
 
       final data = jsonDecode(response.body);
@@ -58,85 +91,239 @@ class _ScanInventoryScreenState extends State<ScanInventoryScreen> {
       if (response.statusCode == 200 && data['success'] == true) {
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Inventory added successfully!'), backgroundColor: Colors.green),
+          SnackBar(content: Text('Added ${data['successCount']} items to inventory!'), backgroundColor: Colors.green),
         );
         setState(() {
-          _statusMessage = 'Success! Point at next QR.';
+          _scannedItems.clear();
+          _processingSerials.clear();
         });
       } else {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(data['error'] ?? 'Failed to add inventory'), backgroundColor: Colors.red),
-        );
-        setState(() {
-          _statusMessage = 'Failed. Try again.';
-        });
+        // Check if there was a PRODUCT_NOT_FOUND error in any of the items
+        bool needsNewProduct = false;
+        String? missingModel;
+        
+        if (data['errors'] != null) {
+          for (var err in data['errors']) {
+            if (err['code'] == 'PRODUCT_NOT_FOUND') {
+              needsNewProduct = true;
+              missingModel = err['item']['model_number'];
+              break;
+            }
+          }
+        }
+
+        if (needsNewProduct && missingModel != null) {
+          _showCreateProductPopup(missingModel);
+        } else {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(data['error'] ?? 'Failed to submit scans'), backgroundColor: Colors.red),
+          );
+        }
       }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
       );
-      setState(() {
-        _statusMessage = 'Error occurred. Try again.';
-      });
     } finally {
-      // Wait a moment before allowing the next scan
-      await Future.delayed(const Duration(seconds: 2));
-      if (mounted) {
-        setState(() {
-          _isProcessing = false;
-        });
-      }
+      if (mounted) setState(() => _isSubmitting = false);
     }
+  }
+
+  Future<void> _showCreateProductPopup(String modelNumber) async {
+    // Fetch categories first
+    List<String> categories = [];
+    try {
+      final res = await ApiService.get(Uri.parse('$baseUrl/api/mobile/inventory/categories'));
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        if (data['success'] == true && data['categories'] != null) {
+          categories = List<String>.from(data['categories']);
+        }
+      }
+    } catch (e) {
+      debugPrint('Error fetching categories: $e');
+    }
+
+    if (categories.isEmpty) {
+      categories = ['SOLAR_PANEL', 'INVERTER', 'STRUCTURE', 'CABLE', 'OTHER'];
+    }
+
+    if (!mounted) return;
+
+    String selectedCategory = categories.first;
+    bool isNewCategory = false;
+    final TextEditingController newCatController = TextEditingController();
+    final TextEditingController nameController = TextEditingController();
+    final TextEditingController brandController = TextEditingController();
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: Text('Model Not Found: $modelNumber'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('This product model does not exist. Please register it now to continue.'),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: nameController,
+                      decoration: const InputDecoration(labelText: 'Product Name', border: OutlineInputBorder()),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: brandController,
+                      decoration: const InputDecoration(labelText: 'Brand', border: OutlineInputBorder()),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Checkbox(
+                          value: isNewCategory,
+                          onChanged: (val) {
+                            setDialogState(() => isNewCategory = val ?? false);
+                          },
+                        ),
+                        const Text('Add New Category?'),
+                      ],
+                    ),
+                    if (isNewCategory)
+                      TextField(
+                        controller: newCatController,
+                        decoration: const InputDecoration(labelText: 'New Category Name', border: OutlineInputBorder()),
+                      )
+                    else
+                      DropdownButtonFormField<String>(
+                        value: selectedCategory,
+                        items: categories.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                        onChanged: (val) {
+                          if (val != null) setDialogState(() => selectedCategory = val);
+                        },
+                        decoration: const InputDecoration(labelText: 'Category', border: OutlineInputBorder()),
+                      ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () async {
+                    String finalCat = isNewCategory ? newCatController.text.trim() : selectedCategory;
+                    if (finalCat.isEmpty) return;
+
+                    final payload = {
+                      'model_number': modelNumber,
+                      'category': finalCat,
+                      'name': nameController.text.trim(),
+                      'brand': brandController.text.trim(),
+                    };
+
+                    final res = await ApiService.post(
+                      Uri.parse('$baseUrl/api/mobile/products/create'),
+                      headers: {'Content-Type': 'application/json'},
+                      body: jsonEncode(payload),
+                    );
+
+                    if (res.statusCode == 200 || res.statusCode == 201) {
+                      Navigator.pop(context);
+                      // Retry the bulk submission now that it's registered
+                      _submitBulkScan();
+                    } else {
+                      final errData = jsonDecode(res.body);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(errData['error'] ?? 'Failed to create product'), backgroundColor: Colors.red),
+                      );
+                    }
+                  },
+                  child: const Text('Create & Continue'),
+                ),
+              ],
+            );
+          }
+        );
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Scan Inventory QR'),
+        title: const Text('Inventory Multi-Scan'),
+        actions: [
+          if (_scannedItems.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.check_circle),
+              color: Colors.green,
+              onPressed: _isSubmitting ? null : _submitBulkScan,
+            ),
+        ],
       ),
       body: Column(
-        children: <Widget>[
-          Expanded(
-            flex: 4,
+        children: [
+          // Camera View
+          SizedBox(
+            height: 250,
             child: MobileScanner(
-              controller: cameraController,
-              onDetect: (capture) {
-                final List<Barcode> barcodes = capture.barcodes;
-                if (barcodes.isNotEmpty) {
-                  final String? code = barcodes.first.rawValue;
-                  if (code != null) {
-                    _processBarcode(code);
-                  }
-                }
-              },
+              controller: _cameraController,
+              onDetect: _onBarcodeDetected,
             ),
           ),
-          Expanded(
-            flex: 1,
-            child: Container(
-              color: Colors.white,
-              width: double.infinity,
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    _statusMessage,
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                    textAlign: TextAlign.center,
+          
+          // Header for list
+          Container(
+            padding: const EdgeInsets.all(12),
+            color: Colors.grey.shade200,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('${_scannedItems.length} items scanned', style: const TextStyle(fontWeight: FontWeight.bold)),
+                if (_scannedItems.isNotEmpty)
+                  ElevatedButton(
+                    onPressed: _isSubmitting ? null : _submitBulkScan,
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, foregroundColor: Colors.white),
+                    child: _isSubmitting ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text('Submit All'),
                   ),
-                  if (_isProcessing)
-                    const Padding(
-                      padding: EdgeInsets.only(top: 10),
-                      child: CircularProgressIndicator(),
-                    )
-                ],
-              ),
+              ],
             ),
-          )
+          ),
+
+          // List of scanned items
+          Expanded(
+            child: _scannedItems.isEmpty
+                ? const Center(child: Text('Point camera at QR codes to scan.'))
+                : ListView.builder(
+                    itemCount: _scannedItems.length,
+                    itemBuilder: (context, index) {
+                      final item = _scannedItems[index];
+                      return ListTile(
+                        leading: const Icon(Icons.qr_code, color: Colors.blue),
+                        title: Text('Model: ${item.modelNumber}'),
+                        subtitle: Text('Serial: ${item.serialNumber}'),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.red),
+                          onPressed: () {
+                            setState(() {
+                              _scannedItems.removeAt(index);
+                              _processingSerials.remove(item.serialNumber);
+                            });
+                          },
+                        ),
+                      );
+                    },
+                  ),
+          ),
         ],
       ),
     );

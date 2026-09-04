@@ -495,9 +495,11 @@ class _FieldDashboardScreenState extends State<FieldDashboardScreen> {
                     ),
                   ),
                 ],
+                ],
 
-                const SizedBox(height: 20),
-                Card(
+                if (isSalesRole || isAdmin) ...[
+                  const SizedBox(height: 20),
+                  Card(
                   elevation: 0,
                   color: Colors.blue.shade50,
                   shape: RoundedRectangleBorder(
@@ -540,28 +542,32 @@ class _FieldDashboardScreenState extends State<FieldDashboardScreen> {
                     },
                   ),
                 ),
-                const SizedBox(height: 12),
-                Card(
-                  elevation: 0,
-                  color: Colors.green.shade50,
-                  shape: RoundedRectangleBorder(
-                    side: BorderSide(color: Colors.green.shade300),
-                    borderRadius: BorderRadius.circular(12),
+                ],
+
+                if (isSalesRole || isInstallerRole || isAdmin) ...[
+                  const SizedBox(height: 12),
+                  Card(
+                    elevation: 0,
+                    color: Colors.green.shade50,
+                    shape: RoundedRectangleBorder(
+                      side: BorderSide(color: Colors.green.shade300),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      leading: const Icon(Icons.qr_code_scanner, color: Colors.green, size: 36),
+                      title: const Text('Company Payment Details', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      subtitle: const Text('Show QR code & Account numbers to customers'),
+                      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => PaymentScreen()),
+                        );
+                      },
+                    ),
                   ),
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    leading: const Icon(Icons.qr_code_scanner, color: Colors.green, size: 36),
-                    title: const Text('Company Payment Details', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                    subtitle: const Text('Show QR code & Account numbers to customers'),
-                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => PaymentScreen()),
-                      );
-                    },
-                  ),
-                ),
+                ],
                 const SizedBox(height: 24),
               ],
             ),
