@@ -144,7 +144,7 @@ export default function NewUserPage() {
                     <option value="INSTALLATION">Installation</option>
                     <option value="DISCOM">DISCOM</option>
                     <option value="SURVEY_VIEWER">Site Survey & Installation Viewer</option>
-
+                    <option value="INVENTORY_MANAGER">Inventory Manager</option>
                   </select>
                 </div>
                 <div>

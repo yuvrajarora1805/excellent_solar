@@ -9,7 +9,7 @@ import { useSession } from 'next-auth/react';
 
 // Navigation items
 const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: 'dashboard', roles: ['ADMIN', 'ORDER_MANAGER', 'MARKETING', 'INSTALLATION', 'DISCOM', 'SURVEY_VIEWER'] },
+  { name: 'Dashboard', href: '/dashboard', icon: 'dashboard', roles: ['ADMIN', 'ORDER_MANAGER', 'MARKETING', 'INSTALLATION', 'DISCOM', 'SURVEY_VIEWER', 'INVENTORY_MANAGER'] },
   { name: 'Site Documents', href: '/site-documents', icon: 'folder_zip', roles: ['ADMIN', 'ORDER_MANAGER', 'MARKETING', 'INSTALLATION', 'DISCOM', 'SURVEY_VIEWER'] },
   { name: 'Customers', href: '/customers', icon: 'groups', roles: ['ADMIN', 'ORDER_MANAGER', 'MARKETING'] },
   { name: 'Site Survey', href: '/survey', icon: 'assignment_turned_in', roles: ['ADMIN', 'MARKETING', 'SURVEY_VIEWER'] },
@@ -18,7 +18,7 @@ const navigation = [
   { name: 'Orders & Dispatch', href: '/orders', icon: 'local_shipping', roles: ['ADMIN', 'ORDER_MANAGER', 'MARKETING', 'INSTALLATION', 'DISCOM'] },
   { name: 'DISCOM', href: '/discom', icon: 'account_balance', roles: ['ADMIN', 'DISCOM', 'SURVEY_VIEWER'] },
 
-  { name: 'Inventory', href: '/inventory', icon: 'inventory_2', roles: ['ADMIN', 'ORDER_MANAGER', 'INSTALLATION'] },
+  { name: 'Inventory', href: '/inventory', icon: 'inventory_2', roles: ['ADMIN', 'ORDER_MANAGER', 'INSTALLATION', 'INVENTORY_MANAGER'] },
   { name: 'Installation', href: '/installation', icon: 'engineering', roles: ['ADMIN', 'INSTALLATION', 'SURVEY_VIEWER'] },
   { name: 'Service', href: '/service', icon: 'support_agent', roles: ['ADMIN', 'INSTALLATION'] },
   { name: 'System Templates', href: '/system-templates', icon: 'settings', roles: ['ADMIN'] },

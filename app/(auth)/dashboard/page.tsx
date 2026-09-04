@@ -160,7 +160,8 @@ export default function DashboardPage() {
           <h1 className="text-2xl font-bold text-on-surface">
             {user?.role === 'ADMIN' ? 'Admin Dashboard' : 
              user?.role === 'MARKETING' ? 'Marketing Dashboard' : 
-             user?.role === 'INSTALLATION' ? 'Installation Dashboard' : 'Dashboard'}
+             user?.role === 'INSTALLATION' ? 'Installation Dashboard' : 
+             user?.role === 'INVENTORY_MANAGER' ? 'Inventory Dashboard' : 'Dashboard'}
           </h1>
           <p className="text-on-surface-variant mt-1">Complete overview of your operations</p>
         </div>
@@ -399,7 +400,7 @@ export default function DashboardPage() {
           )}
 
           {/* Inventory Widget */}
-          {['ADMIN', 'INSTALLATION'].includes(user?.role) && (
+          {['ADMIN', 'INSTALLATION', 'INVENTORY_MANAGER'].includes(user?.role) && (
             <div className="bg-surface-container-lowest border border-outline-variant rounded p-6 industrial-shadow flex-1">
               <div className="flex justify-between items-center mb-4 pb-2 border-b border-outline-variant">
                 <h3 className="text-xl font-bold text-on-surface">Inventory Status</h3>
