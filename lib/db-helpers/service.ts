@@ -325,6 +325,32 @@ export const serviceTicketDb = {
 
   // Create ticket
   create: async (data: Omit<ServiceTicket, 'id' | 'ticket_number' | 'created_at' | 'updated_at' | 'created_by_user' | 'assigned_to_user' | 'project' | 'customer'>, userId: number): Promise<number> => {
+    let customerId = data.customer_id;
+    if (!customerId && data.project_id) {
+      const project = await queryOne<{ customer_id: number }>('SELECT customer_id FROM projects WHERE id = ?', [data.project_id]);
+      if (project && project.customer_id) {
+        customerId = project.customer_id;
+      }
+    }
+
+    // Logic for Walk-in / General ticket
+    if (!customerId) {
+      const walkInCustomer = await queryOne<{ id: number }>('SELECT id FROM customers WHERE mobile = ?', ['0000000000']);
+      if (walkInCustomer) {
+        customerId = walkInCustomer.id;
+      } else {
+        const insertResult = await insert(
+          'INSERT INTO customers (name, mobile, address, city, district, state) VALUES (?, ?, ?, ?, ?, ?)',
+          [(data as any).customer_name || 'Walk-in Customer', '0000000000', 'Walk-in', 'General', 'General', 'General']
+        );
+        customerId = insertResult;
+      }
+      
+      if ((data as any).customer_name) {
+        data.description = `[Walk-in: ${(data as any).customer_name}]\n${data.description || ''}`;
+      }
+    }
+
     const ticketNumber = await serviceTicketDb.generateNumber();
     return insert(
       `INSERT INTO service_tickets (ticket_number, project_id, customer_id, issue_category, issue_type,
@@ -333,7 +359,7 @@ export const serviceTicketDb = {
       [
         ticketNumber,
         data.project_id || null,
-        data.customer_id || null,
+        customerId || null,
         data.issue_category || null,
         data.issue_type || null,
         data.priority || null,

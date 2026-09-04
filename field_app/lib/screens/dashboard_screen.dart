@@ -13,6 +13,8 @@ import '../main.dart' show baseUrl;
 import 'quotation_screen.dart';
 import 'payment_screen.dart';
 import 'customers_screen.dart';
+import 'scan_inventory_screen.dart';
+import 'add_product_screen.dart';
 
 
 class FieldDashboardScreen extends StatefulWidget {
@@ -283,6 +285,8 @@ class _FieldDashboardScreenState extends State<FieldDashboardScreen> {
       case 'SALES':
       case 'MARKETING':
         return 'Sales & Marketing Portal';
+      case 'INVENTORY_MANAGER':
+        return 'Inventory & Stock Portal';
       default:
         return 'Solar Executive Portal';
     }
@@ -299,6 +303,8 @@ class _FieldDashboardScreenState extends State<FieldDashboardScreen> {
       case 'SALES':
       case 'MARKETING':
         return 'Register new customer bookings, track leads & check stock.';
+      case 'INVENTORY_MANAGER':
+        return 'Manage products, scan stock, and update inventory.';
       default:
         return 'System-wide metrics across DISCOM, Installs, Sales & Tickets.';
     }
@@ -440,6 +446,53 @@ class _FieldDashboardScreenState extends State<FieldDashboardScreen> {
                       _buildStatCard('Active Installs', _activeInstalls.toString(), Colors.green.shade700),
                       _buildStatCard('Completed Projects', _completedJobs.toString(), Colors.blue.shade700),
                     ],
+                  ),
+                ],
+
+                // INVENTORY MANAGER ACTIONS
+                if (_role == 'INVENTORY_MANAGER' || isAdmin) ...[
+                  const SizedBox(height: 20),
+                  Text(
+                    'Inventory Management',
+                    style: GoogleFonts.hankenGrotesk(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 12),
+                  Card(
+                    elevation: 0,
+                    color: Colors.blue.shade50,
+                    shape: RoundedRectangleBorder(
+                      side: BorderSide(color: Colors.blue.shade200),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      leading: const Icon(Icons.qr_code_scanner, color: Colors.blue, size: 36),
+                      title: const Text('Scan QR Code', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      subtitle: const Text('Add new inventory by scanning the QR code'),
+                      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                      onTap: () {
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => const ScanInventoryScreen()));
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Card(
+                    elevation: 0,
+                    color: Colors.purple.shade50,
+                    shape: RoundedRectangleBorder(
+                      side: BorderSide(color: Colors.purple.shade200),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      leading: const Icon(Icons.add_box, color: Colors.purple, size: 36),
+                      title: const Text('Add Product', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                      subtitle: const Text('Add a new product model to the system'),
+                      trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                      onTap: () {
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => const AddProductScreen()));
+                      },
+                    ),
                   ),
                 ],
 

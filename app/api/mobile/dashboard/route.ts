@@ -23,7 +23,7 @@ export async function GET(request: Request) {
     const pendingJeQuery = await query("SELECT COUNT(*) as count FROM je_verifications WHERE status = 'PENDING'");
     const pendingSdoQuery = await query("SELECT COUNT(*) as count FROM sdo_verifications WHERE status = 'PENDING'");
     const pendingXenQuery = await query("SELECT COUNT(*) as count FROM xen_verifications WHERE status = 'PENDING'");
-    const pendingSecondQuery = await query("SELECT COUNT(*) as count FROM discom_applications WHERE second_approval_status = 'PENDING' OR second_approval_status IS NULL");
+    const pendingSecondQuery = await query("SELECT COUNT(*) as count FROM discom_applications WHERE status IN ('FEE_PENDING', 'PORTAL_UPDATE_PENDING')");
 
     const stats = {
       pendingSurveys: (surveysQuery as any[])[0]?.count || 0,
