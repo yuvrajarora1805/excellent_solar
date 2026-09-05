@@ -4,9 +4,7 @@ import type { NextRequest } from 'next/server';
 
 import jwt from 'jsonwebtoken';
 
-// Configure middleware to use Node.js runtime (required for mysql2/NextAuth)
-export const runtime = 'nodejs';
-
+// Route configs are not allowed in proxy file
 // Routes that don't require authentication
 const publicRoutes = [
   '/login',
@@ -74,6 +72,15 @@ export default auth((req) => {
   const { pathname } = req.nextUrl;
   const isLoggedIn = !!req.auth;
   const userRole = req.auth?.user?.role;
+
+  // Check if route is static (replaces config.matcher)
+  if (
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/favicon.ico') ||
+    pathname.match(/\.(svg|png|jpg|jpeg|gif|webp|apk|pdf)$/)
+  ) {
+    return NextResponse.next();
+  }
 
   // Check if route is public
   const isPublicRoute = publicRoutes.some((route) => pathname.startsWith(route));
@@ -179,16 +186,4 @@ export default auth((req) => {
   return NextResponse.next();
 });
 
-export const config = {
-  matcher: [
-    /*
-     * Match all request paths except:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public files (public folder)
-     */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|apk|pdf)$).*)',
-  ],
-};
 
