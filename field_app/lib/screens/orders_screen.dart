@@ -1335,18 +1335,17 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
                                       color: item.isMatched ? Colors.green.shade700 : Colors.red.shade700,
                                     ),
                                   ),
-                                  title: Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  title: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Expanded(
-                                        child: Text(
-                                          'Model: ${item.modelNumber}',
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            color: item.isMatched ? Colors.green.shade900 : Colors.red.shade900,
-                                          ),
+                                      Text(
+                                        'Model: ${item.modelNumber}',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: item.isMatched ? Colors.green.shade900 : Colors.red.shade900,
                                         ),
                                       ),
+                                      const SizedBox(height: 2),
                                       Text(
                                         'Serial: ${item.serialNumber}',
                                         style: TextStyle(
