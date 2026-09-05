@@ -12,6 +12,7 @@ class ScannedInventoryItem {
   final String rawInput;
   bool hasError;
   String? errorMessage;
+  String? productName;
 
   ScannedInventoryItem({
     required this.modelNumber,
@@ -19,6 +20,7 @@ class ScannedInventoryItem {
     required this.rawInput,
     this.hasError = false,
     this.errorMessage,
+    this.productName,
   });
 }
 
@@ -99,6 +101,7 @@ class _ScanInventoryScreenState extends State<ScanInventoryScreen> {
             } else {
               item.hasError = false;
               item.errorMessage = null;
+              item.productName = data['product_name'];
             }
           }
         }
@@ -349,6 +352,7 @@ class _ScanInventoryScreenState extends State<ScanInventoryScreen> {
                             modelNumber: selectedExistingModel!,
                             serialNumber: _scannedItems[i].serialNumber,
                             rawInput: _scannedItems[i].rawInput,
+                            productName: _scannedItems[i].productName,
                           );
                         }
                       }
@@ -447,7 +451,7 @@ class _ScanInventoryScreenState extends State<ScanInventoryScreen> {
                       return ListTile(
                         tileColor: item.hasError ? Colors.red.shade50 : null,
                         leading: Icon(Icons.qr_code, color: item.hasError ? Colors.red : Colors.blue),
-                        title: Text('Model: ${item.modelNumber}'),
+                        title: Text('${item.productName ?? 'Unknown Product'} - Model: ${item.modelNumber}'),
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [

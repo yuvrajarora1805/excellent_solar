@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { orderDb } from '@/lib/db-helpers/orders';
+import { writeFile, mkdir } from 'fs/promises';
+import { join } from 'path';
 
 export async function GET(req: NextRequest) {
   try {
@@ -42,6 +44,7 @@ export async function POST(req: NextRequest) {
       serials,
       dispatchImmediately,
       user_id,
+      vehicle_photo_base64,
     } = body;
 
     if (!customer_name) {
@@ -53,6 +56,23 @@ export async function POST(req: NextRequest) {
     }
 
     const userId = user_id || 1;
+    let final_vehicle_photo_path = vehicle_photo_path;
+
+    if (vehicle_photo_base64) {
+      try {
+        const uploadDir = join(process.cwd(), 'public', 'uploads', 'dispatch');
+        await mkdir(uploadDir, { recursive: true });
+        
+        const buffer = Buffer.from(vehicle_photo_base64, 'base64');
+        const filename = `dispatch_${Date.now()}_${Math.floor(Math.random() * 1000)}.jpg`;
+        const filepath = join(uploadDir, filename);
+        
+        await writeFile(filepath, buffer);
+        final_vehicle_photo_path = `/uploads/dispatch/${filename}`;
+      } catch (e) {
+        console.error("Failed to save base64 image", e);
+      }
+    }
 
       // Mobile app bug workaround: The mobile app hardcodes product_id = 1.
       // We must look up the real product_id using the serial number.
@@ -165,7 +185,7 @@ export async function POST(req: NextRequest) {
         vehicle_number,
         driver_name,
         driver_mobile,
-        vehicle_photo_path,
+        vehicle_photo_path: final_vehicle_photo_path,
         total_amount: Number(total_amount || 0),
         items: finalItems,
         serials: finalSerials,

@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'product_picker_screen.dart';
+import 'order_detail_screen.dart';
 import '../services/api_service.dart';
 import '../main.dart' show baseUrl;
 
@@ -142,14 +143,26 @@ class _OrdersScreenState extends State<OrdersScreen> {
                           final isProject = order['order_type'] == 'PROJECT';
                           final isDispatched = order['status'] == 'DISPATCHED' || order['status'] == 'DELIVERED';
 
-                          return Card(
-                            elevation: 0,
-                            margin: const EdgeInsets.only(bottom: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                              side: BorderSide(color: Colors.grey.shade300),
-                            ),
-                            child: Padding(
+                          return InkWell(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => OrderDetailScreen(
+                                    orderId: order['id'],
+                                    orderNumber: order['order_number'] ?? 'Order',
+                                  ),
+                                ),
+                              );
+                            },
+                            child: Card(
+                              elevation: 0,
+                              margin: const EdgeInsets.only(bottom: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                side: BorderSide(color: Colors.grey.shade300),
+                              ),
+                              child: Padding(
                               padding: const EdgeInsets.all(14.0),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -231,8 +244,9 @@ class _OrdersScreenState extends State<OrdersScreen> {
                                 ],
                               ),
                             ),
-                          );
-                        },
+                          ),
+                        );
+                      },
                       ),
           ),
         ],
@@ -471,6 +485,7 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
         'delivery_address': _deliveryAddressController.text.trim(),
         'vehicle_number': _vehicleNumberController.text.trim(),
         'driver_name': _driverNameController.text.trim(),
+        'vehicle_photo_base64': _vehiclePhoto != null ? base64Encode(_vehiclePhoto!.readAsBytesSync()) : null,
         'total_amount': _scannedItems.length * 23500,
         'items': _nonSerializedProducts.map((p) => {
           'product_id': p.product.id,
@@ -739,7 +754,7 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
                             children: _scannedItems
                                 .map((p) => Chip(
                                       avatar: const Icon(Icons.check_circle, size: 16, color: Colors.green),
-                                      label: Text('${p.modelNumber} (${p.serialNumber})', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                      label: Text('${p.productName} - ${p.modelNumber} (${p.serialNumber})', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                                       onDeleted: () => setState(() => _scannedItems.remove(p)),
                                     ))
                                 .toList(),

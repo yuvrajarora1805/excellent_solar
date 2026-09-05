@@ -34,7 +34,7 @@ export async function POST(req: Request) {
 
     // Check if model exists
     const existingProducts: any = await query(
-      'SELECT id FROM products WHERE model = ? OR product_code = ? LIMIT 1',
+      'SELECT id, name FROM products WHERE model = ? OR product_code = ? LIMIT 1',
       [model_number, model_number]
     );
 
@@ -61,6 +61,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       success: true,
       message: 'Valid item',
+      product_name: existingProducts[0].name || 'Unknown Product',
     });
   } catch (error: any) {
     console.error('Error validating scan:', error);
