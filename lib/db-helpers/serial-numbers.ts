@@ -209,11 +209,11 @@ export const serialNumberDb = {
     );
     
     const invResults = await query<any>(
-      `SELECT inv.id, inv.product_id, inv.serial_number, inv.status, inv.created_at, inv.updated_at, p.name as product_name, p.product_code, 'inventory_serials' as source_table
+      `SELECT inv.id, inv.product_id, inv.serial_number, inv.status, inv.added_at as created_at, inv.updated_at, p.name as product_name, p.product_code, 'inventory_serials' as source_table
        FROM inventory_serials inv
        LEFT JOIN products p ON inv.product_id = p.id
        WHERE inv.serial_number LIKE ?
-       ORDER BY inv.created_at DESC
+       ORDER BY inv.added_at DESC
        LIMIT 50`,
       [`%${searchTerm}%`]
     );
