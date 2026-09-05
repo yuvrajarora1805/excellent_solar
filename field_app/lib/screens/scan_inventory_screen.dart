@@ -70,6 +70,47 @@ class _ScanInventoryScreenState extends State<ScanInventoryScreen> {
           rawInput: rawVal,
         ));
       });
+      
+      _validateItem(modelNumber, serialNumber);
+    }
+  }
+
+  Future<void> _validateItem(String modelNumber, String serialNumber) async {
+    try {
+      final response = await ApiService.post(
+        Uri.parse('$baseUrl/api/mobile/inventory/validate-scan'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'model_number': modelNumber,
+          'serial_number': serialNumber,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+      
+      if (!mounted) return;
+      
+      setState(() {
+        for (var item in _scannedItems) {
+          if (item.serialNumber == serialNumber) {
+            if (data['success'] == false) {
+              item.hasError = true;
+              item.errorMessage = data['error'];
+            } else {
+              item.hasError = false;
+              item.errorMessage = null;
+            }
+          }
+        }
+        
+        _scannedItems.sort((a, b) {
+          int aError = a.hasError ? 1 : 0;
+          int bError = b.hasError ? 1 : 0;
+          return bError.compareTo(aError);
+        });
+      });
+    } catch (e) {
+      // Ignore background validation errors
     }
   }
 
@@ -134,6 +175,12 @@ class _ScanInventoryScreenState extends State<ScanInventoryScreen> {
             }
           }
         }
+
+        _scannedItems.sort((a, b) {
+          int aError = a.hasError ? 1 : 0;
+          int bError = b.hasError ? 1 : 0;
+          return bError.compareTo(aError);
+        });
 
         setState(() {}); // Update UI to show red items
 
