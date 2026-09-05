@@ -59,7 +59,8 @@ void onStart(ServiceInstance service) async {
 
     final prefs = await SharedPreferences.getInstance();
     final workerId = prefs.getInt('worker_id');
-    if (workerId == null) return;
+    final token = prefs.getString('jwt_token');
+    if (workerId == null || token == null || token.isEmpty) return;
 
     try {
       int lastJobCount = prefs.getInt('last_job_count') ?? 0;
@@ -153,6 +154,8 @@ Future<void> initializeService() async {
   await service.startService();
 }
 
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeService();
@@ -160,7 +163,12 @@ void main() async {
   // Check session
   final prefs = await SharedPreferences.getInstance();
   final workerId = prefs.getInt('worker_id');
-  final initialScreen = workerId != null ? const MainNavigationScreen() : const LoginScreen();
+  final token = prefs.getString('jwt_token');
+  
+  Widget initialScreen = const LoginScreen();
+  if (workerId != null && token != null && token.isNotEmpty) {
+    initialScreen = const MainNavigationScreen();
+  }
   
   runApp(ExcellentSolarFieldApp(initialScreen: initialScreen));
 }
@@ -172,6 +180,7 @@ class ExcellentSolarFieldApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: navigatorKey,
       title: 'Excellent Solar Field App',
       themeMode: ThemeMode.light,
       theme: ThemeData(

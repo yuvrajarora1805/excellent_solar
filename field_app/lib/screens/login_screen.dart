@@ -46,8 +46,9 @@ class _LoginScreenState extends State<LoginScreen> {
         }
 
         if (!mounted) return;
-        Navigator.of(context).pushReplacement(
+        Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => const MainNavigationScreen()),
+          (route) => false,
         );
       } else {
         print('LOGIN FAILED: Status Code ${response.statusCode}, Body: ${response.body}');

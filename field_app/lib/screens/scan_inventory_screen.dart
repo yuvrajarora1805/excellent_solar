@@ -132,8 +132,9 @@ class _ScanInventoryScreenState extends State<ScanInventoryScreen> {
   }
 
   Future<void> _showCreateProductPopup(String modelNumber) async {
-    // Fetch categories first
-    List<String> categories = [];
+    // Fetch categories and existing products
+    List<String> categories = ['SOLAR_PANEL', 'INVERTER', 'STRUCTURE', 'CABLE', 'OTHER'];
+    List<dynamic> existingProducts = [];
     try {
       final res = await ApiService.get(Uri.parse('$baseUrl/api/mobile/inventory/categories'));
       if (res.statusCode == 200) {
@@ -142,12 +143,12 @@ class _ScanInventoryScreenState extends State<ScanInventoryScreen> {
           categories = List<String>.from(data['categories']);
         }
       }
+      final pRes = await ApiService.get(Uri.parse('$baseUrl/api/inventory/products'));
+      if (pRes.statusCode == 200) {
+        existingProducts = jsonDecode(pRes.body);
+      }
     } catch (e) {
-      debugPrint('Error fetching categories: $e');
-    }
-
-    if (categories.isEmpty) {
-      categories = ['SOLAR_PANEL', 'INVERTER', 'STRUCTURE', 'CABLE', 'OTHER'];
+      debugPrint('Error fetching data: $e');
     }
 
     if (!mounted) return;
@@ -157,6 +158,9 @@ class _ScanInventoryScreenState extends State<ScanInventoryScreen> {
     final TextEditingController newCatController = TextEditingController();
     final TextEditingController nameController = TextEditingController();
     final TextEditingController brandController = TextEditingController();
+    
+    bool isMapping = existingProducts.isNotEmpty;
+    String? selectedExistingModel = existingProducts.isNotEmpty ? existingProducts.first['model'] : null;
 
     await showDialog(
       context: context,
@@ -169,44 +173,85 @@ class _ScanInventoryScreenState extends State<ScanInventoryScreen> {
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Text('This product model does not exist. Please register it now to continue.'),
+                    const Text('This product model does not exist. Choose an action:'),
                     const SizedBox(height: 16),
-                    TextField(
-                      controller: nameController,
-                      decoration: const InputDecoration(labelText: 'Product Name', border: OutlineInputBorder()),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: brandController,
-                      decoration: const InputDecoration(labelText: 'Brand', border: OutlineInputBorder()),
-                    ),
-                    const SizedBox(height: 12),
                     Row(
                       children: [
-                        Checkbox(
-                          value: isNewCategory,
-                          onChanged: (val) {
-                            setDialogState(() => isNewCategory = val ?? false);
-                          },
+                        Expanded(
+                          child: RadioListTile<bool>(
+                            title: const Text('Map to Existing', style: TextStyle(fontSize: 13)),
+                            value: true,
+                            groupValue: isMapping,
+                            onChanged: existingProducts.isEmpty ? null : (val) => setDialogState(() => isMapping = val!),
+                            contentPadding: EdgeInsets.zero,
+                          ),
                         ),
-                        const Text('Add New Category?'),
+                        Expanded(
+                          child: RadioListTile<bool>(
+                            title: const Text('Create New', style: TextStyle(fontSize: 13)),
+                            value: false,
+                            groupValue: isMapping,
+                            onChanged: (val) => setDialogState(() => isMapping = val!),
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                        ),
                       ],
                     ),
-                    if (isNewCategory)
-                      TextField(
-                        controller: newCatController,
-                        decoration: const InputDecoration(labelText: 'New Category Name', border: OutlineInputBorder()),
-                      )
-                    else
+                    const Divider(),
+                    if (isMapping) ...[
+                      const Text('Select an existing product to map this scan to:'),
+                      const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
-                        value: selectedCategory,
-                        items: categories.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                        isExpanded: true,
+                        value: selectedExistingModel,
+                        items: existingProducts.map((p) => DropdownMenuItem<String>(
+                          value: p['model'] ?? p['product_code'],
+                          child: Text('${p['name']} (${p['model'] ?? p['product_code']})', overflow: TextOverflow.ellipsis),
+                        )).toList(),
                         onChanged: (val) {
-                          if (val != null) setDialogState(() => selectedCategory = val);
+                          if (val != null) setDialogState(() => selectedExistingModel = val);
                         },
-                        decoration: const InputDecoration(labelText: 'Category', border: OutlineInputBorder()),
+                        decoration: const InputDecoration(labelText: 'Existing Product', border: OutlineInputBorder()),
                       ),
+                    ] else ...[
+                      TextField(
+                        controller: nameController,
+                        decoration: const InputDecoration(labelText: 'Product Name', border: OutlineInputBorder()),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(
+                        controller: brandController,
+                        decoration: const InputDecoration(labelText: 'Brand', border: OutlineInputBorder()),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Checkbox(
+                            value: isNewCategory,
+                            onChanged: (val) {
+                              setDialogState(() => isNewCategory = val ?? false);
+                            },
+                          ),
+                          const Text('Add New Category?'),
+                        ],
+                      ),
+                      if (isNewCategory)
+                        TextField(
+                          controller: newCatController,
+                          decoration: const InputDecoration(labelText: 'New Category Name', border: OutlineInputBorder()),
+                        )
+                      else
+                        DropdownButtonFormField<String>(
+                          value: selectedCategory,
+                          items: categories.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                          onChanged: (val) {
+                            if (val != null) setDialogState(() => selectedCategory = val);
+                          },
+                          decoration: const InputDecoration(labelText: 'Category', border: OutlineInputBorder()),
+                        ),
+                    ],
                   ],
                 ),
               ),
@@ -219,34 +264,50 @@ class _ScanInventoryScreenState extends State<ScanInventoryScreen> {
                 ),
                 ElevatedButton(
                   onPressed: () async {
-                    String finalCat = isNewCategory ? newCatController.text.trim() : selectedCategory;
-                    if (finalCat.isEmpty) return;
-
-                    final payload = {
-                      'model_number': modelNumber,
-                      'category': finalCat,
-                      'name': nameController.text.trim(),
-                      'brand': brandController.text.trim(),
-                    };
-
-                    final res = await ApiService.post(
-                      Uri.parse('$baseUrl/api/mobile/products/create'),
-                      headers: {'Content-Type': 'application/json'},
-                      body: jsonEncode(payload),
-                    );
-
-                    if (res.statusCode == 200 || res.statusCode == 201) {
+                    if (isMapping) {
+                      if (selectedExistingModel == null) return;
+                      // Update scanned items to map to existing model
+                      for (int i = 0; i < _scannedItems.length; i++) {
+                        if (_scannedItems[i].modelNumber == modelNumber) {
+                          _scannedItems[i] = ScannedInventoryItem(
+                            modelNumber: selectedExistingModel!,
+                            serialNumber: _scannedItems[i].serialNumber,
+                            rawInput: _scannedItems[i].rawInput,
+                          );
+                        }
+                      }
                       Navigator.pop(context);
-                      // Retry the bulk submission now that it's registered
                       _submitBulkScan();
                     } else {
-                      final errData = jsonDecode(res.body);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text(errData['error'] ?? 'Failed to create product'), backgroundColor: Colors.red),
+                      String finalCat = isNewCategory ? newCatController.text.trim() : selectedCategory;
+                      if (finalCat.isEmpty) return;
+
+                      final payload = {
+                        'model_number': modelNumber,
+                        'category': finalCat,
+                        'name': nameController.text.trim(),
+                        'brand': brandController.text.trim(),
+                      };
+
+                      final res = await ApiService.post(
+                        Uri.parse('$baseUrl/api/mobile/products/create'),
+                        headers: {'Content-Type': 'application/json'},
+                        body: jsonEncode(payload),
                       );
+
+                      if (res.statusCode == 200 || res.statusCode == 201) {
+                        Navigator.pop(context);
+                        // Retry the bulk submission now that it's registered
+                        _submitBulkScan();
+                      } else {
+                        final errData = jsonDecode(res.body);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text(errData['error'] ?? 'Failed to create product'), backgroundColor: Colors.red),
+                        );
+                      }
                     }
                   },
-                  child: const Text('Create & Continue'),
+                  child: Text(isMapping ? 'Map & Continue' : 'Create & Continue'),
                 ),
               ],
             );

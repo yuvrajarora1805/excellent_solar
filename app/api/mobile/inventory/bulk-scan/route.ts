@@ -81,7 +81,9 @@ export async function POST(req: Request) {
 
       if (successCount === 0 && errors.length > 0) {
         // Rollback handled if we threw an error, but here we can just return failure
-        throw new Error('All scans failed: ' + JSON.stringify(errors));
+        const error: any = new Error('All scans failed');
+        error.errorsPayload = errors;
+        throw error;
       }
 
       return NextResponse.json({
@@ -93,6 +95,12 @@ export async function POST(req: Request) {
     });
   } catch (error: any) {
     console.error('Error in bulk inventory scan:', error);
+    if (error.errorsPayload) {
+      return NextResponse.json(
+        { error: 'Bulk scan failed', message: error.message, errors: error.errorsPayload, success: false },
+        { status: 400 }
+      );
+    }
     return NextResponse.json(
       { error: 'Internal server error', message: error.message },
       { status: 500 }
