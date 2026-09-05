@@ -132,17 +132,21 @@ class _ScanInventoryScreenState extends State<ScanInventoryScreen> {
   }
 
   Future<void> _showCreateProductPopup(String modelNumber) async {
-    // Fetch categories and existing products
-    List<String> categories = ['SOLAR_PANEL', 'INVERTER', 'STRUCTURE', 'CABLE', 'OTHER'];
+    // Hardcoded list of categories to match the web app exactly
+    List<String> categories = [
+      'Solar Panel',
+      'Inverter',
+      'Structure',
+      'Cable',
+      'Connector',
+      'Earthing',
+      'ACDB/DCDB',
+      'Breaker',
+      'Accessories'
+    ];
+    
     List<dynamic> existingProducts = [];
     try {
-      final res = await ApiService.get(Uri.parse('$baseUrl/api/mobile/inventory/categories'));
-      if (res.statusCode == 200) {
-        final data = jsonDecode(res.body);
-        if (data['success'] == true && data['categories'] != null) {
-          categories = List<String>.from(data['categories']);
-        }
-      }
       final pRes = await ApiService.get(Uri.parse('$baseUrl/api/inventory/products'));
       if (pRes.statusCode == 200) {
         existingProducts = jsonDecode(pRes.body);

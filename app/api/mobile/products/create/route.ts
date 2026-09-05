@@ -42,9 +42,9 @@ export async function POST(req: Request) {
     const productCode = model_number.toUpperCase().replace(/\s+/g, '-');
     const productName = name || `${category} - ${model_number}`;
 
-    const [existing] = await query('SELECT id FROM products WHERE model = ? OR product_code = ?', [model_number, productCode]);
+    const existingRows = await query('SELECT id FROM products WHERE model = ? OR product_code = ?', [model_number, productCode]);
 
-    if ((existing as any[]).length > 0) {
+    if (existingRows.length > 0) {
       return NextResponse.json(
         { error: 'Product with this model number already exists' },
         { status: 400 }
