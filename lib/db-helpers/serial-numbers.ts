@@ -195,9 +195,9 @@ export const serialNumberDb = {
   },
 
   // Search serial number across all products
-  search: async (searchTerm: string): Promise<ProductSerialNumber[]> => {
-    return query<ProductSerialNumber>(
-      `SELECT psn.*, p.name as product_name, p.product_code, pr.project_id, c.name as customer_name
+  search: async (searchTerm: string): Promise<any[]> => {
+    const psnResults = await query<any>(
+      `SELECT psn.*, p.name as product_name, p.product_code, pr.project_id, c.name as customer_name, 'product_serial_numbers' as source_table
        FROM product_serial_numbers psn
        LEFT JOIN products p ON psn.product_id = p.id
        LEFT JOIN projects pr ON psn.project_id = pr.id
@@ -207,6 +207,18 @@ export const serialNumberDb = {
        LIMIT 50`,
       [`%${searchTerm}%`]
     );
+    
+    const invResults = await query<any>(
+      `SELECT inv.id, inv.product_id, inv.serial_number, inv.status, inv.created_at, inv.updated_at, p.name as product_name, p.product_code, 'inventory_serials' as source_table
+       FROM inventory_serials inv
+       LEFT JOIN products p ON inv.product_id = p.id
+       WHERE inv.serial_number LIKE ?
+       ORDER BY inv.created_at DESC
+       LIMIT 50`,
+      [`%${searchTerm}%`]
+    );
+    
+    return [...psnResults, ...invResults];
   },
 
   // Get available serial numbers for a product

@@ -87,14 +87,21 @@ export async function POST(req: NextRequest) {
         const serialNumbers = serials.map(s => String(s.serial_number || '').trim());
         console.log("Cleaned serial numbers for DB lookup:", serialNumbers);
         
-        // Fetch real product_id for all scanned serials and check their current status
+        // Fetch real product_id for all scanned serials and check their current status in both tables
         const placeholders = serialNumbers.map(() => '?').join(',');
         const serialRows: any = await query(
-          `SELECT ps.serial_number, ps.product_id, p.selling_price, ps.status
-           FROM product_serial_numbers ps 
-           JOIN products p ON ps.product_id = p.id 
-           WHERE ps.serial_number IN (${placeholders})`,
-          serialNumbers
+          `SELECT serial_number, product_id, selling_price, status FROM (
+             SELECT ps.serial_number, ps.product_id, p.selling_price, ps.status
+             FROM product_serial_numbers ps 
+             JOIN products p ON ps.product_id = p.id 
+             WHERE ps.serial_number IN (${placeholders})
+             UNION ALL
+             SELECT inv.serial_number, inv.product_id, p.selling_price, inv.status
+             FROM inventory_serials inv
+             JOIN products p ON inv.product_id = p.id
+             WHERE inv.serial_number IN (${placeholders})
+           ) as combined`,
+          [...serialNumbers, ...serialNumbers]
         );
         console.log("DB lookup returned:", JSON.stringify(serialRows));
 

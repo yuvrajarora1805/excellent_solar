@@ -344,7 +344,7 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
       context,
       MaterialPageRoute(
         builder: (context) => MultiCameraBarcodeScannerView(
-          initialScannedPanels: List.from(_scannedItems),
+          initialScannedItems: List.from(_scannedItems),
         ),
       ),
     );
@@ -975,15 +975,21 @@ String extractSerialNumberFromBarcode(String raw) {
     } catch (_) {}
   }
 
-  // 3. Multi-line QR text parsing (e.g. "BRAND: WAAREE\nSN: WS08269074875699")
-  if (input.contains('\n') || input.contains('\r')) {
-    final lines = input.split(RegExp(r'[\r\n]+'));
+  // 3. Multi-line or delimited QR text parsing (e.g. "BRAND: WAAREE\nSN: WS08269074875699" or "PN:WSP6000i;SN:WPS060260800411")
+  String standardizedInput = input.replaceAll(RegExp(r'[;,|]'), '\n');
+  if (standardizedInput.contains('\n') || standardizedInput.contains('\r')) {
+    final lines = standardizedInput.split(RegExp(r'[\r\n]+'));
+    
+    // First pass: look for explicit serial number prefixes
     for (final line in lines) {
-      final parsedLine = extractSerialNumberFromBarcode(line);
-      if (parsedLine.isNotEmpty && parsedLine != line.trim()) {
-        return parsedLine;
+      final trimmed = line.trim();
+      final prefixMatch = RegExp(r'^(SN\s*:?\s*|S/N\s*:?\s*|SERIAL\s*(NO)?\.?\s*:?\s*|SR\s*NO\.?\s*:?\s*|MODULE\s*SN\s*:?\s*)', caseSensitive: false);
+      if (prefixMatch.hasMatch(trimmed)) {
+        return trimmed.replaceFirst(prefixMatch, '').trim();
       }
     }
+    
+    // Second pass: if no explicit prefix, look for a long alphanumeric string that looks like a serial
     for (final line in lines) {
       final trimmed = line.trim();
       if (RegExp(r'^[A-Za-z0-9]{8,30}$').hasMatch(trimmed)) {
@@ -1003,6 +1009,14 @@ String extractSerialNumberFromBarcode(String raw) {
     return input.substring(2);
   }
 
+  // 6. Handle space-separated "MODEL SERIAL" format used for solar panels
+  if (input.contains(' ')) {
+    final parts = input.split(' ');
+    if (parts.length >= 2) {
+      return parts.sublist(1).join(' ').trim();
+    }
+  }
+
   return input;
 }
 
@@ -1010,11 +1024,11 @@ String extractSerialNumberFromBarcode(String raw) {
 // CONTINUOUS 1D & 2D MULTI-BARCODE SCANNER VIEW WITH LIVE INVENTORY MATCHING
 // ============================================================================
 class MultiCameraBarcodeScannerView extends StatefulWidget {
-  final List<ScannedItem> initialScannedPanels;
+  final List<ScannedItem> initialScannedItems;
 
   const MultiCameraBarcodeScannerView({
     super.key,
-    required this.initialScannedPanels,
+    required this.initialScannedItems,
   });
 
   @override
@@ -1046,7 +1060,7 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
   @override
   void initState() {
     super.initState();
-    _scannedItems = List.from(widget.initialScannedPanels);
+    _scannedItems = List.from(widget.initialScannedItems);
     _processingSerials.addAll(_scannedItems.map((p) => p.serialNumber));
   }
 
@@ -1169,7 +1183,7 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          '1D/2D Barcode Panel Scanner (${_scannedItems.where((p) => p.isMatched).length})',
+          '1D/2D Barcode Scanner (${_scannedItems.where((p) => p.isMatched).length})',
           style: GoogleFonts.hankenGrotesk(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.black,
@@ -1264,7 +1278,7 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
                             const Icon(Icons.verified, size: 18, color: Colors.green),
                             const SizedBox(width: 6),
                             Text(
-                              'Matched Stock Panels (${_scannedItems.where((p) => p.isMatched).length})',
+                              'Matched Stock Items (${_scannedItems.where((p) => p.isMatched).length})',
                               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                             ),
                           ],
@@ -1301,75 +1315,70 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                             itemCount: _scannedItems.length,
                             itemBuilder: (context, index) {
-                              final panel = _scannedItems[index];
-                              final isAvailable = panel.status == 'AVAILABLE';
+                              final item = _scannedItems[index];
+                              final isAvailable = item.status == 'AVAILABLE';
 
                               return Card(
                                 margin: const EdgeInsets.only(bottom: 8),
                                 elevation: 0,
-                                color: panel.isMatched ? Colors.green.shade50 : Colors.red.shade50,
+                                color: item.isMatched ? Colors.green.shade50 : Colors.red.shade50,
                                 shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  side: BorderSide(color: panel.isMatched ? Colors.green.shade300 : Colors.red.shade300),
+                                  borderRadius: BorderRadius.circular(12),
+                                  side: BorderSide(color: item.isMatched ? Colors.green.shade300 : Colors.red.shade300),
                                 ),
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                                  child: Row(
+                                child: ListTile(
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                  leading: CircleAvatar(
+                                    backgroundColor: Colors.white,
+                                    child: Icon(
+                                      item.isMatched ? Icons.check_circle : Icons.warning_amber_rounded,
+                                      color: item.isMatched ? Colors.green.shade700 : Colors.red.shade700,
+                                    ),
+                                  ),
+                                  title: Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Icon(
-                                        panel.isMatched ? Icons.check_circle : Icons.warning_amber_rounded,
-                                        color: panel.isMatched ? Colors.green.shade700 : Colors.red.shade700,
-                                        size: 22,
-                                      ),
-                                      const SizedBox(width: 10),
                                       Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              'Model: ${panel.modelNumber}',
-                                              style: TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 14,
-                                                color: panel.isMatched ? Colors.green.shade900 : Colors.red.shade900,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 2),
-                                            Text(
-                                              'Serial: ${panel.serialNumber}',
-                                              style: const TextStyle(fontSize: 12, fontFamily: 'monospace', color: Colors.black87),
-                                            ),
-                                            const SizedBox(height: 4),
-                                            Row(
-                                              children: [
-                                                Container(
-                                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                                  decoration: BoxDecoration(
-                                                    color: panel.isMatched
-                                                        ? (isAvailable ? Colors.green.shade700 : Colors.red.shade700)
-                                                        : Colors.red.shade700,
-                                                    borderRadius: BorderRadius.circular(4),
-                                                  ),
-                                                  child: Text(
-                                                    panel.isMatched
-                                                        ? '✓ MATCHED STOCK (${panel.status})'
-                                                        : '❌ NOT IN INVENTORY (Removing in 1s...)',
-                                                    style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ],
+                                        child: Text(
+                                          'Model: ${item.modelNumber}',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            color: item.isMatched ? Colors.green.shade900 : Colors.red.shade900,
+                                          ),
                                         ),
                                       ),
-                                      IconButton(
-                                        icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
-                                        onPressed: () => setState(() {
-                                          _processingSerials.remove(_scannedItems[index].serialNumber);
-                                          _scannedItems.removeAt(index);
-                                        }),
+                                      Text(
+                                        'Serial: ${item.serialNumber}',
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w500,
+                                          color: Colors.grey.shade700,
+                                        ),
                                       ),
                                     ],
+                                  ),
+                                  subtitle: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        item.isMatched
+                                            ? '✓ MATCHED STOCK (${item.status})'
+                                            : '❌ NOT IN INVENTORY (Removing in 1s...)',
+                                        style: TextStyle(
+                                          color: item.isMatched ? Colors.green.shade800 : Colors.red.shade800,
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  trailing: IconButton(
+                                    icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
+                                    onPressed: () => setState(() {
+                                      _processingSerials.remove(_scannedItems[index].serialNumber);
+                                      _scannedItems.removeAt(index);
+                                    }),
                                   ),
                                 ),
                               );
@@ -1382,20 +1391,18 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
                     padding: const EdgeInsets.all(12.0),
                     child: SizedBox(
                       width: double.infinity,
-                      child: ElevatedButton.icon(
+                      child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green.shade700,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          backgroundColor: Theme.of(context).primaryColor,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                         onPressed: () {
-                          final matchedPanels = _scannedItems.where((p) => p.isMatched).toList();
-                          Navigator.pop(context, matchedPanels);
+                          final matchedItems = _scannedItems.where((p) => p.isMatched).toList();
+                          Navigator.pop(context, matchedItems);
                         },
-                        icon: const Icon(Icons.check_circle_outline, color: Colors.white),
-                        label: Text(
-                          'Confirm & Attach (${_scannedItems.where((p) => p.isMatched).length}) Matched Panels',
+                        child: Text(
+                          'Confirm & Attach (${_scannedItems.where((p) => p.isMatched).length}) Matched Items',
                           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                         ),
                       ),
