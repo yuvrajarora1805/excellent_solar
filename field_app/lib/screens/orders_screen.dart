@@ -9,7 +9,7 @@ import 'product_picker_screen.dart';
 import '../services/api_service.dart';
 import '../main.dart' show baseUrl;
 
-class ScannedPanelItem {
+class ScannedItem {
   final String serialNumber;
   final bool isMatched;
   final String status;
@@ -17,7 +17,7 @@ class ScannedPanelItem {
   final String modelNumber;
   final String remarks;
 
-  ScannedPanelItem({
+  ScannedItem({
     required this.serialNumber,
     required this.isMatched,
     required this.status,
@@ -275,7 +275,7 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
   final _driverNameController = TextEditingController();
   final _barcodeInputController = TextEditingController();
 
-  List<ScannedPanelItem> _scannedPanels = [];
+  List<ScannedItem> _scannedItems = [];
   List<SelectedProduct> _nonSerializedProducts = [];
   File? _vehiclePhoto;
   bool _isSubmitting = false;
@@ -326,18 +326,18 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
   }
 
   Future<void> _openMultiCameraScanner() async {
-    final List<ScannedPanelItem>? results = await Navigator.push(
+    final List<ScannedItem>? results = await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => MultiCameraBarcodeScannerView(
-          initialScannedPanels: List.from(_scannedPanels),
+          initialScannedPanels: List.from(_scannedItems),
         ),
       ),
     );
 
     if (results != null) {
       setState(() {
-        _scannedPanels = results;
+        _scannedItems = results;
       });
     }
   }
@@ -377,7 +377,7 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
 
     final code = extractSerialNumberFromBarcode(rawInput);
 
-    if (_scannedPanels.any((p) => p.serialNumber == code || p.serialNumber == rawInput)) {
+    if (_scannedItems.any((p) => p.serialNumber == code || p.serialNumber == rawInput)) {
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('⚠️ Serial Number $code is already added!')),
@@ -406,10 +406,10 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
       if (list.isNotEmpty) {
         final item = list.first;
         final String matchedSerial = item['serial_number'] ?? code;
-        final String modelStr = item['model_number'] ?? item['product_code'] ?? item['model'] ?? 'BIN-21-615';
-        final String nameStr = item['product_name'] ?? 'Waaree TopCon 615W Solar Panel';
+        final String modelStr = item['model_number'] ?? item['product_code'] ?? item['model'] ?? 'Unknown Model';
+        final String nameStr = item['product_name'] ?? 'Unknown Product';
 
-        final matchedItem = ScannedPanelItem(
+        final matchedItem = ScannedItem(
           serialNumber: matchedSerial,
           isMatched: true,
           status: item['status'] ?? 'AVAILABLE',
@@ -420,7 +420,7 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
 
         if (!mounted) return;
         setState(() {
-          _scannedPanels.insert(0, matchedItem);
+          _scannedItems.insert(0, matchedItem);
           _barcodeInputController.clear();
           _isCheckingManual = false;
         });
@@ -462,7 +462,7 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
     try {
       setState(() => _isSubmitting = true);
 
-      final serialsList = _scannedPanels.map((p) => {'product_id': 1, 'serial_number': p.serialNumber}).toList();
+      final serialsList = _scannedItems.map((p) => {'product_id': 1, 'serial_number': p.serialNumber}).toList();
       final body = {
         'order_type': _orderType,
         'project_id': _selectedProjectIdStr != null ? int.tryParse(_selectedProjectIdStr!) : null,
@@ -471,7 +471,7 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
         'delivery_address': _deliveryAddressController.text.trim(),
         'vehicle_number': _vehicleNumberController.text.trim(),
         'driver_name': _driverNameController.text.trim(),
-        'total_amount': _scannedPanels.length * 23500,
+        'total_amount': _scannedItems.length * 23500,
         'items': _nonSerializedProducts.map((p) => {
           'product_id': p.product.id,
           'quantity': p.quantity,
@@ -676,7 +676,7 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                               decoration: BoxDecoration(color: Colors.blue.shade700, borderRadius: BorderRadius.circular(12)),
-                              child: Text('${_scannedPanels.length} Panels', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
+                              child: Text('${_scannedItems.length} Items', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
                             ),
                           ],
                         ),
@@ -696,7 +696,7 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
                             onPressed: _openMultiCameraScanner,
                             icon: const Icon(Icons.camera_alt, color: Colors.white),
                             label: Text(
-                              'Open 1D/2D Barcode Camera Scanner (${_scannedPanels.length})',
+                              'Open 1D/2D Barcode Camera Scanner (${_scannedItems.length})',
                               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                             ),
                           ),
@@ -729,18 +729,18 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
                           ],
                         ),
 
-                        if (_scannedPanels.isNotEmpty) ...[
+                        if (_scannedItems.isNotEmpty) ...[
                           const SizedBox(height: 12),
-                          const Text('Attached Solar Panels:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.blue)),
+                          const Text('Attached Scanned Items:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.blue)),
                           const SizedBox(height: 6),
                           Wrap(
                             spacing: 6,
                             runSpacing: 6,
-                            children: _scannedPanels
+                            children: _scannedItems
                                 .map((p) => Chip(
                                       avatar: const Icon(Icons.check_circle, size: 16, color: Colors.green),
                                       label: Text('${p.modelNumber} (${p.serialNumber})', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                                      onDeleted: () => setState(() => _scannedPanels.remove(p)),
+                                      onDeleted: () => setState(() => _scannedItems.remove(p)),
                                     ))
                                 .toList(),
                           ),
@@ -995,7 +995,7 @@ String extractSerialNumberFromBarcode(String raw) {
 // CONTINUOUS 1D & 2D MULTI-BARCODE SCANNER VIEW WITH LIVE INVENTORY MATCHING
 // ============================================================================
 class MultiCameraBarcodeScannerView extends StatefulWidget {
-  final List<ScannedPanelItem> initialScannedPanels;
+  final List<ScannedItem> initialScannedPanels;
 
   const MultiCameraBarcodeScannerView({
     super.key,
@@ -1025,14 +1025,14 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
     ],
   );
 
-  late List<ScannedPanelItem> _scannedPanels;
+  late List<ScannedItem> _scannedItems;
   final Set<String> _processingSerials = {};
 
   @override
   void initState() {
     super.initState();
-    _scannedPanels = List.from(widget.initialScannedPanels);
-    _processingSerials.addAll(_scannedPanels.map((p) => p.serialNumber));
+    _scannedItems = List.from(widget.initialScannedPanels);
+    _processingSerials.addAll(_scannedItems.map((p) => p.serialNumber));
   }
 
   @override
@@ -1050,7 +1050,7 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
       if (serialNumber.isEmpty) continue;
 
       // Synchronous Guard: Lock immediately before async network calls to prevent repeat scans
-      if (_scannedPanels.any((p) => p.serialNumber == serialNumber || p.serialNumber == rawVal) ||
+      if (_scannedItems.any((p) => p.serialNumber == serialNumber || p.serialNumber == rawVal) ||
           _processingSerials.contains(serialNumber) ||
           _processingSerials.contains(rawVal)) {
         continue;
@@ -1062,11 +1062,11 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
       HapticFeedback.mediumImpact();
 
       // 2. Perform Real-Time Live Inventory Match & Status Lookup
-      ScannedPanelItem matchedItem = await _lookupInventoryStatus(serialNumber, rawInput: rawVal);
+      ScannedItem matchedItem = await _lookupInventoryStatus(serialNumber, rawInput: rawVal);
 
       if (!mounted) return;
       setState(() {
-        _scannedPanels.insert(0, matchedItem);
+        _scannedItems.insert(0, matchedItem);
       });
 
       if (!matchedItem.isMatched) {
@@ -1083,7 +1083,7 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
         Future.delayed(const Duration(seconds: 1), () {
           if (mounted) {
             setState(() {
-              _scannedPanels.removeWhere((p) => p.serialNumber == serialNumber || p.serialNumber == rawVal);
+              _scannedItems.removeWhere((p) => p.serialNumber == serialNumber || p.serialNumber == rawVal);
               _processingSerials.remove(serialNumber);
               _processingSerials.remove(rawVal);
             });
@@ -1103,7 +1103,7 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
     }
   }
 
-  Future<ScannedPanelItem> _lookupInventoryStatus(String serial, {String? rawInput}) async {
+  Future<ScannedItem> _lookupInventoryStatus(String serial, {String? rawInput}) async {
     try {
       var response = await ApiService.get(Uri.parse('$baseUrl/api/serial-numbers?search=$serial'));
       List<dynamic> list = [];
@@ -1124,9 +1124,9 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
       if (list.isNotEmpty) {
         final item = list.first;
         final String matchedSerial = item['serial_number'] ?? serial;
-        final String modelStr = item['model_number'] ?? item['product_code'] ?? item['model'] ?? 'BIN-21-615';
-        final String nameStr = item['product_name'] ?? 'Waaree TopCon 615W Solar Panel';
-        return ScannedPanelItem(
+        final String modelStr = item['model_number'] ?? item['product_code'] ?? item['model'] ?? 'Unknown Model';
+        final String nameStr = item['product_name'] ?? 'Unknown Product';
+        return ScannedItem(
           serialNumber: matchedSerial,
           isMatched: true,
           status: item['status'] ?? 'AVAILABLE',
@@ -1139,7 +1139,7 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
       // Fallback
     }
 
-    return ScannedPanelItem(
+    return ScannedItem(
       serialNumber: serial,
       isMatched: false,
       status: 'NOT_FOUND',
@@ -1154,7 +1154,7 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          '1D/2D Barcode Panel Scanner (${_scannedPanels.where((p) => p.isMatched).length})',
+          '1D/2D Barcode Panel Scanner (${_scannedItems.where((p) => p.isMatched).length})',
           style: GoogleFonts.hankenGrotesk(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.black,
@@ -1249,15 +1249,15 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
                             const Icon(Icons.verified, size: 18, color: Colors.green),
                             const SizedBox(width: 6),
                             Text(
-                              'Matched Stock Panels (${_scannedPanels.where((p) => p.isMatched).length})',
+                              'Matched Stock Panels (${_scannedItems.where((p) => p.isMatched).length})',
                               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                             ),
                           ],
                         ),
-                        if (_scannedPanels.isNotEmpty)
+                        if (_scannedItems.isNotEmpty)
                           TextButton(
                             onPressed: () => setState(() {
-                              _scannedPanels.clear();
+                              _scannedItems.clear();
                               _processingSerials.clear();
                             }),
                             child: const Text('Clear All', style: TextStyle(color: Colors.red, fontSize: 12)),
@@ -1268,7 +1268,7 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
 
                   // Scanned Barcodes List View
                   Expanded(
-                    child: _scannedPanels.isEmpty
+                    child: _scannedItems.isEmpty
                         ? Center(
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -1284,9 +1284,9 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
                           )
                         : ListView.builder(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            itemCount: _scannedPanels.length,
+                            itemCount: _scannedItems.length,
                             itemBuilder: (context, index) {
-                              final panel = _scannedPanels[index];
+                              final panel = _scannedItems[index];
                               final isAvailable = panel.status == 'AVAILABLE';
 
                               return Card(
@@ -1350,8 +1350,8 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
                                       IconButton(
                                         icon: const Icon(Icons.delete_outline, color: Colors.red, size: 20),
                                         onPressed: () => setState(() {
-                                          _processingSerials.remove(_scannedPanels[index].serialNumber);
-                                          _scannedPanels.removeAt(index);
+                                          _processingSerials.remove(_scannedItems[index].serialNumber);
+                                          _scannedItems.removeAt(index);
                                         }),
                                       ),
                                     ],
@@ -1375,12 +1375,12 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
                         onPressed: () {
-                          final matchedPanels = _scannedPanels.where((p) => p.isMatched).toList();
+                          final matchedPanels = _scannedItems.where((p) => p.isMatched).toList();
                           Navigator.pop(context, matchedPanels);
                         },
                         icon: const Icon(Icons.check_circle_outline, color: Colors.white),
                         label: Text(
-                          'Confirm & Attach (${_scannedPanels.where((p) => p.isMatched).length}) Matched Panels',
+                          'Confirm & Attach (${_scannedItems.where((p) => p.isMatched).length}) Matched Panels',
                           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                         ),
                       ),
