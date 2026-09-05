@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'product_picker_screen.dart';
 import '../services/api_service.dart';
 import '../main.dart' show baseUrl;
 
@@ -275,6 +276,7 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
   final _barcodeInputController = TextEditingController();
 
   List<ScannedPanelItem> _scannedPanels = [];
+  List<SelectedProduct> _nonSerializedProducts = [];
   File? _vehiclePhoto;
   bool _isSubmitting = false;
 
@@ -336,6 +338,23 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
     if (results != null) {
       setState(() {
         _scannedPanels = results;
+      });
+    }
+  }
+
+  Future<void> _openProductPicker() async {
+    final List<SelectedProduct>? results = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ProductPickerScreen(
+          initialSelection: List.from(_nonSerializedProducts),
+        ),
+      ),
+    );
+
+    if (results != null) {
+      setState(() {
+        _nonSerializedProducts = results;
       });
     }
   }
@@ -453,9 +472,11 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
         'vehicle_number': _vehicleNumberController.text.trim(),
         'driver_name': _driverNameController.text.trim(),
         'total_amount': _scannedPanels.length * 23500,
-        'items': [
-          {'product_id': 1, 'quantity': _scannedPanels.isNotEmpty ? _scannedPanels.length : 1, 'unit_price': 23500}
-        ],
+        'items': _nonSerializedProducts.map((p) => {
+          'product_id': p.product.id,
+          'quantity': p.quantity,
+          'unit_price': 0, // Fallback if backend doesn't resolve price
+        }).toList(),
         'serials': serialsList,
         'dispatchImmediately': dispatchNow,
       };
@@ -720,6 +741,74 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
                                       avatar: const Icon(Icons.check_circle, size: 16, color: Colors.green),
                                       label: Text('${p.modelNumber} (${p.serialNumber})', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
                                       onDeleted: () => setState(() => _scannedPanels.remove(p)),
+                                    ))
+                                .toList(),
+                          ),
+                        ]
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Add Non-Serialized Products Section
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.purple.shade50,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.purple.shade300),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Row(
+                              children: [
+                                Icon(Icons.category, color: Colors.purple, size: 20),
+                                SizedBox(width: 6),
+                                Text('Add Non-Serialized Products', style: TextStyle(fontWeight: FontWeight.bold)),
+                              ],
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(color: Colors.purple.shade700, borderRadius: BorderRadius.circular(12)),
+                              child: Text('${_nonSerializedProducts.length} Items', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 11)),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.purple.shade800,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              elevation: 2,
+                            ),
+                            onPressed: _openProductPicker,
+                            icon: const Icon(Icons.add_shopping_cart, color: Colors.white),
+                            label: const Text(
+                              'Select Other Products (Cables, etc.)',
+                              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                            ),
+                          ),
+                        ),
+                        if (_nonSerializedProducts.isNotEmpty) ...[
+                          const SizedBox(height: 12),
+                          const Text('Selected Products:', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.purple)),
+                          const SizedBox(height: 6),
+                          Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
+                            children: _nonSerializedProducts
+                                .map((p) => Chip(
+                                      avatar: const Icon(Icons.check_circle, size: 16, color: Colors.green),
+                                      label: Text('${p.product.name} (Qty: ${p.quantity})', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                      onDeleted: () => setState(() => _nonSerializedProducts.remove(p)),
                                     ))
                                 .toList(),
                           ),

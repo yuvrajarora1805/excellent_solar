@@ -104,7 +104,7 @@ export async function POST(req: NextRequest) {
             };
           });
 
-          // Build final items array grouped by product_id
+          // Build final items array grouped by product_id from serials
           const itemsMap = new Map();
           for (const s of finalSerials) {
             const pId = s.product_id;
@@ -118,7 +118,31 @@ export async function POST(req: NextRequest) {
             }
             itemsMap.get(pId).quantity += 1;
           }
+          
           finalItems = Array.from(itemsMap.values());
+
+          // Merge any non-serialized items passed from the frontend (ignoring the old mobile app's placeholder)
+          if (Array.isArray(items)) {
+            for (const item of items) {
+              const pId = Number(item.product_id);
+              // Ignore the old hardcoded placeholder if it was sent by an older app version
+              if (pId === 1 && finalSerials.length > 0 && finalItems.length > 0) continue; 
+              
+              if (itemsMap.has(pId)) {
+                 // It's possible they sent the quantity for serialized panels in `items` too. 
+                 // We don't add to it to prevent double-counting, because we already counted the serials.
+                 continue; 
+              } else {
+                 finalItems.push({
+                   product_id: pId,
+                   quantity: Number(item.quantity),
+                   unit_price: Number(item.unit_price || 0),
+                 });
+                 itemsMap.set(pId, true); // Mark as added
+              }
+            }
+          }
+
         } else {
           throw new Error("None of the scanned serial numbers were found in inventory.");
         }
