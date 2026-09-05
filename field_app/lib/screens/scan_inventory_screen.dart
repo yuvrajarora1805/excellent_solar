@@ -10,11 +10,15 @@ class ScannedInventoryItem {
   final String modelNumber;
   final String serialNumber;
   final String rawInput;
+  bool hasError;
+  String? errorMessage;
 
   ScannedInventoryItem({
     required this.modelNumber,
     required this.serialNumber,
     required this.rawInput,
+    this.hasError = false,
+    this.errorMessage,
   });
 }
 
@@ -98,26 +102,47 @@ class _ScanInventoryScreenState extends State<ScanInventoryScreen> {
           _processingSerials.clear();
         });
       } else {
-        // Check if there was a PRODUCT_NOT_FOUND error in any of the items
+        // Reset all item errors first
+        for (var item in _scannedItems) {
+          item.hasError = false;
+          item.errorMessage = null;
+        }
+
         bool needsNewProduct = false;
         String? missingModel;
         
         if (data['errors'] != null) {
           for (var err in data['errors']) {
-            if (err['code'] == 'PRODUCT_NOT_FOUND') {
+            String errCode = err['code'] ?? '';
+            String errMsg = err['error'] ?? 'Unknown error';
+            var errItem = err['item'];
+            
+            if (errItem != null) {
+              String sNum = errItem['serial_number'];
+              // Map error to specific scanned item
+              for (var item in _scannedItems) {
+                if (item.serialNumber == sNum) {
+                  item.hasError = true;
+                  item.errorMessage = errMsg;
+                }
+              }
+            }
+
+            if (errCode == 'PRODUCT_NOT_FOUND') {
               needsNewProduct = true;
               missingModel = err['item']['model_number'];
-              break;
             }
           }
         }
+
+        setState(() {}); // Update UI to show red items
 
         if (needsNewProduct && missingModel != null) {
           _showCreateProductPopup(missingModel);
         } else {
           if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(data['error'] ?? 'Failed to submit scans'), backgroundColor: Colors.red),
+            SnackBar(content: Text(data['error'] ?? 'Some items failed to save. Please review the list.'), backgroundColor: Colors.red),
           );
         }
       }
@@ -373,9 +398,20 @@ class _ScanInventoryScreenState extends State<ScanInventoryScreen> {
                     itemBuilder: (context, index) {
                       final item = _scannedItems[index];
                       return ListTile(
-                        leading: const Icon(Icons.qr_code, color: Colors.blue),
+                        tileColor: item.hasError ? Colors.red.shade50 : null,
+                        leading: Icon(Icons.qr_code, color: item.hasError ? Colors.red : Colors.blue),
                         title: Text('Model: ${item.modelNumber}'),
-                        subtitle: Text('Serial: ${item.serialNumber}'),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Serial: ${item.serialNumber}'),
+                            if (item.hasError && item.errorMessage != null)
+                              Text(
+                                item.errorMessage!,
+                                style: const TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.bold),
+                              ),
+                          ],
+                        ),
                         trailing: IconButton(
                           icon: const Icon(Icons.delete, color: Colors.red),
                           onPressed: () {
