@@ -148,7 +148,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                                   child: Image.network(
                                     _order!['vehicle_photo_path'].startsWith('http') 
                                         ? _order!['vehicle_photo_path'] 
-                                        : '$baseUrl${_order!['vehicle_photo_path']}',
+                                        : '${baseUrl.replaceAll(RegExp(r'/$'), '')}${_order!['vehicle_photo_path'].startsWith('/') ? '' : '/'}${_order!['vehicle_photo_path']}',
                                     height: 150,
                                     width: double.infinity,
                                     fit: BoxFit.cover,

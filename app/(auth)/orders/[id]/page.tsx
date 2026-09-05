@@ -126,45 +126,196 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   if (!order) return <div className="p-8 text-center text-red-500">Order not found</div>;
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto pb-12 print:p-0 print:m-0 print:max-w-none print:w-[210mm]">
+    <div className="space-y-6 max-w-6xl mx-auto pb-12 print:p-0 print:m-0 print:max-w-none print:w-[210mm]">
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
           @page { size: A4; margin: 10mm; }
           body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .print-hidden { display: none !important; }
         }
       `}} />
-      {/* Header & Actions */}
-      <div className="flex items-center justify-between print:hidden">
-        <Button variant="outline" size="sm" onClick={() => router.back()}>
-          <ArrowLeft className="w-4 h-4 mr-1" /> Back to Orders
-        </Button>
-        <div className="flex gap-2">
-          {!isEditingPrices ? (
-            <Button onClick={() => setIsEditingPrices(true)} variant="outline" className="border-amber-500 text-amber-700 hover:bg-amber-50 font-bold">
-              ✏️ Edit Prices / Quantities
+      
+      {/* Dashboard View (Hidden on Print) */}
+      <div className="print-hidden space-y-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <Button variant="outline" size="sm" onClick={() => router.back()}>
+              <ArrowLeft className="w-4 h-4 mr-1" /> Back to Orders
             </Button>
-          ) : (
-            <Button onClick={handleSavePrices} disabled={savingPrices} className="bg-amber-600 hover:bg-amber-700 text-white font-bold">
-              {savingPrices ? 'Saving Prices...' : '💾 Save Updated Prices'}
+            <div>
+              <h1 className="text-2xl font-bold flex items-center gap-2">
+                Order {order.order_number}
+                <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                  order.status === 'DISPATCHED' || order.status === 'DELIVERED'
+                    ? 'bg-emerald-100 text-emerald-800'
+                    : 'bg-amber-100 text-amber-800'
+                }`}>
+                  {order.status}
+                </span>
+              </h1>
+              <p className="text-sm text-slate-500">{new Date(order.created_at).toLocaleString()}</p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {!isEditingPrices ? (
+              <Button onClick={() => setIsEditingPrices(true)} variant="outline" className="border-amber-500 text-amber-700 hover:bg-amber-50 font-bold">
+                ✏️ Edit Prices
+              </Button>
+            ) : (
+              <Button onClick={handleSavePrices} disabled={savingPrices} className="bg-amber-600 hover:bg-amber-700 text-white font-bold">
+                {savingPrices ? 'Saving...' : '💾 Save Prices'}
+              </Button>
+            )}
+            {order.status !== 'DISPATCHED' && order.status !== 'DELIVERED' && (
+              <Button onClick={handleDispatch} disabled={updating} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold">
+                <Truck className="w-4 h-4 mr-2" />
+                Dispatch & Sync
+              </Button>
+            )}
+            <Button onClick={handleDownloadCSV} variant="outline" className="border-green-600 text-green-700 hover:bg-green-50 font-bold">
+              <Download className="w-4 h-4 mr-2" /> Export
             </Button>
-          )}
-          {order.status !== 'DISPATCHED' && order.status !== 'DELIVERED' && (
-            <Button onClick={handleDispatch} disabled={updating} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold">
-              <Truck className="w-4 h-4 mr-2" />
-              {updating ? 'Dispatching...' : 'Dispatch Order & Sync Stock'}
+            <Button onClick={() => window.print()} className="bg-blue-600 text-white">
+              <Printer className="w-4 h-4 mr-2" /> Print Challan
             </Button>
-          )}
-          <Button onClick={handleDownloadCSV} variant="outline" className="border-green-600 text-green-700 hover:bg-green-50 font-bold">
-            <Download className="w-4 h-4 mr-2" /> Export to Excel
-          </Button>
-          <Button onClick={() => window.print()} className="bg-blue-600 text-white">
-            <Printer className="w-4 h-4 mr-2" /> Print Delivery Challan / Gate Pass
-          </Button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="md:col-span-2 space-y-6">
+            <Card>
+              <CardHeader className="bg-slate-50 border-b">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <User className="w-5 h-5" /> Customer Details
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-slate-500">Name</p>
+                    <p className="font-bold text-lg">{order.customer_name}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-slate-500">Mobile</p>
+                    <p className="font-semibold">{order.customer_mobile || 'N/A'}</p>
+                  </div>
+                  <div className="col-span-2">
+                    <p className="text-sm text-slate-500">Delivery Address</p>
+                    <p className="font-semibold">{order.delivery_address || 'N/A'}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="bg-slate-50 border-b flex flex-row items-center justify-between">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Barcode className="w-5 h-5" /> Order Items & Pricing
+                </CardTitle>
+                <div className="text-lg font-bold text-blue-700">
+                  Total: ₹{(!isEditingPrices
+                      ? order.total_amount
+                      : editableItems.reduce((acc, curr) => acc + (curr.line_total || 0), 0)
+                    ).toLocaleString('en-IN')}
+                </div>
+              </CardHeader>
+              <CardContent className="p-0 overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-slate-100 border-b">
+                    <tr>
+                      <th className="p-3">Product</th>
+                      <th className="p-3 text-right">Qty</th>
+                      <th className="p-3 text-right">Unit Price</th>
+                      <th className="p-3 text-right">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {!isEditingPrices
+                      ? order.items?.map((item, i) => (
+                          <tr key={i} className="hover:bg-slate-50">
+                            <td className="p-3">
+                              <p className="font-bold">{item.product_name}</p>
+                              <p className="text-xs text-slate-500 font-mono">{item.product_code}</p>
+                            </td>
+                            <td className="p-3 text-right font-bold">{item.quantity}</td>
+                            <td className="p-3 text-right text-slate-600">₹{item.unit_price.toLocaleString('en-IN')}</td>
+                            <td className="p-3 text-right font-bold text-emerald-700">₹{item.line_total.toLocaleString('en-IN')}</td>
+                          </tr>
+                        ))
+                      : editableItems.map((item, i) => (
+                          <tr key={i} className="bg-amber-50">
+                            <td className="p-3">
+                              <p className="font-bold">{item.product_name}</p>
+                              <p className="text-xs text-slate-500 font-mono">{item.product_code}</p>
+                            </td>
+                            <td className="p-3 text-right">
+                              <input type="number" min="1" value={item.quantity} onChange={(e) => handlePriceChange(i, 'quantity', Number(e.target.value))} className="w-20 p-2 border rounded text-right font-bold" />
+                            </td>
+                            <td className="p-3 text-right">
+                              <input type="number" min="0" value={item.unit_price} onChange={(e) => handlePriceChange(i, 'unit_price', Number(e.target.value))} className="w-24 p-2 border rounded text-right font-bold" />
+                            </td>
+                            <td className="p-3 text-right font-bold text-emerald-700">₹{item.line_total?.toLocaleString('en-IN')}</td>
+                          </tr>
+                        ))}
+                  </tbody>
+                </table>
+              </CardContent>
+            </Card>
+
+            {order.serials && order.serials.length > 0 && (
+              <Card>
+                <CardHeader className="bg-slate-50 border-b">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Barcode className="w-5 h-5" /> Dispatched Serials ({order.serials.length})
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <div className="flex flex-wrap gap-2">
+                    {order.serials.map((s, idx) => (
+                      <div key={idx} className="bg-slate-100 border px-3 py-1.5 rounded text-sm font-mono font-semibold flex items-center gap-2 text-slate-800">
+                        <span className="text-xs text-slate-400">{idx + 1}.</span> {s.serial_number}
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+
+          <div className="space-y-6">
+            <Card>
+              <CardHeader className="bg-slate-50 border-b">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Truck className="w-5 h-5" /> Dispatch & Vehicle
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6 space-y-4">
+                <div>
+                  <p className="text-sm text-slate-500">Vehicle Number</p>
+                  <p className="font-bold text-lg font-mono text-blue-700">{order.vehicle_number || 'Not Assigned'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-slate-500">Driver</p>
+                  <p className="font-semibold">{order.driver_name || 'N/A'} {order.driver_mobile ? `(${order.driver_mobile})` : ''}</p>
+                </div>
+                {order.vehicle_photo_path && (
+                  <div className="mt-4 pt-4 border-t">
+                    <p className="text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
+                      <Camera className="w-4 h-4" /> Vehicle Proof Photo
+                    </p>
+                    <a href={order.vehicle_photo_path} target="_blank" rel="noreferrer" className="block w-full overflow-hidden rounded-lg border-2 border-slate-200 hover:border-blue-500 transition-colors">
+                      <img src={order.vehicle_photo_path} alt="Vehicle Proof" className="w-full h-auto object-cover" />
+                    </a>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
 
-      {/* Printable Delivery Challan & Order Document */}
-      <div className="bg-white text-black p-6 border rounded-lg shadow-sm print:shadow-none print:border-none print:p-0 print-only">
+      {/* Printable Delivery Challan (Hidden on Screen, Visible on Print) */}
+      <div className="hidden print:block bg-white text-black print:p-0 print:m-0 print:w-full print-only">
         {/* Header */}
         <div className="border-b-2 border-black pb-4 mb-4 flex justify-between items-start">
           <div>
@@ -222,11 +373,6 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
         <div className="mb-4">
           <div className="flex justify-between items-center mb-2">
             <h3 className="text-xs font-extrabold uppercase text-slate-700">Order Items & Pricing</h3>
-            {isEditingPrices && (
-              <span className="text-xs font-bold text-amber-600 animate-pulse">
-                ✏️ Price Editing Mode Active - Update Unit Price / Quantity and click Save
-              </span>
-            )}
           </div>
           <table className="w-full text-xs border-collapse border border-black text-left">
             <thead>
@@ -240,55 +386,22 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
               </tr>
             </thead>
             <tbody>
-              {!isEditingPrices
-                ? order.items?.map((item, i) => (
-                    <tr key={i} className="border-b border-black font-medium">
-                      <td className="p-2 border border-black text-center">{i + 1}</td>
-                      <td className="p-2 border border-black font-mono">{item.product_code}</td>
-                      <td className="p-2 border border-black font-bold">{item.product_name}</td>
-                      <td className="p-2 border border-black text-right font-bold">{item.quantity}</td>
-                      <td className="p-2 border border-black text-right">₹{item.unit_price.toLocaleString('en-IN')}</td>
-                      <td className="p-2 border border-black text-right font-bold">₹{item.line_total.toLocaleString('en-IN')}</td>
-                    </tr>
-                  ))
-                : editableItems.map((item, i) => (
-                    <tr key={i} className="border-b border-black font-medium bg-amber-50/50">
-                      <td className="p-2 border border-black text-center">{i + 1}</td>
-                      <td className="p-2 border border-black font-mono">{item.product_code}</td>
-                      <td className="p-2 border border-black font-bold">{item.product_name}</td>
-                      <td className="p-2 border border-black text-right">
-                        <input
-                          type="number"
-                          min="1"
-                          value={item.quantity}
-                          onChange={(e) => handlePriceChange(i, 'quantity', Number(e.target.value))}
-                          className="w-16 p-1 border rounded text-right font-bold text-xs"
-                        />
-                      </td>
-                      <td className="p-2 border border-black text-right">
-                        <input
-                          type="number"
-                          min="0"
-                          value={item.unit_price}
-                          onChange={(e) => handlePriceChange(i, 'unit_price', Number(e.target.value))}
-                          className="w-24 p-1 border rounded text-right font-bold text-xs"
-                        />
-                      </td>
-                      <td className="p-2 border border-black text-right font-bold">
-                        ₹{item.line_total?.toLocaleString('en-IN')}
-                      </td>
-                    </tr>
-                  ))}
+              {order.items?.map((item, i) => (
+                <tr key={i} className="border-b border-black font-medium">
+                  <td className="p-2 border border-black text-center">{i + 1}</td>
+                  <td className="p-2 border border-black font-mono">{item.product_code}</td>
+                  <td className="p-2 border border-black font-bold">{item.product_name}</td>
+                  <td className="p-2 border border-black text-right font-bold">{item.quantity}</td>
+                  <td className="p-2 border border-black text-right">₹{item.unit_price.toLocaleString('en-IN')}</td>
+                  <td className="p-2 border border-black text-right font-bold">₹{item.line_total.toLocaleString('en-IN')}</td>
+                </tr>
+              ))}
             </tbody>
             <tfoot>
               <tr className="bg-slate-100 font-extrabold text-sm border-t border-black">
                 <td colSpan={5} className="p-2 text-right border border-black">Total Order Amount:</td>
                 <td className="p-2 text-right text-blue-800 border border-black">
-                  ₹
-                  {(!isEditingPrices
-                    ? order.total_amount
-                    : editableItems.reduce((acc, curr) => acc + (curr.line_total || 0), 0)
-                  ).toLocaleString('en-IN')}
+                  ₹{order.total_amount.toLocaleString('en-IN')}
                 </td>
               </tr>
             </tfoot>
@@ -300,7 +413,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
           <div className="flex items-center justify-between mb-2">
             <h3 className="text-xs font-extrabold uppercase text-slate-700 flex items-center gap-1.5">
               <Barcode className="w-4 h-4 text-blue-600" />
-              Dispatched Unique Solar Panel Barcode Serial Numbers ({order.serials?.length || 0})
+              Dispatched Unique Barcode Serial Numbers ({order.serials?.length || 0})
             </h3>
           </div>
 
