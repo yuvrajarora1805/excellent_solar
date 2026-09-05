@@ -37,6 +37,7 @@ export default function NewOrderPage() {
   const [driverName, setDriverName] = useState('');
   const [driverMobile, setDriverMobile] = useState('');
   const [vehiclePhotoPath, setVehiclePhotoPath] = useState('');
+  const [vehiclePhotoBase64, setVehiclePhotoBase64] = useState('');
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   // Products & Stock Item Selection
@@ -200,15 +201,17 @@ export default function NewOrderPage() {
 
     try {
       setUploadingPhoto(true);
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const res = await fetch('/api/ocr/parse-pdf', { method: 'POST', body: formData }); // reuse upload path or upload route
-      // Save local path
-      setVehiclePhotoPath(`/uploads/ocr/${file.name}`);
-      alert('Vehicle loading proof photo uploaded!');
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = (reader.result as string).split(',')[1];
+        setVehiclePhotoBase64(base64String); // We need a new state for this
+        setVehiclePhotoPath(file.name); // Just to show the user a selected file name
+        alert('Vehicle loading proof photo selected!');
+      };
+      reader.readAsDataURL(file);
     } catch (err) {
-      setVehiclePhotoPath(`/uploads/${file.name}`);
+      console.error(err);
+      alert('Failed to process image');
     } finally {
       setUploadingPhoto(false);
     }
@@ -270,6 +273,7 @@ export default function NewOrderPage() {
           driver_name: driverName,
           driver_mobile: driverMobile,
           vehicle_photo_path: vehiclePhotoPath,
+          vehicle_photo_base64: vehiclePhotoBase64,
           total_amount: totalAmount,
           items: finalItems.map(i => ({
             product_id: i.product_id,
