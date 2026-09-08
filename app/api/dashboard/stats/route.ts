@@ -47,11 +47,16 @@ export async function GET(request: Request) {
         "SELECT COUNT(*) as count FROM discom_applications WHERE status IN ('JE_PENDING', 'SDO_PENDING', 'XEN_PENDING')"
       );
 
+      const [pendingPayments] = await query<{ count: number }>(
+        "SELECT COUNT(*) as count FROM service_tickets WHERE payment_status = 'PENDING'"
+      );
+
       stats = {
         newLeads: newLeads?.count || 0,
         activeJobs: activeJobs?.count || 0,
         installsThisMonth: installsThisMonth?.count || 0,
         pendingDiscom: pendingDiscom?.count || 0,
+        pendingPayments: pendingPayments?.count || 0,
         activeUsers: activeUsers?.count || 0,
         monthlyRevenue: monthlyRevenue?.total || 0,
         schedule: {

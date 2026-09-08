@@ -18,6 +18,8 @@ interface ServiceTicket {
   status: string;
   created_at: string;
   assigned_to_name?: string;
+  service_type: string;
+  payment_status: string;
 }
 
 export default function ServicePage() {
@@ -148,6 +150,20 @@ export default function ServicePage() {
           default: 'bg-surface-container text-on-surface-variant',
         };
         return <span className={`status-badge ${colors[variant]}`}>{value.replace('_', ' ')}</span>;
+      },
+    },
+    {
+      key: 'payment_status',
+      title: 'Payment',
+      render: (value: string, row: ServiceTicket) => {
+        if (row.service_type === 'FREE' || value === 'NOT_APPLICABLE') {
+           return <span className="text-on-surface-variant text-sm">Free</span>;
+        }
+        return (
+          <span className={`status-badge ${value === 'PAID' ? 'bg-tertiary-container text-on-tertiary-container' : 'bg-error-container text-on-error-container'}`}>
+            {value}
+          </span>
+        );
       },
     },
     {
@@ -323,6 +339,39 @@ function ServiceTicketDetails({ ticket, onUpdateStatus, onClose }: any) {
         </div>
       )}
 
+      {/* Payment Status Display if applicable */}
+      {ticket.service_type === 'PAID' && (
+        <div className="p-3 bg-surface-container-low border border-outline-variant rounded flex justify-between items-center">
+          <div>
+            <div className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1">
+              Payment Status
+            </div>
+            <div className="text-sm">
+              <span className={`status-badge ${ticket.payment_status === 'PAID' ? 'bg-tertiary-container text-on-tertiary-container' : 'bg-error-container text-on-error-container'}`}>
+                {ticket.payment_status}
+              </span>
+            </div>
+          </div>
+          {ticket.payment_status === 'PENDING' && (
+            <button
+              onClick={() => {
+                fetch(`/api/service-tickets/${ticket.id}`, {
+                  method: 'PUT',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ payment_status: 'PAID' }),
+                }).then(() => {
+                   ticket.payment_status = 'PAID';
+                   onUpdateStatus(ticket.id, ticket.status, undefined); // triggers a re-fetch of tickets in the parent
+                });
+              }}
+              className="px-3 py-1.5 text-sm font-label-bold text-white bg-tertiary hover:bg-tertiary/90 rounded transition-colors"
+            >
+              Mark as Paid
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Resolution Input if working */}
       {['IN_PROGRESS', 'ASSIGNED'].includes(ticket.status) && (
         <div>
@@ -346,10 +395,10 @@ function ServiceTicketDetails({ ticket, onUpdateStatus, onClose }: any) {
             onClick={() => handleStatusUpdate('ASSIGNED')}
             className="px-3 py-2 text-label-bold text-on-secondary bg-secondary hover:opacity-90 rounded transition-opacity"
           >
-            Assign
+            Mark as Assigned
           </button>
         )}
-        {['ASSIGNED', 'OPEN'].includes(ticket.status) && (
+        {ticket.status === 'ASSIGNED' && (
           <button
             onClick={() => handleStatusUpdate('IN_PROGRESS')}
             className="px-3 py-2 text-label-bold text-on-primary-fixed bg-primary-fixed hover:opacity-90 rounded transition-opacity"
@@ -397,12 +446,17 @@ function ServiceTicketDetails({ ticket, onUpdateStatus, onClose }: any) {
 
 function NewTicketForm({ onSuccess, onCancel }: any) {
   const [formData, setFormData] = useState({
+    is_existing_customer: true,
     project_id: '',
     customer_id: '',
     customer_name: '',
+    customer_mobile: '',
+    customer_address: '',
     issue_category: 'INVERTER',
     issue_type: 'BREAKDOWN',
     priority: 'MEDIUM',
+    service_type: 'FREE',
+    payment_status: 'NOT_APPLICABLE',
     description: '',
   });
 
@@ -440,6 +494,10 @@ function NewTicketForm({ onSuccess, onCancel }: any) {
       alert('Please enter a description of the issue');
       return;
     }
+    if (!formData.is_existing_customer && (!formData.customer_name || !formData.customer_mobile || !formData.customer_address)) {
+      alert('Please fill in all customer details');
+      return;
+    }
     try {
       await fetch('/api/service-tickets', {
         method: 'POST',
@@ -454,37 +512,125 @@ function NewTicketForm({ onSuccess, onCancel }: any) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="flex gap-6 mb-2">
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="radio"
+            checked={formData.is_existing_customer}
+            onChange={() => setFormData({ ...formData, is_existing_customer: true, customer_name: '', customer_mobile: '', customer_address: '' })}
+            className="text-primary-container focus:ring-primary-container"
+          />
+          <span className="text-on-surface font-medium">Existing Customer (Project)</span>
+        </label>
+        <label className="flex items-center gap-2 cursor-pointer">
+          <input
+            type="radio"
+            checked={!formData.is_existing_customer}
+            onChange={() => setFormData({ ...formData, is_existing_customer: false, project_id: '', customer_id: '' })}
+            className="text-primary-container focus:ring-primary-container"
+          />
+          <span className="text-on-surface font-medium">New Customer (Walk-in)</span>
+        </label>
+      </div>
+
       <div className="grid grid-cols-1 gap-4">
-        <div>
-          <label className="block text-label-bold text-on-surface mb-1">
-            Select Project <span className="text-on-surface-variant font-normal text-xs">(Optional)</span>
-          </label>
-          <select
-            value={formData.project_id}
-            onChange={handleProjectChange}
-            className="input-base cursor-pointer"
-            disabled={isLoading}
-          >
-            <option value="">{isLoading ? 'Loading projects...' : '— No project (walk-in / general) —'}</option>
-            {projects.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.project_id} - {p.customer_name} ({p.customer_mobile})
-              </option>
-            ))}
-          </select>
-        </div>
-        {!formData.project_id && (
+        {formData.is_existing_customer ? (
           <div>
             <label className="block text-label-bold text-on-surface mb-1">
-              Customer Name <span className="text-on-surface-variant font-normal text-xs">(if no project selected)</span>
+              Select Project
             </label>
-            <input
-              type="text"
-              value={formData.customer_name}
-              onChange={(e) => setFormData({ ...formData, customer_name: e.target.value })}
-              placeholder="Enter customer name..."
-              className="input-base"
-            />
+            <select
+              value={formData.project_id}
+              onChange={handleProjectChange}
+              className="input-base cursor-pointer"
+              disabled={isLoading}
+              required
+            >
+              <option value="">{isLoading ? 'Loading projects...' : '— Select a Project —'}</option>
+              {projects.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.project_id} - {p.customer_name} ({p.customer_mobile})
+                </option>
+              ))}
+            </select>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-surface-container-low p-4 rounded border border-outline-variant">
+            <div>
+              <label className="block text-label-bold text-on-surface mb-1">
+                Customer Name *
+              </label>
+              <input
+                type="text"
+                value={formData.customer_name}
+                onChange={(e) => setFormData({ ...formData, customer_name: e.target.value })}
+                placeholder="Enter customer name..."
+                className="input-base bg-surface-bright"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-label-bold text-on-surface mb-1">
+                Mobile Number *
+              </label>
+              <input
+                type="tel"
+                value={formData.customer_mobile}
+                onChange={(e) => setFormData({ ...formData, customer_mobile: e.target.value })}
+                placeholder="10-digit mobile number"
+                className="input-base bg-surface-bright"
+                required
+              />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-label-bold text-on-surface mb-1">
+                Address *
+              </label>
+              <input
+                type="text"
+                value={formData.customer_address}
+                onChange={(e) => setFormData({ ...formData, customer_address: e.target.value })}
+                placeholder="Customer full address"
+                className="input-base bg-surface-bright"
+                required
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 pt-2 border-t border-outline-variant">
+        <div>
+          <label className="block text-label-bold text-on-surface mb-1">
+            Service Type
+          </label>
+          <select
+            value={formData.service_type}
+            onChange={(e) => setFormData({ 
+              ...formData, 
+              service_type: e.target.value,
+              payment_status: e.target.value === 'FREE' ? 'NOT_APPLICABLE' : 'PENDING'
+            })}
+            className="input-base cursor-pointer"
+          >
+            <option value="FREE">Free / Under Warranty</option>
+            <option value="PAID">Paid Service</option>
+          </select>
+        </div>
+        
+        {formData.service_type === 'PAID' && (
+          <div>
+            <label className="block text-label-bold text-on-surface mb-1">
+              Payment Status
+            </label>
+            <select
+              value={formData.payment_status}
+              onChange={(e) => setFormData({ ...formData, payment_status: e.target.value })}
+              className="input-base cursor-pointer"
+            >
+              <option value="PENDING">Pending</option>
+              <option value="PAID">Paid</option>
+            </select>
           </div>
         )}
       </div>

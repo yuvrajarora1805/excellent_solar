@@ -333,29 +333,38 @@ export const serviceTicketDb = {
       }
     }
 
-    // Logic for Walk-in / General ticket
+    // Logic for New Customer or Walk-in / General ticket
     if (!customerId) {
-      const walkInCustomer = await queryOne<{ id: number }>('SELECT id FROM customers WHERE mobile = ?', ['0000000000']);
-      if (walkInCustomer) {
-        customerId = walkInCustomer.id;
-      } else {
+      if ((data as any).is_existing_customer === false) {
+        // Create actual new customer
         const insertResult = await insert(
           'INSERT INTO customers (name, mobile, address, city, district, state) VALUES (?, ?, ?, ?, ?, ?)',
-          [(data as any).customer_name || 'Walk-in Customer', '0000000000', 'Walk-in', 'General', 'General', 'General']
+          [(data as any).customer_name || 'Walk-in Customer', (data as any).customer_mobile || '0000000000', (data as any).customer_address || 'Walk-in', 'General', 'General', 'General']
         );
         customerId = insertResult;
-      }
-      
-      if ((data as any).customer_name) {
-        data.description = `[Walk-in: ${(data as any).customer_name}]\n${data.description || ''}`;
+      } else {
+        const walkInCustomer = await queryOne<{ id: number }>('SELECT id FROM customers WHERE mobile = ?', ['0000000000']);
+        if (walkInCustomer) {
+          customerId = walkInCustomer.id;
+        } else {
+          const insertResult = await insert(
+            'INSERT INTO customers (name, mobile, address, city, district, state) VALUES (?, ?, ?, ?, ?, ?)',
+            [(data as any).customer_name || 'Walk-in Customer', '0000000000', 'Walk-in', 'General', 'General', 'General']
+          );
+          customerId = insertResult;
+        }
+        
+        if ((data as any).customer_name) {
+          data.description = `[Walk-in: ${(data as any).customer_name}]\n${data.description || ''}`;
+        }
       }
     }
 
     const ticketNumber = await serviceTicketDb.generateNumber();
     return insert(
       `INSERT INTO service_tickets (ticket_number, project_id, customer_id, issue_category, issue_type,
-       priority, description, assigned_to, status, created_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       priority, description, assigned_to, status, created_by, service_type, payment_status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         ticketNumber,
         data.project_id || null,
@@ -367,6 +376,8 @@ export const serviceTicketDb = {
         data.assigned_to || null,
         data.status || 'OPEN',
         userId,
+        (data as any).service_type || 'FREE',
+        (data as any).payment_status || 'NOT_APPLICABLE',
       ]
     );
   },

@@ -496,7 +496,7 @@ class _FieldDashboardScreenState extends State<FieldDashboardScreen> {
                   ),
                 ],
 
-                if (isSalesRole || isAdmin) ...[
+                if (isSalesRole || isInstallerRole || isAdmin) ...[
                   const SizedBox(height: 20),
                   Card(
                   elevation: 0,
@@ -519,6 +519,10 @@ class _FieldDashboardScreenState extends State<FieldDashboardScreen> {
                     },
                   ),
                 ),
+                ],
+
+                if (isSalesRole || isAdmin) ...[
+                  const SizedBox(height: 12),
                 const SizedBox(height: 12),
                 Card(
                   elevation: 0,

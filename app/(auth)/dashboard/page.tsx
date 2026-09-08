@@ -186,53 +186,75 @@ export default function DashboardPage() {
       </div>
 
       {/* KPI Header */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
         {/* New Leads */}
         {['ADMIN', 'MARKETING'].includes(user?.role) && (
-          <div className="bg-surface-container-lowest border border-outline-variant rounded p-4 industrial-shadow">
-            <div className="flex justify-between items-start mb-2">
-              <span className="font-label-bold text-on-surface-variant">New Leads</span>
-              <span className="material-symbols-outlined text-secondary">trending_up</span>
+          <Link href="/customers" className="block group">
+            <div className="bg-surface-container-lowest border border-outline-variant rounded p-4 industrial-shadow group-hover:border-primary-container transition-colors h-full">
+              <div className="flex justify-between items-start mb-2">
+                <span className="font-label-bold text-on-surface-variant group-hover:text-primary-container transition-colors">New Leads</span>
+                <span className="material-symbols-outlined text-secondary">trending_up</span>
+              </div>
+              <div className="text-2xl font-bold text-on-surface">{stats.newLeads}</div>
+              <div className="mt-2 pt-2 border-t border-outline-variant/50 text-xs text-secondary">Last 7 days</div>
             </div>
-            <div className="text-2xl font-bold text-on-surface">{stats.newLeads}</div>
-            <div className="mt-2 pt-2 border-t border-outline-variant/50 text-xs text-secondary">Last 7 days</div>
-          </div>
+          </Link>
         )}
 
         {/* Active Jobs */}
         {['ADMIN', 'INSTALLATION'].includes(user?.role) && (
-          <div className="bg-surface-container-lowest border border-outline-variant rounded p-4 industrial-shadow">
-            <div className="flex justify-between items-start mb-2">
-              <span className="font-label-bold text-on-surface-variant">Active Jobs</span>
-              <span className="material-symbols-outlined text-primary-container">engineering</span>
+          <Link href="/projects" className="block group">
+            <div className="bg-surface-container-lowest border border-outline-variant rounded p-4 industrial-shadow group-hover:border-primary-container transition-colors h-full">
+              <div className="flex justify-between items-start mb-2">
+                <span className="font-label-bold text-on-surface-variant group-hover:text-primary-container transition-colors">Active Jobs</span>
+                <span className="material-symbols-outlined text-primary-container">engineering</span>
+              </div>
+              <div className="text-2xl font-bold text-on-surface">{stats.activeJobs}</div>
+              <div className="mt-2 pt-2 border-t border-outline-variant/50 text-xs text-secondary">Across all districts</div>
             </div>
-            <div className="text-2xl font-bold text-on-surface">{stats.activeJobs}</div>
-            <div className="mt-2 pt-2 border-t border-outline-variant/50 text-xs text-secondary">Across all districts</div>
-          </div>
+          </Link>
         )}
 
         {/* Installs This Month */}
         {['ADMIN', 'INSTALLATION'].includes(user?.role) && (
-          <div className="bg-surface-container-lowest border border-outline-variant rounded p-4 industrial-shadow">
-            <div className="flex justify-between items-start mb-2">
-              <span className="font-label-bold text-on-surface-variant">Installs This Month</span>
-              <span className="material-symbols-outlined text-tertiary">check_circle</span>
+          <Link href="/projects" className="block group">
+            <div className="bg-surface-container-lowest border border-outline-variant rounded p-4 industrial-shadow group-hover:border-primary-container transition-colors h-full">
+              <div className="flex justify-between items-start mb-2">
+                <span className="font-label-bold text-on-surface-variant group-hover:text-primary-container transition-colors">Installs This Month</span>
+                <span className="material-symbols-outlined text-tertiary">check_circle</span>
+              </div>
+              <div className="text-2xl font-bold text-on-surface">{stats.installsThisMonth}</div>
+              <div className="mt-2 pt-2 border-t border-outline-variant/50 text-xs text-secondary">This month</div>
             </div>
-            <div className="text-2xl font-bold text-on-surface">{stats.installsThisMonth}</div>
-            <div className="mt-2 pt-2 border-t border-outline-variant/50 text-xs text-secondary">This month</div>
-          </div>
+          </Link>
         )}
 
         {/* Pending DISCOM */}
         {['ADMIN', 'DISCOM'].includes(user?.role) && (
-          <div className="bg-surface-container-lowest border border-outline-variant rounded p-4 industrial-shadow">
-            <div className="flex justify-between items-start mb-2">
-              <span className="font-label-bold text-on-surface-variant">Pending DISCOM</span>
-              <span className="material-symbols-outlined text-error">warning</span>
+          <Link href="/discom" className="block group">
+            <div className="bg-surface-container-lowest border border-outline-variant rounded p-4 industrial-shadow group-hover:border-primary-container transition-colors h-full">
+              <div className="flex justify-between items-start mb-2">
+                <span className="font-label-bold text-on-surface-variant group-hover:text-primary-container transition-colors">Pending DISCOM</span>
+                <span className="material-symbols-outlined text-error">warning</span>
+              </div>
+              <div className="text-2xl font-bold text-on-surface">{stats.pendingDiscom}</div>
+              <div className="mt-2 pt-2 border-t border-outline-variant/50 text-xs text-secondary">Requires action</div>
             </div>
-            <div className="text-2xl font-bold text-on-surface">{stats.pendingDiscom}</div>
-            <div className="mt-2 pt-2 border-t border-outline-variant/50 text-xs text-secondary">Requires action</div>
-          </div>
+          </Link>
+        )}
+
+        {/* Pending Payments */}
+        {['ADMIN'].includes(user?.role) && (
+          <Link href="/service" className="block group">
+            <div className="bg-surface-container-lowest border border-outline-variant rounded p-4 industrial-shadow group-hover:border-primary-container transition-colors h-full">
+              <div className="flex justify-between items-start mb-2">
+                <span className="font-label-bold text-on-surface-variant group-hover:text-primary-container transition-colors">Pending Payments</span>
+                <span className="material-symbols-outlined text-warning">payments</span>
+              </div>
+              <div className="text-2xl font-bold text-on-surface">{stats.pendingPayments || 0}</div>
+              <div className="mt-2 pt-2 border-t border-outline-variant/50 text-xs text-secondary">Service Tickets</div>
+            </div>
+          </Link>
         )}
       </div>
 
@@ -273,12 +295,16 @@ export default function DashboardPage() {
                         dataKey="value"
                       >
                         {chartData.projectStatus.map((entry, index) => {
-                          const colors = ['var(--primary-container)', 'var(--secondary)', 'var(--tertiary)', 'var(--error-container)', 'var(--outline-variant)'];
+                          // Attractive and distinct hex colors
+                          const colors = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#0ea5e9', '#ec4899'];
                           return <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />;
                         })}
                       </Pie>
-                      <Tooltip contentStyle={{ borderRadius: '8px', border: '1px solid var(--outline-variant)' }} />
-                      <Legend />
+                      <Tooltip 
+                        contentStyle={{ borderRadius: '8px', border: '1px solid var(--outline-variant)', backgroundColor: 'var(--surface-container-low)', color: 'var(--on-surface)' }}
+                        itemStyle={{ color: 'var(--on-surface)' }}
+                      />
+                      <Legend wrapperStyle={{ color: 'var(--on-surface)' }} />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
