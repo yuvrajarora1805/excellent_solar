@@ -52,7 +52,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
 RUN chmod -R 777 ./public/uploads
 
 # Install dependencies required for manual utility scripts (like password fixes)
-RUN npm install mysql2 bcryptjs dotenv
+RUN npm install mysql2 bcryptjs
 
 # Copy utility scripts
 COPY --from=builder --chown=nextjs:nodejs /app/fix_passwords.js ./fix_passwords.js
