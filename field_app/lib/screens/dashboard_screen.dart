@@ -591,7 +591,7 @@ class _FieldDashboardScreenState extends State<FieldDashboardScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(title, style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500)),
+            Text(title, style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500), maxLines: 2, overflow: TextOverflow.ellipsis),
             Text(
               val,
               style: TextStyle(

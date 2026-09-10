@@ -460,10 +460,22 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                 ],
               ),
             ),
+
+            // ─── OVERVIEW ─────────────────────────────────────
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 12, 16, 4),
+              child: Text('OVERVIEW', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 1.2)),
+            ),
             ListTile(
               leading: const Icon(Icons.dashboard),
               title: const Text('Dashboard'),
               onTap: () => _navigateToScreen(_getScreenIndex(FieldDashboardScreen)),
+            ),
+
+            // ─── FIELD OPERATIONS ─────────────────────────────
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 12, 16, 4),
+              child: Text('FIELD OPERATIONS', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 1.2)),
             ),
             ListTile(
               leading: const Icon(Icons.assignment_turned_in),
@@ -480,7 +492,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               title: const Text('Orders'),
               onTap: () => _navigateToScreen(_getScreenIndex(OrdersScreen)),
             ),
-            const Divider(),
+
+            // ─── MANAGEMENT ───────────────────────────────────
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 12, 16, 4),
+              child: Text('MANAGEMENT', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 1.2)),
+            ),
             ListTile(
               leading: const Icon(Icons.electrical_services),
               title: const Text('DISCOM Management'),
@@ -496,7 +513,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               title: const Text('New Customer Booking'),
               onTap: () => _navigateToScreen(_getScreenIndex(OnGridBookingForm)),
             ),
-            const Divider(),
+
+            // ─── ACCOUNT ──────────────────────────────────────
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 12, 16, 4),
+              child: Text('ACCOUNT', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey, letterSpacing: 1.2)),
+            ),
             ListTile(
               leading: const Icon(Icons.person),
               title: const Text('My Profile & Settings'),

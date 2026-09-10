@@ -123,11 +123,17 @@ class _MyJobsListScreenState extends State<MyJobsListScreen> {
                 children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        j['customer_name'] ?? 'Unknown',
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                      Expanded(
+                        child: Text(
+                          j['customer_name'] ?? 'Unknown',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
+                      const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../main.dart' show baseUrl;
@@ -13,21 +14,45 @@ class MyTicketsListScreen extends StatefulWidget {
 
 class _MyTicketsListScreenState extends State<MyTicketsListScreen> {
   List<dynamic> _tickets = [];
+  List<dynamic> _customers = [];
   bool _isLoading = true;
   String _error = '';
+  String _role = '';
+  int _workerId = 1;
 
   @override
   void initState() {
     super.initState();
+    _loadRoleAndFetch();
+  }
+
+  Future<void> _loadRoleAndFetch() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _role = (prefs.getString('worker_role') ?? 'WORKER').toUpperCase().trim();
+      _workerId = prefs.getInt('worker_id') ?? 1;
+    });
     _fetchTickets();
+    if (_role == 'ADMIN' || _role == 'MANAGER') {
+      _fetchCustomers();
+    }
+  }
+
+  Future<void> _fetchCustomers() async {
+    try {
+      final response = await ApiService.get(Uri.parse('$baseUrl/api/customers?limit=500'));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() {
+          _customers = data['customers'] ?? [];
+        });
+      }
+    } catch (_) {}
   }
 
   Future<void> _fetchTickets() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final workerId = prefs.getInt('worker_id') ?? 1;
-
-      final response = await ApiService.get(Uri.parse('$baseUrl/api/mobile/tickets?worker_id=$workerId'));
+      final response = await ApiService.get(Uri.parse('$baseUrl/api/mobile/tickets?worker_id=$_workerId'));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -47,6 +72,159 @@ class _MyTicketsListScreenState extends State<MyTicketsListScreen> {
         _isLoading = false;
       });
     }
+  }
+
+  // ── RAISE NEW TICKET ────────────────────────────────────────────────────────
+  void _showRaiseTicketSheet() {
+    int? selectedCustomerId;
+    String selectedCategory = 'Inverter';
+    String selectedType = 'Not Working';
+    String selectedPriority = 'NORMAL';
+    final descCtrl = TextEditingController();
+    bool submitting = false;
+
+    final categoryTypes = {
+      'Inverter':    ['Not Working', 'Low Output', 'Error Code', 'Overheating', 'Other'],
+      'Panel':       ['Physical Damage', 'Low Generation', 'Shading Issue', 'Other'],
+      'Electrical':  ['Wiring Issue', 'MCB Tripping', 'Earth Fault', 'Other'],
+      'Battery':     ['Not Charging', 'Low Backup', 'Physical Damage', 'Other'],
+      'Wiring':      ['Loose Connection', 'Short Circuit', 'Conduit Damage', 'Other'],
+      'Other':       ['General Query', 'AMC Visit', 'Inspection', 'Other'],
+    };
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setS) => Padding(
+          padding: EdgeInsets.only(
+            left: 20, right: 20, top: 24,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Center(child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(4)))),
+                const SizedBox(height: 16),
+                Text('Raise Service Ticket', style: GoogleFonts.hankenGrotesk(fontSize: 18, fontWeight: FontWeight.bold)),
+                const Divider(height: 24),
+
+                // Customer Dropdown
+                const Text('Customer *', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                const SizedBox(height: 6),
+                DropdownButtonFormField<int>(
+                  decoration: const InputDecoration(border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10)),
+                  hint: const Text('Select Customer'),
+                  value: selectedCustomerId,
+                  items: _customers.map<DropdownMenuItem<int>>((c) => DropdownMenuItem<int>(
+                    value: c['id'] as int,
+                    child: Text('${c['name']} (${c['mobile'] ?? ''})', overflow: TextOverflow.ellipsis),
+                  )).toList(),
+                  onChanged: (v) => setS(() => selectedCustomerId = v),
+                ),
+                const SizedBox(height: 14),
+
+                // Issue Category
+                const Text('Issue Category *', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                const SizedBox(height: 6),
+                DropdownButtonFormField<String>(
+                  decoration: const InputDecoration(border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10)),
+                  value: selectedCategory,
+                  items: categoryTypes.keys.map((k) => DropdownMenuItem(value: k, child: Text(k))).toList(),
+                  onChanged: (v) => setS(() {
+                    selectedCategory = v!;
+                    selectedType = categoryTypes[v]!.first;
+                  }),
+                ),
+                const SizedBox(height: 14),
+
+                // Issue Type
+                const Text('Issue Type *', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                const SizedBox(height: 6),
+                DropdownButtonFormField<String>(
+                  decoration: const InputDecoration(border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10)),
+                  value: selectedType,
+                  items: (categoryTypes[selectedCategory] ?? []).map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
+                  onChanged: (v) => setS(() => selectedType = v!),
+                ),
+                const SizedBox(height: 14),
+
+                // Priority
+                const Text('Priority', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                const SizedBox(height: 6),
+                DropdownButtonFormField<String>(
+                  decoration: const InputDecoration(border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10)),
+                  value: selectedPriority,
+                  items: ['LOW', 'NORMAL', 'HIGH', 'URGENT'].map((p) => DropdownMenuItem(value: p, child: Text(p))).toList(),
+                  onChanged: (v) => setS(() => selectedPriority = v!),
+                ),
+                const SizedBox(height: 14),
+
+                // Description
+                const Text('Description', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                const SizedBox(height: 6),
+                TextField(
+                  controller: descCtrl,
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    hintText: 'Describe the issue in detail...',
+                    contentPadding: EdgeInsets.all(12),
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF7C5800),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    onPressed: submitting ? null : () async {
+                      if (selectedCustomerId == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select a customer!')));
+                        return;
+                      }
+                      setS(() => submitting = true);
+                      try {
+                        final body = jsonEncode({
+                          'customer_id': selectedCustomerId,
+                          'issue_category': selectedCategory,
+                          'issue_type': selectedType,
+                          'priority': selectedPriority,
+                          'description': descCtrl.text.trim(),
+                          'created_by': _workerId,
+                        });
+                        final res = await ApiService.post(Uri.parse('$baseUrl/api/mobile/tickets'), body: body);
+                        final data = jsonDecode(res.body);
+                        if (res.statusCode == 200 || res.statusCode == 201) {
+                          Navigator.pop(ctx);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Ticket ${data['ticket_number']} raised successfully!'), backgroundColor: Colors.green),
+                          );
+                          _fetchTickets();
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(data['error'] ?? 'Failed to create ticket')));
+                        }
+                      } catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Connection error')));
+                      }
+                      setS(() => submitting = false);
+                    },
+                    child: submitting ? const CircularProgressIndicator(color: Colors.white, strokeWidth: 2) : const Text('Submit Ticket', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   void _showTicketDetailsDialog(Map<String, dynamic> t) {
@@ -298,6 +476,15 @@ class _MyTicketsListScreenState extends State<MyTicketsListScreen> {
           IconButton(icon: const Icon(Icons.refresh), onPressed: _fetchTickets),
         ],
       ),
+      floatingActionButton: (_role == 'ADMIN' || _role == 'MANAGER')
+          ? FloatingActionButton.extended(
+              onPressed: _showRaiseTicketSheet,
+              backgroundColor: const Color(0xFF7C5800),
+              foregroundColor: Colors.white,
+              icon: const Icon(Icons.add),
+              label: const Text('Raise Ticket', style: TextStyle(fontWeight: FontWeight.bold)),
+            )
+          : null,
       body: _isLoading 
         ? const Center(child: CircularProgressIndicator())
         : _error.isNotEmpty

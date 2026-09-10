@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { query, queryOne } from '@/lib/db';
+import { query, queryOne, execute } from '@/lib/db';
 
 export async function GET(request: Request) {
   try {
@@ -60,5 +60,57 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error('Error fetching tickets:', error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const { customer_id, issue_category, issue_type, priority, description, created_by } = body;
+
+    if (!customer_id) {
+      return NextResponse.json({ error: 'customer_id is required' }, { status: 400 });
+    }
+    if (!issue_category || !issue_type) {
+      return NextResponse.json({ error: 'issue_category and issue_type are required' }, { status: 400 });
+    }
+
+    // Auto-generate ticket number: SVC-YYYYMMDD-XXXX
+    const today = new Date();
+    const datePart = today.getFullYear().toString()
+      + String(today.getMonth() + 1).padStart(2, '0')
+      + String(today.getDate()).padStart(2, '0');
+    const countRes = await queryOne<{ count: number }>(
+      "SELECT COUNT(*) as count FROM service_tickets WHERE DATE(created_at) = CURDATE()"
+    );
+    const seq = ((countRes?.count ?? 0) + 1).toString().padStart(4, '0');
+    const ticketNumber = `SVC-${datePart}-${seq}`;
+
+    // Get the project_id linked to this customer (if any)
+    const project = await queryOne<{ id: number }>(
+      'SELECT id FROM projects WHERE customer_id = ? ORDER BY id DESC LIMIT 1',
+      [customer_id]
+    );
+
+    await execute(
+      `INSERT INTO service_tickets
+        (ticket_number, project_id, customer_id, issue_category, issue_type, priority, description, status, service_type, payment_status, created_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'OPEN', 'FREE', 'NOT_APPLICABLE', ?)`,
+      [
+        ticketNumber,
+        project?.id ?? null,
+        customer_id,
+        issue_category,
+        issue_type,
+        priority || 'NORMAL',
+        description || '',
+        created_by || 1,
+      ]
+    );
+
+    return NextResponse.json({ success: true, ticket_number: ticketNumber });
+  } catch (error) {
+    console.error('Error creating ticket:', error);
+    return NextResponse.json({ error: 'Server error', details: String(error) }, { status: 500 });
   }
 }

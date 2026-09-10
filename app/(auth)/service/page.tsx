@@ -164,16 +164,19 @@ export default function ServicePage() {
     },
     {
       key: 'payment_status',
-      title: 'Payment',
+      title: 'Charge',
       render: (value: string, row: ServiceTicket) => {
-        if (row.service_type === 'FREE' || value === 'NOT_APPLICABLE') {
-           return <span className="text-on-surface-variant text-sm">Free</span>;
+        if (row.service_type === 'WARRANTY') {
+          return <span className="status-badge bg-secondary-container text-on-secondary-container">Under Warranty</span>;
         }
-        return (
-          <span className={`status-badge ${value === 'PAID' ? 'bg-tertiary-container text-on-tertiary-container' : 'bg-error-container text-on-error-container'}`}>
-            {value}
-          </span>
-        );
+        if (row.service_type === 'FREE' || value === 'NOT_APPLICABLE') {
+          return <span className="status-badge bg-tertiary-container text-on-tertiary-container">Free</span>;
+        }
+        // PAID service_type
+        if (value === 'PAID') {
+          return <span className="status-badge bg-tertiary-container text-on-tertiary-container">Paid</span>;
+        }
+        return <span className="status-badge bg-primary-fixed text-on-primary-fixed">Paid (Pending)</span>;
       },
     },
     {
@@ -353,38 +356,22 @@ function ServiceTicketDetails({ ticket, onUpdateStatus, onClose }: any) {
         </div>
       )}
 
-      {/* Payment Status Display if applicable */}
-      {ticket.service_type === 'PAID' && (
-        <div className="p-3 bg-surface-container-low border border-outline-variant rounded flex justify-between items-center">
-          <div>
-            <div className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-1">
-              Payment Status
-            </div>
-            <div className="text-sm">
-              <span className={`status-badge ${ticket.payment_status === 'PAID' ? 'bg-tertiary-container text-on-tertiary-container' : 'bg-error-container text-on-error-container'}`}>
-                {ticket.payment_status}
-              </span>
-            </div>
-          </div>
-          {ticket.payment_status === 'PENDING' && (
-            <button
-              onClick={() => {
-                fetch(`/api/service-tickets/${ticket.id}`, {
-                  method: 'PUT',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ payment_status: 'PAID' }),
-                }).then(() => {
-                   ticket.payment_status = 'PAID';
-                   onUpdateStatus(ticket.id, ticket.status, undefined); // triggers a re-fetch of tickets in the parent
-                });
-              }}
-              className="px-3 py-1.5 text-sm font-label-bold text-white bg-tertiary hover:bg-tertiary/90 rounded transition-colors"
-            >
-              Mark as Paid
-            </button>
-          )}
-        </div>
-      )}
+      {/* Charge Type Badge */}
+      <div className="p-3 bg-surface-container-low border border-outline-variant rounded flex items-center gap-3">
+        <div className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider">Charge Type</div>
+        {(() => {
+          if (ticket.service_type === 'WARRANTY') {
+            return <span className="status-badge bg-secondary-container text-on-secondary-container">🔵 Under Warranty</span>;
+          }
+          if (ticket.service_type === 'FREE' || ticket.payment_status === 'NOT_APPLICABLE') {
+            return <span className="status-badge bg-tertiary-container text-on-tertiary-container">🟢 Free</span>;
+          }
+          if (ticket.payment_status === 'PAID') {
+            return <span className="status-badge bg-tertiary-container text-on-tertiary-container">🟢 Paid</span>;
+          }
+          return <span className="status-badge bg-primary-fixed text-on-primary-fixed">🟡 Paid (Pending)</span>;
+        })()}
+      </div>
 
       {/* Resolution Input if working */}
       {['IN_PROGRESS', 'ASSIGNED'].includes(ticket.status) && (
