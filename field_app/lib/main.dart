@@ -295,6 +295,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
     String uRole = _role.toUpperCase();
 
+    // Primary items for BottomNav
     if (uRole == 'ADMIN' || uRole == 'INSTALLATION' || uRole == 'WORKER' || uRole == 'SALES' || uRole == 'MARKETING') {
       _screens.add(const MyJobsListScreen());
       _destinations.add(const NavigationDestination(
@@ -313,71 +314,209 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       ));
     }
     
-    if (uRole == 'ADMIN' || uRole == 'DISCOM' || uRole == 'DISCOM_OPERATOR') {
-      _screens.add(const DiscomListScreen());
-      _destinations.add(const NavigationDestination(
-        icon: Icon(Icons.electrical_services_outlined),
-        selectedIcon: Icon(Icons.electrical_services),
-        label: 'DISCOM',
-      ));
-    }
-
-    if (uRole == 'ADMIN' || uRole == 'ORDER_MANAGER' || uRole == 'ORDER') {
+    // We only keep up to 4 items in the bottom nav to avoid clutter
+    if ((uRole == 'ADMIN' || uRole == 'ORDER_MANAGER' || uRole == 'ORDER') && _destinations.length < 4) {
       _screens.add(const OrdersScreen());
       _destinations.add(const NavigationDestination(
         icon: Icon(Icons.local_shipping_outlined),
         selectedIcon: Icon(Icons.local_shipping),
         label: 'Orders',
       ));
+    } else if (uRole == 'ADMIN' || uRole == 'ORDER_MANAGER' || uRole == 'ORDER') {
+      // If we don't put Orders in Bottom Nav, we still need it in the app's _screens list?
+      // Wait, if it's in the Drawer, how does it navigate?
+      // If we use Drawer, it's better to just navigate by pushing a route, OR keeping all screens in _screens, 
+      // but only showing the first N in BottomNavigationBar.
+    }
+  }
+
+  List<Widget> _allScreens = [];
+  List<NavigationDestination> _bottomNavDestinations = [];
+  bool _useDrawer = false;
+
+  void _buildNavItemsV2() {
+    String uRole = _role.toUpperCase();
+    _useDrawer = (uRole == 'ADMIN');
+
+    _allScreens = [const FieldDashboardScreen()];
+    _bottomNavDestinations = [
+      const NavigationDestination(
+        icon: Icon(Icons.dashboard_outlined),
+        selectedIcon: Icon(Icons.dashboard),
+        label: 'Dashboard',
+      )
+    ];
+
+    void addNav(Widget screen, NavigationDestination dest, bool forceBottomNav) {
+      _allScreens.add(screen);
+      if (!_useDrawer || forceBottomNav) {
+        _bottomNavDestinations.add(dest);
+      }
+    }
+
+    if (uRole == 'ADMIN' || uRole == 'INSTALLATION' || uRole == 'WORKER' || uRole == 'SALES' || uRole == 'MARKETING') {
+      addNav(const MyJobsListScreen(), const NavigationDestination(
+        icon: Icon(Icons.assignment_turned_in_outlined),
+        selectedIcon: Icon(Icons.assignment_turned_in),
+        label: 'Jobs',
+      ), _useDrawer && _bottomNavDestinations.length < 4);
+    }
+
+    if (uRole == 'ADMIN' || uRole == 'INSTALLATION' || uRole == 'WORKER') {
+      addNav(const MyTicketsListScreen(), const NavigationDestination(
+        icon: Icon(Icons.confirmation_number_outlined),
+        selectedIcon: Icon(Icons.confirmation_number),
+        label: 'Tickets',
+      ), _useDrawer && _bottomNavDestinations.length < 4);
+    }
+
+    if (uRole == 'ADMIN' || uRole == 'ORDER_MANAGER' || uRole == 'ORDER') {
+      addNav(const OrdersScreen(), const NavigationDestination(
+        icon: Icon(Icons.local_shipping_outlined),
+        selectedIcon: Icon(Icons.local_shipping),
+        label: 'Orders',
+      ), _useDrawer && _bottomNavDestinations.length < 4);
+    }
+
+    if (uRole == 'ADMIN' || uRole == 'DISCOM' || uRole == 'DISCOM_OPERATOR') {
+      addNav(const DiscomListScreen(), const NavigationDestination(
+        icon: Icon(Icons.electrical_services_outlined),
+        selectedIcon: Icon(Icons.electrical_services),
+        label: 'DISCOM',
+      ), false);
     }
 
     if (uRole == 'ADMIN' || uRole == 'INVENTORY_MANAGER' || uRole == 'INVENTORY') {
-      _screens.add(const ScanInventoryScreen());
-      _destinations.add(const NavigationDestination(
+      addNav(const ScanInventoryScreen(), const NavigationDestination(
         icon: Icon(Icons.inventory_2_outlined),
         selectedIcon: Icon(Icons.inventory_2),
         label: 'Inventory',
-      ));
+      ), false);
     }
 
     if (uRole == 'ADMIN' || uRole == 'SALES' || uRole == 'MARKETING') {
-      _screens.add(const OnGridBookingForm());
-      _destinations.add(const NavigationDestination(
+      addNav(const OnGridBookingForm(), const NavigationDestination(
         icon: Icon(Icons.add_circle_outline),
         selectedIcon: Icon(Icons.add_circle),
         label: 'Booking',
-      ));
+      ), false);
     }
 
-
-    _screens.add(const ProfileScreen());
-    _destinations.add(const NavigationDestination(
+    addNav(const ProfileScreen(), const NavigationDestination(
       icon: Icon(Icons.person_outline),
       selectedIcon: Icon(Icons.person),
       label: 'Profile',
-    ));
+    ), !_useDrawer);
+  }
 
+  void _navigateToScreen(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+    if (_useDrawer) {
+      Navigator.pop(context); // Close drawer
+    }
+  }
+
+  int _getScreenIndex(Type type) {
+    return _allScreens.indexWhere((screen) => screen.runtimeType == type);
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_screens.isEmpty) {
+    _buildNavItemsV2();
+
+    if (_allScreens.isEmpty) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       );
     }
 
+    String uRole = _role.toUpperCase();
+
     return Scaffold(
-      body: _screens[_selectedIndex],
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex,
-        onDestinationSelected: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-        },
-        destinations: _destinations,
-      ),
+      appBar: _useDrawer ? AppBar(
+        title: const Text('Excellent Solar', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        elevation: 0,
+      ) : null,
+      drawer: _useDrawer ? Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            DrawerHeader(
+              decoration: const BoxDecoration(color: Color(0xFF7C5800)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  const CircleAvatar(
+                    backgroundColor: Colors.white,
+                    radius: 30,
+                    child: Icon(Icons.solar_power, color: Color(0xFF7C5800), size: 36),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text('Field Operations', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                  Text('Role: $_role', style: const TextStyle(color: Colors.white70, fontSize: 14)),
+                ],
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.dashboard),
+              title: const Text('Dashboard'),
+              onTap: () => _navigateToScreen(_getScreenIndex(FieldDashboardScreen)),
+            ),
+            ListTile(
+              leading: const Icon(Icons.assignment_turned_in),
+              title: const Text('Jobs'),
+              onTap: () => _navigateToScreen(_getScreenIndex(MyJobsListScreen)),
+            ),
+            ListTile(
+              leading: const Icon(Icons.confirmation_number),
+              title: const Text('Tickets'),
+              onTap: () => _navigateToScreen(_getScreenIndex(MyTicketsListScreen)),
+            ),
+            ListTile(
+              leading: const Icon(Icons.local_shipping),
+              title: const Text('Orders'),
+              onTap: () => _navigateToScreen(_getScreenIndex(OrdersScreen)),
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.electrical_services),
+              title: const Text('DISCOM Management'),
+              onTap: () => _navigateToScreen(_getScreenIndex(DiscomListScreen)),
+            ),
+            ListTile(
+              leading: const Icon(Icons.inventory_2),
+              title: const Text('Scan Inventory'),
+              onTap: () => _navigateToScreen(_getScreenIndex(ScanInventoryScreen)),
+            ),
+            ListTile(
+              leading: const Icon(Icons.add_circle),
+              title: const Text('New Customer Booking'),
+              onTap: () => _navigateToScreen(_getScreenIndex(OnGridBookingForm)),
+            ),
+            const Divider(),
+            ListTile(
+              leading: const Icon(Icons.person),
+              title: const Text('My Profile & Settings'),
+              onTap: () => _navigateToScreen(_getScreenIndex(ProfileScreen)),
+            ),
+          ],
+        ),
+      ) : null,
+      body: SafeArea(child: _allScreens[_selectedIndex]),
+      bottomNavigationBar: (!_useDrawer || _selectedIndex < _bottomNavDestinations.length) 
+        ? NavigationBar(
+            selectedIndex: _useDrawer ? _selectedIndex : _selectedIndex, // Always sync
+            onDestinationSelected: (index) {
+              setState(() {
+                _selectedIndex = index;
+              });
+            },
+            destinations: _bottomNavDestinations,
+          ) 
+        : null,
     );
   }
 }

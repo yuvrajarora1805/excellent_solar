@@ -2,10 +2,10 @@ import { NextResponse } from 'next/server';
 
 export async function GET() {
   return NextResponse.json({
-    latest_version: '1.11.9',
-    version_code: 32,
+    latest_version: '1.12.0',
+    version_code: 33,
     force_update: false,
     apk_url: 'https://es.omvky.com/downloads/excellent-solar-app.apk',
-    release_notes: '• Installers and Workers can now access the Customer Directory from the Dashboard\n• Changed "Solar Panels" labels to "Inventory Items" in dispatch scanner\n• Dispatch scanner now parses raw serial numbers accurately from manufacturer QR codes, bypassing the need for a model number',
+    release_notes: '• Admin users now get a clean hamburger (☰) side drawer — Dashboard, Jobs, Tickets & Orders remain in the bottom bar while DISCOM, Inventory, Booking and Profile move into the drawer\n• New Customer Booking form now supports Retail Dealer type — site photo & PSPCL grid details are hidden for retail customers\n• General mobile UI improvements and layout optimisations',
   });
 }

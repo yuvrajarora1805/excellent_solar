@@ -44,6 +44,9 @@ class _OnGridBookingFormState extends State<OnGridBookingForm> {
   final _materialAdvanceCtrl = TextEditingController();
   final _balanceAmountCtrl = TextEditingController();
   final _totalAmountCtrl = TextEditingController();
+  
+  // Booking Type
+  String _bookingType = 'PROJECT'; // 'PROJECT' or 'RETAIL'
 
   @override
   void dispose() {
@@ -309,7 +312,7 @@ class _OnGridBookingFormState extends State<OnGridBookingForm> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
             Text(
-              'Excellent Solar KKP On-Grid Booking Form',
+              'Excellent Solar KKP - New Customer Booking',
               style: GoogleFonts.hankenGrotesk(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -317,6 +320,21 @@ class _OnGridBookingFormState extends State<OnGridBookingForm> {
             ),
             const Divider(),
             const SizedBox(height: 8),
+
+            // BOOKING TYPE SELECTOR
+            DropdownButtonFormField<String>(
+              value: _bookingType,
+              decoration: const InputDecoration(
+                labelText: 'Booking / Customer Type *',
+                border: OutlineInputBorder(),
+              ),
+              items: const [
+                DropdownMenuItem(value: 'PROJECT', child: Text('On-Grid Solar Project')),
+                DropdownMenuItem(value: 'RETAIL', child: Text('Retail Dealer (OTC Sales)')),
+              ],
+              onChanged: (val) => setState(() => _bookingType = val!),
+            ),
+            const SizedBox(height: 16),
 
             // CUSTOMER PROFILE
             Row(
@@ -399,118 +417,120 @@ class _OnGridBookingFormState extends State<OnGridBookingForm> {
             const SizedBox(height: 24),
 
             // SITE PHOTO & GEOTAG
-            const Text(
-              '2. Site Verification (Geotag)',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            const SizedBox(height: 8),
-            Container(
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey.shade400),
-                borderRadius: BorderRadius.circular(8),
+            if (_bookingType == 'PROJECT') ...[
+              const Text(
+                '2. Site Verification (Geotag)',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
-              padding: const EdgeInsets.all(16),
-              child: Column(
+              const SizedBox(height: 8),
+              Container(
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.shade400),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    if (_sitePhoto != null)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 16.0),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.file(_sitePhoto!, height: 150, width: double.infinity, fit: BoxFit.cover),
+                        ),
+                      ),
+                    if (_isGettingLocation)
+                      const CircularProgressIndicator()
+                    else if (_geotagLocation.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 16.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.location_on, color: Colors.green),
+                            const SizedBox(width: 8),
+                            Expanded(child: Text(_geotagLocation, style: const TextStyle(fontWeight: FontWeight.bold))),
+                          ],
+                        ),
+                      ),
+                    ElevatedButton.icon(
+                      onPressed: _capturePhoto,
+                      icon: const Icon(Icons.camera_alt),
+                      label: Text(_sitePhoto == null ? 'Capture Site Photo & Geotag' : 'Retake Photo'),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // TECHNICAL DETAILS
+              const Text(
+                '3. Connection & Grid Details',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: _pspclSubDivisionCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'PSPCL Sub-Division *',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _pspclAccountNoCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'PSPCL Account No. *',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
                 children: [
-                  if (_sitePhoto != null)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 16.0),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.file(_sitePhoto!, height: 150, width: double.infinity, fit: BoxFit.cover),
+                  Expanded(
+                    child: DropdownButtonFormField<String>(
+                      value: connectionPhase,
+                      decoration: const InputDecoration(
+                        labelText: 'Phase Type',
+                        border: OutlineInputBorder(),
                       ),
+                      items: const [
+                        DropdownMenuItem(value: 'Single Phase', child: Text('Single Phase')),
+                        DropdownMenuItem(value: '3 Phase', child: Text('3 Phase')),
+                      ],
+                      onChanged: (val) => setState(() => connectionPhase = val!),
                     ),
-                  if (_isGettingLocation)
-                    const CircularProgressIndicator()
-                  else if (_geotagLocation.isNotEmpty)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 16.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.location_on, color: Colors.green),
-                          const SizedBox(width: 8),
-                          Expanded(child: Text(_geotagLocation, style: const TextStyle(fontWeight: FontWeight.bold))),
-                        ],
-                      ),
-                    ),
-                  ElevatedButton.icon(
-                    onPressed: _capturePhoto,
-                    icon: const Icon(Icons.camera_alt),
-                    label: Text(_sitePhoto == null ? 'Capture Site Photo & Geotag' : 'Retake Photo'),
                   ),
                 ],
               ),
-            ),
-            const SizedBox(height: 24),
-
-            // TECHNICAL DETAILS
-            const Text(
-              '3. Connection & Grid Details',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-            ),
-            const SizedBox(height: 8),
-            TextFormField(
-              controller: _pspclSubDivisionCtrl,
-              decoration: const InputDecoration(
-                labelText: 'PSPCL Sub-Division *',
-                border: OutlineInputBorder(),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _sanctionedLoadCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Sanctioned Load (kW)',
+                        border: OutlineInputBorder(),
+                      ),
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _proposedLoadCtrl,
+                      decoration: const InputDecoration(
+                        labelText: 'Proposed Load (kW)',
+                        border: OutlineInputBorder(),
+                      ),
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                ],
               ),
-            ),
-            const SizedBox(height: 12),
-            TextFormField(
-              controller: _pspclAccountNoCtrl,
-              decoration: const InputDecoration(
-                labelText: 'PSPCL Account No. *',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    value: connectionPhase,
-                    decoration: const InputDecoration(
-                      labelText: 'Phase Type',
-                      border: OutlineInputBorder(),
-                    ),
-                    items: const [
-                      DropdownMenuItem(value: 'Single Phase', child: Text('Single Phase')),
-                      DropdownMenuItem(value: '3 Phase', child: Text('3 Phase')),
-                    ],
-                    onChanged: (val) => setState(() => connectionPhase = val!),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    controller: _sanctionedLoadCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Sanctioned Load (kW)',
-                      border: OutlineInputBorder(),
-                    ),
-                    keyboardType: TextInputType.number,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: TextFormField(
-                    controller: _proposedLoadCtrl,
-                    decoration: const InputDecoration(
-                      labelText: 'Proposed Load (kW)',
-                      border: OutlineInputBorder(),
-                    ),
-                    keyboardType: TextInputType.number,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
+              const SizedBox(height: 24),
+            ],
 
             // HARDWARE CONFIG
             const Text(
@@ -657,7 +677,7 @@ class _OnGridBookingFormState extends State<OnGridBookingForm> {
               ),
               onPressed: _isSubmitting ? null : () async {
                 if (_formKey.currentState!.validate()) {
-                  if (_sitePhoto == null) {
+                  if (_bookingType == 'PROJECT' && _sitePhoto == null) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Please capture a site photo!')),
                     );
@@ -669,6 +689,7 @@ class _OnGridBookingFormState extends State<OnGridBookingForm> {
                     var request = await ApiService.multipartRequest('POST', Uri.parse('$baseUrl/api/mobile/bookings'));
                     
                     // Add text fields
+                    request.fields['customerType'] = _bookingType; // Added for backend
                     request.fields['customerName'] = _customerNameCtrl.text;
                     request.fields['mobileNumber'] = _mobileNumberCtrl.text;
                     request.fields['emailId'] = _emailIdCtrl.text;

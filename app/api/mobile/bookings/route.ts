@@ -47,22 +47,60 @@ export async function POST(request: Request) {
     const workerId = workerIdRaw ? parseInt(workerIdRaw) : 1;
     const reservationsRaw = formData.get('reservations') as string;
 
+    const customerType = formData.get('customerType') as string || 'PROJECT';
+
     // 1. Find or Insert Customer
     let customerId;
     const existingCust = await query('SELECT id FROM customers WHERE mobile = ?', [mobileNumber]) as any[];
     
     if (existingCust && existingCust.length > 0) {
       customerId = existingCust[0].id;
+      // Optionally update customer_type if they are now a RETAIL dealer? We'll just leave it.
     } else {
       const custResult = await query(
-        'INSERT INTO customers (name, mobile, email, address, city, district, state) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [customerName, mobileNumber, emailId || null, address, 'N/A', 'N/A', 'N/A']
+        'INSERT INTO customers (name, mobile, email, address, city, district, state, customer_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [customerName, mobileNumber, emailId || null, address, 'N/A', 'N/A', 'N/A', customerType]
       ) as any;
       customerId = custResult.insertId;
     }
     const projectId = `ES-${new Date().getFullYear()}-${customerId.toString().padStart(4, '0')}`;
 
-    // 2. Insert Project with all technical data
+    if (customerType === 'RETAIL') {
+      // For RETAIL, we might just create the customer and maybe an order/ticket if there are reservations.
+      // For now, if there are reservations, we can store them as a retail requirement (ticket).
+      if (reservationsRaw) {
+        try {
+          const reservationItems = JSON.parse(reservationsRaw);
+          if (Array.isArray(reservationItems) && reservationItems.length > 0) {
+             const { insertRetailTicket } = await import('@/lib/db-helpers/orders').catch(() => ({ insertRetailTicket: null }));
+             if (insertRetailTicket) {
+                // If we have an order helper for retail tickets, we could use it here.
+                // Or just insert directly into `orders` with RETAIL_REQUIREMENT.
+                const totalAmountNum = totalAmount ? parseFloat(totalAmount) : 0;
+                const orderResult = await query(
+                  'INSERT INTO orders (customer_id, order_type, status, total_amount) VALUES (?, ?, ?, ?)',
+                  [customerId, 'RETAIL_REQUIREMENT', 'PENDING_DISPATCH', totalAmountNum]
+                ) as any;
+                
+                for (const item of reservationItems) {
+                  await query(
+                    'INSERT INTO order_items (order_id, product_id, quantity, unit_price, line_total) VALUES (?, ?, ?, ?, ?)',
+                    [orderResult.insertId, item.product_id, item.quantity, 0, 0] // using 0 price since we don't have it here
+                  );
+                }
+             }
+          }
+        } catch (e) {
+          console.warn('Failed to create retail reservations:', e);
+        }
+      }
+      return NextResponse.json({ 
+        success: true, 
+        message: 'Retail Dealer created successfully',
+      });
+    }
+
+    // 2. Insert Project with all technical data (ONLY FOR PROJECT TYPE)
     const projectResult = await query(
       `INSERT INTO projects (
         project_id, customer_id, status, created_by, discom,
