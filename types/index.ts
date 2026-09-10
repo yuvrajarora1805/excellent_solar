@@ -891,6 +891,9 @@ export interface ServiceTicket {
   description: string;
   assigned_to?: number;
   resolution?: string;
+  resolution_photo_path?: string;
+  resolution_latitude?: number;
+  resolution_longitude?: number;
   resolved_at?: Date;
   status: ServiceTicketStatus;
   customer_rating?: number;

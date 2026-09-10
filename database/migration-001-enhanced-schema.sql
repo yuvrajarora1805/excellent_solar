@@ -596,6 +596,8 @@ CREATE TABLE IF NOT EXISTS service_tickets (
 
   -- Status
   status ENUM('OPEN', 'ASSIGNED', 'IN_PROGRESS', 'RESOLVED', 'CLOSED', 'REOPENED') DEFAULT 'OPEN',
+  service_type ENUM('FREE', 'PAID') DEFAULT 'FREE',
+  payment_status ENUM('PENDING', 'PAID', 'NOT_APPLICABLE') DEFAULT 'NOT_APPLICABLE',
 
   -- Customer Feedback
   customer_rating INT,

@@ -11,7 +11,7 @@ const VALID_PROJECT_STATUSES = [
 
 export async function POST(request: Request) {
   try {
-    const { type, id, status, notes } = await request.json();
+    const { type, id, status, notes, photo_path, latitude, longitude } = await request.json();
 
     if (!type || !id || !status) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
@@ -96,6 +96,21 @@ export async function POST(request: Request) {
       if (notes) {
         updateSql += ', resolution = ?';
         params.push(notes);
+      }
+
+      if (photo_path) {
+        updateSql += ', resolution_photo_path = ?';
+        params.push(photo_path);
+      }
+      
+      if (latitude !== undefined) {
+        updateSql += ', resolution_latitude = ?';
+        params.push(latitude);
+      }
+
+      if (longitude !== undefined) {
+        updateSql += ', resolution_longitude = ?';
+        params.push(longitude);
       }
 
       if (status === 'RESOLVED' || status === 'CLOSED') {

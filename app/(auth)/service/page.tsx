@@ -20,6 +20,10 @@ interface ServiceTicket {
   assigned_to_name?: string;
   service_type: string;
   payment_status: string;
+  resolution_photo_path?: string;
+  resolution_latitude?: number;
+  resolution_longitude?: number;
+  resolution?: string;
 }
 
 export default function ServicePage() {
@@ -59,12 +63,18 @@ export default function ServicePage() {
     }
   };
 
-  const handleUpdateStatus = async (id: number, status: string, resolution?: string) => {
+  const handleUpdateStatus = async (id: number, updateData: any) => {
     try {
+      // If it's the old signature (id, status, resolution) it will be caught here,
+      // but we updated ServiceTicketDetails to pass an object for updateData.
+      const payload = typeof updateData === 'string' 
+        ? { status: updateData, resolution: arguments[2] } 
+        : updateData;
+
       await fetch(`/api/service-tickets/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status, resolution }),
+        body: JSON.stringify(payload),
       });
       await fetchTickets();
       setIsModalOpen(false);
@@ -292,10 +302,14 @@ export default function ServicePage() {
 }
 
 function ServiceTicketDetails({ ticket, onUpdateStatus, onClose }: any) {
-  const [resolution, setResolution] = useState('');
+  const [resolution, setResolution] = useState(ticket.resolution || '');
 
-  const handleStatusUpdate = (status: string) => {
-    onUpdateStatus(ticket.id, status, status === 'RESOLVED' ? resolution : undefined);
+  const handleStatusUpdate = async (status: string) => {
+    // Call the parent update fn
+    onUpdateStatus(ticket.id, { 
+      status, 
+      resolution: status === 'RESOLVED' ? resolution : undefined
+    });
   };
 
   return (
@@ -330,12 +344,12 @@ function ServiceTicketDetails({ ticket, onUpdateStatus, onClose }: any) {
       </div>
 
       {/* Resolution Notes Display if already submitted */}
-      {ticket.resolution && (
+      {(ticket.resolution) && (
         <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded">
           <div className="text-xs font-semibold text-emerald-800 dark:text-emerald-300 uppercase tracking-wider mb-1">
-            Submitted Resolution Notes
+            Resolution Details
           </div>
-          <p className="text-sm text-slate-800 dark:text-slate-200">{ticket.resolution}</p>
+          {ticket.resolution && <p className="text-sm text-slate-800 dark:text-slate-200 mb-2">{ticket.resolution}</p>}
         </div>
       )}
 
@@ -374,17 +388,19 @@ function ServiceTicketDetails({ ticket, onUpdateStatus, onClose }: any) {
 
       {/* Resolution Input if working */}
       {['IN_PROGRESS', 'ASSIGNED'].includes(ticket.status) && (
-        <div>
-          <label className="block text-label-bold text-on-surface mb-2">
-            Resolution Notes *
-          </label>
-          <textarea
-            value={resolution}
-            onChange={(e) => setResolution(e.target.value)}
-            rows={3}
-            placeholder="Describe how the issue was resolved..."
-            className="input-base"
-          />
+        <div className="space-y-4">
+          <div>
+            <label className="block text-label-bold text-on-surface mb-2">
+              Resolution Notes *
+            </label>
+            <textarea
+              value={resolution}
+              onChange={(e) => setResolution(e.target.value)}
+              rows={3}
+              placeholder="Describe how the issue was resolved..."
+              className="input-base"
+            />
+          </div>
         </div>
       )}
 
@@ -409,10 +425,15 @@ function ServiceTicketDetails({ ticket, onUpdateStatus, onClose }: any) {
         {['IN_PROGRESS', 'ASSIGNED'].includes(ticket.status) && (
           <button
             onClick={() => handleStatusUpdate('RESOLVED')}
-            className="px-3 py-2 text-label-bold text-on-tertiary bg-tertiary hover:opacity-90 rounded transition-opacity"
-            disabled={!resolution}
+            className="px-3 py-2 text-label-bold text-on-tertiary bg-tertiary hover:opacity-90 rounded transition-opacity flex items-center gap-2"
+            disabled={!resolution || isUploading}
           >
-            Submit Resolution
+            {isUploading ? (
+              <>
+                <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span>
+                Uploading...
+              </>
+            ) : 'Submit Resolution'}
           </button>
         )}
         {ticket.status === 'RESOLVED' && (

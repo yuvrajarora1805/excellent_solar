@@ -32,6 +32,10 @@ export default function NewOrderPage() {
   const [customerMobile, setCustomerMobile] = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
 
+  // Retail Requirement Tickets
+  const [retailTickets, setRetailTickets] = useState<any[]>([]);
+  const [selectedTicketId, setSelectedTicketId] = useState<string>('');
+
   // Vehicle Info
   const [vehicleNumber, setVehicleNumber] = useState('');
   const [driverName, setDriverName] = useState('');
@@ -68,7 +72,7 @@ export default function NewOrderPage() {
     fetch('/api/inventory/products')
       .then(res => res.json())
       .then(data => {
-        const prodList = data.products || [];
+        const prodList = Array.isArray(data) ? data : (data.products || []);
         setProducts(prodList);
         if (prodList.length > 0) {
           setSelectedProductId(prodList[0].id);
@@ -133,9 +137,11 @@ export default function NewOrderPage() {
     setOrderItems(updated);
   };
 
-  const handleCustomerSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleCustomerSelect = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const custId = e.target.value;
     setSelectedCustomerId(custId);
+    setSelectedTicketId('');
+    setOrderItems([]);
     if (custId) {
       const cust = customers.find(c => c.id === Number(custId));
       if (cust) {
@@ -143,6 +149,19 @@ export default function NewOrderPage() {
         setCustomerMobile(cust.mobile);
         setDeliveryAddress(cust.address);
       }
+      if (orderType === 'RETAIL') {
+        try {
+          const res = await fetch(`/api/orders?order_type=RETAIL&status=PENDING_DISPATCH`);
+          const data = await res.json();
+          if (data.orders) {
+            setRetailTickets(data.orders.filter((o: any) => o.customer_id === Number(custId)));
+          }
+        } catch (error) {
+          console.error(error);
+        }
+      }
+    } else {
+      setRetailTickets([]);
     }
   };
 
@@ -282,6 +301,7 @@ export default function NewOrderPage() {
           })),
           serials: scannedSerials,
           dispatchImmediately,
+          ticket_id: selectedTicketId ? Number(selectedTicketId) : undefined,
         }),
       });
 
@@ -370,19 +390,54 @@ export default function NewOrderPage() {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {orderType === 'PROJECT' && (
+          {(orderType === 'PROJECT' || orderType === 'RETAIL') && (
             <div>
-              <label className="block text-xs font-bold mb-1">Select Registered Customer</label>
+              <label className="block text-xs font-bold mb-1">Select {orderType === 'PROJECT' ? 'Project / Customer' : 'Retail Dealer'}</label>
               <select
                 value={selectedCustomerId}
                 onChange={handleCustomerSelect}
                 className="w-full p-2 border rounded-md text-sm bg-background"
               >
                 <option value="">Select Existing Customer...</option>
-                {customers.map(c => (
+                {customers.filter(c => c.customer_type === orderType || (!c.customer_type && orderType === 'PROJECT')).map(c => (
                   <option key={c.id} value={c.id}>{c.name} ({c.mobile})</option>
                 ))}
               </select>
+            </div>
+          )}
+
+          {orderType === 'RETAIL' && selectedCustomerId && (
+            <div>
+              <label className="block text-xs font-bold mb-1">Select Pending Requirement Ticket</label>
+              <select
+                value={selectedTicketId}
+                onChange={(e) => {
+                  const tId = e.target.value;
+                  setSelectedTicketId(tId);
+                  const ticket = retailTickets.find(t => String(t.id) === tId);
+                  if (ticket && ticket.items) {
+                    setOrderItems(ticket.items.map((i: any) => ({
+                      product_id: i.product_id,
+                      product_name: i.product_name,
+                      product_code: i.product_code || 'ITEM',
+                      quantity: i.quantity,
+                      unit_price: i.unit_price,
+                      line_total: i.quantity * i.unit_price,
+                    })));
+                  } else {
+                    setOrderItems([]);
+                  }
+                }}
+                className="w-full p-2 border rounded-md text-sm bg-amber-50 dark:bg-amber-950/20"
+              >
+                <option value="">Select a pending requirement ticket...</option>
+                {retailTickets.map(t => (
+                  <option key={t.id} value={t.id}>Ticket #{t.id} - {new Date(t.created_at).toLocaleDateString()} (Total: ₹{t.total_amount})</option>
+                ))}
+              </select>
+              {retailTickets.length === 0 && (
+                <p className="text-xs text-slate-500 mt-1">No pending tickets for this dealer.</p>
+              )}
             </div>
           )}
 

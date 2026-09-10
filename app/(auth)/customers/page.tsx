@@ -143,7 +143,14 @@ export default function CustomersPage() {
                   {/* Header */}
                   <div className="flex items-start justify-between pb-4 border-b border-outline-variant">
                     <div className="flex-1">
-                      <h3 className="text-headline-sm font-semibold text-on-surface">{customer.name}</h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-headline-sm font-semibold text-on-surface">{customer.name}</h3>
+                        {customer.customer_type === 'RETAIL' && (
+                          <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full dark:bg-amber-900/40 dark:text-amber-400">
+                            RETAIL
+                          </span>
+                        )}
+                      </div>
                       <p className="text-body-md text-on-surface-variant flex items-center gap-1.5 mt-1">
                         <span className="material-symbols-outlined text-sm">call</span>
                         {customer.mobile}

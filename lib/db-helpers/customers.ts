@@ -17,14 +17,20 @@ export const customerDb = {
     limit?: number;
     offset?: number;
     search?: string;
+    customer_type?: string;
   }): Promise<Customer[]> => {
-    let sql = 'SELECT * FROM customers';
+    let sql = 'SELECT * FROM customers WHERE 1=1';
     const params: any[] = [];
 
     if (options?.search) {
-      sql += ' WHERE name LIKE ? OR mobile LIKE ? OR email LIKE ?';
+      sql += ' AND (name LIKE ? OR mobile LIKE ? OR email LIKE ?)';
       const searchPattern = `%${options.search}%`;
       params.push(searchPattern, searchPattern, searchPattern);
+    }
+    
+    if (options?.customer_type) {
+      sql += ' AND customer_type = ?';
+      params.push(options.customer_type);
     }
 
     sql += ' ORDER BY created_at DESC';
@@ -40,14 +46,19 @@ export const customerDb = {
   },
 
   // Count customers
-  count: async (search?: string): Promise<number> => {
-    let sql = 'SELECT COUNT(*) as count FROM customers';
+  count: async (search?: string, customer_type?: string): Promise<number> => {
+    let sql = 'SELECT COUNT(*) as count FROM customers WHERE 1=1';
     const params: any[] = [];
 
     if (search) {
-      sql += ' WHERE name LIKE ? OR mobile LIKE ? OR email LIKE ?';
+      sql += ' AND (name LIKE ? OR mobile LIKE ? OR email LIKE ?)';
       const searchPattern = `%${search}%`;
       params.push(searchPattern, searchPattern, searchPattern);
+    }
+    
+    if (customer_type) {
+      sql += ' AND customer_type = ?';
+      params.push(customer_type);
     }
 
     const result = await queryOne<{ count: number }>(sql, params);
@@ -55,10 +66,10 @@ export const customerDb = {
   },
 
   // Create new customer
-  create: async (data: Omit<Customer, 'id' | 'created_at' | 'updated_at'>): Promise<number> => {
+  create: async (data: Omit<Customer, 'id' | 'created_at' | 'updated_at'> & { customer_type?: string }): Promise<number> => {
     return insert(
-      'INSERT INTO customers (name, mobile, email, address, city, district, state) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [data.name, data.mobile, data.email || null, data.address, data.city, data.district, data.state]
+      'INSERT INTO customers (name, mobile, email, address, city, district, state, customer_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [data.name, data.mobile, data.email || null, data.address, data.city, data.district, data.state, data.customer_type || 'PROJECT']
     );
   },
 

@@ -32,7 +32,7 @@ export interface Order {
   driver_mobile?: string;
   vehicle_photo_path?: string;
   total_amount: number;
-  status: 'DRAFT' | 'READY_FOR_DISPATCH' | 'DISPATCHED' | 'DELIVERED' | 'CANCELLED';
+  status: 'DRAFT' | 'SENT_TO_OFFICE' | 'ACCEPTED_BY_OFFICE' | 'READY_FOR_DISPATCH' | 'DISPATCHED' | 'DELIVERED' | 'CANCELLED';
   created_by?: number;
   dispatched_at?: string;
   delivered_at?: string;
@@ -147,12 +147,14 @@ export const orderDb = {
     serials: OrderSerial[];
     userId: number;
     dispatchImmediately?: boolean;
+    status?: string;
   }): Promise<number> => {
     return transaction(async (conn) => {
       const orderNumber = await orderDb.generateOrderNumber();
-      const initialStatus = data.dispatchImmediately ? 'DISPATCHED' : 'READY_FOR_DISPATCH';
+      const initialStatus = data.status || (data.dispatchImmediately ? 'DISPATCHED' : 'READY_FOR_DISPATCH');
 
-      const [res] = await conn.execute(
+      const [res] = await conn.execute
+(
         `INSERT INTO orders (order_number, order_type, project_id, customer_id, customer_name, customer_mobile, delivery_address,
          vehicle_number, driver_name, driver_mobile, vehicle_photo_path, total_amount, status, created_by, dispatched_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ${data.dispatchImmediately ? 'NOW()' : 'NULL'})`,
@@ -210,10 +212,17 @@ export const orderDb = {
       // Sync stock if dispatched
       if (data.dispatchImmediately) {
         for (const item of data.items) {
-          await conn.execute(
-            'UPDATE products SET current_stock = GREATEST(0, current_stock - ?) WHERE id = ?',
-            [item.quantity, item.product_id]
-          );
+          if (data.order_type === 'RETAIL') {
+            await conn.execute(
+              'UPDATE products SET current_stock = GREATEST(0, current_stock - ?), reserved_stock = GREATEST(0, COALESCE(reserved_stock, 0) - ?) WHERE id = ?',
+              [item.quantity, item.quantity, item.product_id]
+            );
+          } else {
+            await conn.execute(
+              'UPDATE products SET current_stock = GREATEST(0, current_stock - ?) WHERE id = ?',
+              [item.quantity, item.product_id]
+            );
+          }
 
           await conn.execute(
             `INSERT INTO stock_transactions (product_id, type, quantity, reference_id, reference_type, remarks, created_by)
@@ -230,6 +239,86 @@ export const orderDb = {
       }
 
       return orderId;
+    });
+  },
+
+  // Dispatch an existing requirement ticket
+  dispatchTicket: async (ticketId: number, data: {
+    vehicle_number?: string;
+    driver_name?: string;
+    driver_mobile?: string;
+    vehicle_photo_path?: string;
+    serials: OrderSerial[];
+    userId: number;
+  }): Promise<void> => {
+    return transaction(async (conn) => {
+      const order = await orderDb.findById(ticketId);
+      if (!order) throw new Error('Ticket not found');
+      if (order.status === 'DISPATCHED' || order.status === 'DELIVERED') {
+        throw new Error('Ticket is already dispatched or delivered');
+      }
+
+      // 1. Update order details
+      await conn.execute(
+        `UPDATE orders SET 
+           vehicle_number = ?, driver_name = ?, driver_mobile = ?, vehicle_photo_path = ?,
+           status = 'DISPATCHED', dispatched_at = NOW()
+         WHERE id = ?`,
+        [
+          data.vehicle_number || null,
+          data.driver_name || null,
+          data.driver_mobile || null,
+          data.vehicle_photo_path || null,
+          ticketId
+        ]
+      );
+
+      // 2. Insert serials and update serial status
+      for (const s of data.serials) {
+        await conn.execute(
+          `INSERT INTO order_serials (order_id, product_id, serial_number) VALUES (?, ?, ?)`,
+          [ticketId, s.product_id, s.serial_number]
+        );
+
+        await conn.execute(
+          `INSERT INTO product_serial_numbers (product_id, serial_number, status, current_location, remarks)
+           VALUES (?, ?, 'ISSUED', 'ISSUED', ?)
+           ON DUPLICATE KEY UPDATE
+               status = 'ISSUED',
+               current_location = 'ISSUED',
+               remarks = CONCAT(COALESCE(remarks, ''), ' | Dispatched Ticket #${order.order_number} (${order.customer_name})')`,
+          [s.product_id, s.serial_number, `Dispatched Ticket #${order.order_number} (${order.customer_name})`]
+        );
+      }
+
+      // 3. Sync stock
+      if (order.items) {
+        for (const item of order.items) {
+          if (order.order_type === 'RETAIL') {
+            await conn.execute(
+              'UPDATE products SET current_stock = GREATEST(0, current_stock - ?), reserved_stock = GREATEST(0, COALESCE(reserved_stock, 0) - ?) WHERE id = ?',
+              [item.quantity, item.quantity, item.product_id]
+            );
+          } else {
+            await conn.execute(
+              'UPDATE products SET current_stock = GREATEST(0, current_stock - ?) WHERE id = ?',
+              [item.quantity, item.product_id]
+            );
+          }
+
+          await conn.execute(
+            `INSERT INTO stock_transactions (product_id, type, quantity, reference_id, reference_type, remarks, created_by)
+             VALUES (?, 'ISSUE', ?, ?, 'ORDER_DISPATCH', ?, ?)`,
+            [
+              item.product_id,
+              item.quantity,
+              ticketId,
+              `Dispatched Ticket #${order.order_number} to ${order.customer_name} (Vehicle: ${data.vehicle_number || 'N/A'})`,
+              data.userId,
+            ]
+          );
+        }
+      }
     });
   },
 
@@ -262,10 +351,17 @@ export const orderDb = {
         // Deduct Stock
         if (order.items) {
           for (const item of order.items) {
-            await conn.execute(
-              'UPDATE products SET current_stock = GREATEST(0, current_stock - ?) WHERE id = ?',
-              [item.quantity, item.product_id]
-            );
+            if (order.order_type === 'RETAIL') {
+              await conn.execute(
+                'UPDATE products SET current_stock = GREATEST(0, current_stock - ?), reserved_stock = GREATEST(0, COALESCE(reserved_stock, 0) - ?) WHERE id = ?',
+                [item.quantity, item.quantity, item.product_id]
+              );
+            } else {
+              await conn.execute(
+                'UPDATE products SET current_stock = GREATEST(0, current_stock - ?) WHERE id = ?',
+                [item.quantity, item.product_id]
+              );
+            }
 
             await conn.execute(
               `INSERT INTO stock_transactions (product_id, type, quantity, reference_id, reference_type, remarks, created_by)

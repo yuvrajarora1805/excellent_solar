@@ -16,6 +16,8 @@ const navigation = [
   { name: 'Projects', href: '/projects', icon: 'folder_open', roles: ['ADMIN', 'MARKETING'] },
   { name: 'Quotations', href: '/quotations', icon: 'description', roles: ['ADMIN', 'ORDER_MANAGER', 'MARKETING'] },
   { name: 'Orders & Dispatch', href: '/orders', icon: 'local_shipping', roles: ['ADMIN', 'ORDER_MANAGER', 'MARKETING', 'INSTALLATION', 'DISCOM'] },
+  { name: 'Retail Orders', href: '/orders/retail', icon: 'store', roles: ['ADMIN', 'ORDER_MANAGER', 'MARKETING'] },
+
   { name: 'DISCOM', href: '/discom', icon: 'account_balance', roles: ['ADMIN', 'DISCOM', 'SURVEY_VIEWER'] },
 
   { name: 'Inventory', href: '/inventory', icon: 'inventory_2', roles: ['ADMIN', 'ORDER_MANAGER', 'INSTALLATION', 'INVENTORY_MANAGER'] },
@@ -32,14 +34,24 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
 
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const user = session?.user || { name: 'Loading', email: '', role: 'ADMIN', id: 0 };
 
   useEffect(() => {
-    if (user.role === 'SURVEY_VIEWER' && pathname === '/dashboard') {
+    if (status === 'unauthenticated') {
+      window.location.href = '/login';
+    } else if (status === 'authenticated' && user.role === 'SURVEY_VIEWER' && pathname === '/dashboard') {
       window.location.href = '/site-documents';
     }
-  }, [user.role, pathname]);
+  }, [user.role, pathname, status]);
+
+  if (status === 'loading' || status === 'unauthenticated') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#0f172a]">
+        <div className="text-white text-lg animate-pulse font-bold">Loading...</div>
+      </div>
+    );
+  }
 
   const filteredNavigation = navigation.filter((item) =>
     item.roles.includes(user.role)
@@ -63,7 +75,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         {/* =========================================================
             SIDEBAR
         ========================================================== */}
-        <aside className="app-sidebar flex w-[280px] min-w-0 flex-col overflow-x-hidden overflow-y-auto border-r border-slate-800 bg-[#0f172a]">
+        <aside className={`app-sidebar flex w-[280px] shrink-0 flex-col overflow-x-hidden overflow-y-auto border-r border-slate-800 bg-[#0f172a] fixed md:relative z-50 h-full transition-transform duration-300 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
           {/* Logo/Brand */}
           <div className="flex shrink-0 flex-col px-6 py-6">
             <div className="flex items-center gap-3">
@@ -140,6 +152,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
                   <Link
                     key={item.href}
                     href={item.href}
+                    onClick={() => setSidebarOpen(false)}
                     className={`group flex h-12 min-w-0 items-center gap-4 rounded-lg px-3 transition-colors ${
                       isActive
                         ? 'bg-emerald-600/20 text-emerald-400 font-semibold border-l-4 border-emerald-500'
@@ -197,7 +210,13 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         ====================================================== */}
         <div className="app-main-wrapper">
           {/* Header */}
-          <header className="app-header flex items-center justify-end px-6">
+          <header className="app-header flex items-center justify-between md:justify-end px-6">
+            <button
+              className="md:hidden flex items-center justify-center rounded-lg p-2 bg-slate-100 hover:bg-slate-200"
+              onClick={() => setSidebarOpen(true)}
+            >
+              <span className="material-symbols-outlined text-slate-800">menu</span>
+            </button>
             <div className="flex items-center gap-2 rounded-full bg-gray-100 px-4 py-2">
               <span className="h-2 w-2 rounded-full bg-emerald-400" />
               <span className="text-sm font-medium text-gray-800">

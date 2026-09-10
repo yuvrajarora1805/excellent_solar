@@ -9,10 +9,11 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = parseInt(searchParams.get('offset') || '0');
     const search = searchParams.get('search') || undefined;
+    const customer_type = searchParams.get('customer_type') || undefined;
 
     const [rawCustomers, total] = await Promise.all([
-      customerDb.findAll({ limit, offset, search }),
-      customerDb.count(search),
+      customerDb.findAll({ limit, offset, search, customer_type }),
+      customerDb.count(search, customer_type),
     ]);
 
     const customers = rawCustomers.map((c: any) => ({
@@ -76,6 +77,7 @@ export async function POST(request: NextRequest) {
       city: body.city,
       district: body.district,
       state: body.state,
+      customer_type: body.customer_type || 'PROJECT'
     });
 
     const reservationsRaw = body.reservations;

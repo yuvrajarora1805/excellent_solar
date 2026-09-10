@@ -431,6 +431,18 @@ export const serviceTicketDb = {
       fields.push('customer_feedback = ?');
       values.push(data.customer_feedback);
     }
+    if (data.resolution_photo_path !== undefined) {
+      fields.push('resolution_photo_path = ?');
+      values.push(data.resolution_photo_path);
+    }
+    if (data.resolution_latitude !== undefined) {
+      fields.push('resolution_latitude = ?');
+      values.push(data.resolution_latitude);
+    }
+    if (data.resolution_longitude !== undefined) {
+      fields.push('resolution_longitude = ?');
+      values.push(data.resolution_longitude);
+    }
 
     if (fields.length === 0) return 0;
 

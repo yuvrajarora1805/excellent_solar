@@ -45,6 +45,7 @@ export async function POST(req: NextRequest) {
       dispatchImmediately,
       user_id,
       vehicle_photo_base64,
+      status,
     } = body;
 
     if (!customer_name) {
@@ -182,30 +183,46 @@ export async function POST(req: NextRequest) {
         }));
       }
 
-      const orderId = await orderDb.create({
-        order_type: order_type || 'RETAIL',
-        project_id: project_id ? Number(project_id) : undefined,
-        customer_id: customer_id ? Number(customer_id) : undefined,
-        customer_name,
-        customer_mobile,
-        delivery_address,
-        vehicle_number,
-        driver_name,
-        driver_mobile,
-        vehicle_photo_path: final_vehicle_photo_path,
-        total_amount: Number(total_amount || 0),
-        items: finalItems,
-        serials: finalSerials,
-        userId,
-        dispatchImmediately: Boolean(dispatchImmediately),
-      });
+      let orderId;
+      if (body.ticket_id) {
+        orderId = Number(body.ticket_id);
+        await orderDb.dispatchTicket(orderId, {
+          vehicle_number,
+          driver_name,
+          driver_mobile,
+          vehicle_photo_path: final_vehicle_photo_path,
+          serials: finalSerials,
+          userId,
+        });
+      } else {
+        orderId = await orderDb.create({
+          order_type: order_type || 'RETAIL',
+          project_id: project_id ? Number(project_id) : undefined,
+          customer_id: customer_id ? Number(customer_id) : undefined,
+          customer_name,
+          customer_mobile,
+          delivery_address,
+          vehicle_number,
+          driver_name,
+          driver_mobile,
+          vehicle_photo_path: final_vehicle_photo_path,
+          total_amount: Number(total_amount || 0),
+          items: finalItems,
+          serials: finalSerials,
+          userId,
+          dispatchImmediately: Boolean(dispatchImmediately),
+          status,
+        });
+      }
 
     return NextResponse.json({
       success: true,
       order_id: orderId,
-      message: dispatchImmediately
-        ? 'Order created and dispatched! Stock and serial numbers synced.'
-        : 'Order created successfully!',
+      message: body.ticket_id 
+        ? 'Requirement Ticket dispatched successfully!' 
+        : (dispatchImmediately
+          ? 'Order created and dispatched! Stock and serial numbers synced.'
+          : 'Order created successfully!'),
     });
   } catch (error: any) {
     console.error('Error creating order:', error);

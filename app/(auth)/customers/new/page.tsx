@@ -33,9 +33,10 @@ export default function NewCustomerPage() {
     city: '',
     district: '',
     state: '',
+    customer_type: 'PROJECT',
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     if (errors[name]) {
@@ -181,18 +182,34 @@ export default function NewCustomerPage() {
 
             {/* Personal Information */}
             <div className="space-y-4">
-              <div>
-                <Label htmlFor="name">Customer Name *</Label>
-                <Input
-                  id="name"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  placeholder="Enter customer name"
-                  className={errors.name ? 'border-red-500' : ''}
-                  disabled={loading}
-                />
-                {errors.name && <p className="text-sm text-red-600 mt-1">{errors.name}</p>}
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <Label htmlFor="name">Customer Name *</Label>
+                  <Input
+                    id="name"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    placeholder="Enter customer name"
+                    className={errors.name ? 'border-red-500' : ''}
+                    disabled={loading}
+                  />
+                  {errors.name && <p className="text-sm text-red-600 mt-1">{errors.name}</p>}
+                </div>
+                <div>
+                  <Label htmlFor="customer_type">Customer Type *</Label>
+                  <select
+                    id="customer_type"
+                    name="customer_type"
+                    value={formData.customer_type}
+                    onChange={handleChange}
+                    className="flex h-10 w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm ring-offset-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-950 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-800 dark:bg-slate-950 dark:ring-offset-slate-950 dark:focus-visible:ring-slate-300"
+                    disabled={loading}
+                  >
+                    <option value="PROJECT">Project Customer</option>
+                    <option value="RETAIL">Retail Dealer (OTC)</option>
+                  </select>
+                </div>
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
@@ -293,142 +310,146 @@ export default function NewCustomerPage() {
         </Card>
 
         {/* ── Site Photo + Geotag Card ── */}
-        <Card className="border-amber-200 dark:border-amber-800">
-          <CardHeader>
-            <div className="flex items-center gap-2">
-              <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
-                <Camera className="w-5 h-5 text-amber-600" />
+        {formData.customer_type === 'PROJECT' && (
+          <Card className="border-amber-200 dark:border-amber-800">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg">
+                  <Camera className="w-5 h-5 text-amber-600" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg">Site Photo</CardTitle>
+                  <CardDescription>
+                    Upload a photo of the customer&apos;s installation site. GPS coordinates are captured automatically.
+                  </CardDescription>
+                </div>
               </div>
-              <div>
-                <CardTitle className="text-lg">Site Photo</CardTitle>
-                <CardDescription>
-                  Upload a photo of the customer&apos;s installation site. GPS coordinates are captured automatically.
-                </CardDescription>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <input
-              ref={fileInputRef}
-              type="file"
-              id="sitePhoto"
-              accept="image/*"
-              capture="environment"
-              className="hidden"
-              onChange={handlePhotoChange}
-            />
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <input
+                ref={fileInputRef}
+                type="file"
+                id="sitePhoto"
+                accept="image/*"
+                capture="environment"
+                className="hidden"
+                onChange={handlePhotoChange}
+              />
 
-            {/* Upload Area */}
-            {!sitePhotoPreview && (
-              <div
-                className="border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl p-8 flex flex-col items-center justify-center gap-3 cursor-pointer hover:border-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/10 transition-colors"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <div className="p-4 bg-slate-100 dark:bg-slate-800 rounded-full">
-                  <Camera className="w-8 h-8 text-slate-500" />
-                </div>
-                <div className="text-center">
-                  <p className="font-medium text-slate-700 dark:text-slate-300">Click to capture or upload site photo</p>
-                  <p className="text-sm text-slate-500 mt-1">JPG, PNG, WEBP supported &bull; GPS tagged automatically</p>
-                </div>
-                <div className="flex gap-2">
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 rounded-full">
-                    <Camera className="w-3 h-3" /> Camera
-                  </span>
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 rounded-full">
-                    <Upload className="w-3 h-3" /> File Upload
-                  </span>
-                </div>
-              </div>
-            )}
-
-            {/* Photo Preview */}
-            {sitePhotoPreview && (
-              <div className="relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700">
-                <img src={sitePhotoPreview} alt="Site photo preview" className="w-full h-56 object-cover" />
-                <button
-                  type="button"
-                  onClick={removeSitePhoto}
-                  className="absolute top-2 right-2 p-1.5 bg-red-600 text-white rounded-full shadow-lg hover:bg-red-700 transition-colors"
+              {/* Upload Area */}
+              {!sitePhotoPreview && (
+                <div
+                  className="border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-xl p-8 flex flex-col items-center justify-center gap-3 cursor-pointer hover:border-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/10 transition-colors"
+                  onClick={() => fileInputRef.current?.click()}
                 >
-                  <X className="w-4 h-4" />
-                </button>
-                <div className="absolute bottom-0 left-0 right-0 px-3 py-2 bg-gradient-to-t from-black/60 to-transparent">
-                  <p className="text-white text-xs font-medium truncate">{sitePhoto?.name}</p>
-                </div>
-              </div>
-            )}
-
-            {/* Geolocation Section */}
-            <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-              <div className="px-4 py-3 bg-slate-50 dark:bg-slate-800/50 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-amber-600" />
-                  <span className="text-sm font-medium text-slate-700 dark:text-slate-300">GPS Coordinates</span>
-                </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={captureGeoLocation}
-                  disabled={geoLoading}
-                  className="text-xs"
-                >
-                  {geoLoading ? (
-                    <><Loader2 className="w-3 h-3 mr-1.5 animate-spin" /> Locating&hellip;</>
-                  ) : (
-                    <><Navigation className="w-3 h-3 mr-1.5" /> {geoLocation ? 'Refresh' : 'Get Location'}</>
-                  )}
-                </Button>
-              </div>
-              <div className="px-4 py-3">
-                {geoError && <p className="text-sm text-red-600 dark:text-red-400">{geoError}</p>}
-                {!geoLocation && !geoLoading && !geoError && (
-                  <p className="text-sm text-slate-500">Click &quot;Get Location&quot; or select a photo — GPS will be captured automatically.</p>
-                )}
-                {geoLoading && (
-                  <p className="text-sm text-slate-500 flex items-center gap-2">
-                    <Loader2 className="w-3 h-3 animate-spin" /> Acquiring GPS signal&hellip;
-                  </p>
-                )}
-                {geoLocation && (
-                  <div className="space-y-2">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="px-3 py-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                        <p className="text-xs text-slate-500 uppercase tracking-wider">Latitude</p>
-                        <p className="font-mono font-semibold text-green-700 dark:text-green-400">{geoLocation.lat}&deg;</p>
-                      </div>
-                      <div className="px-3 py-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                        <p className="text-xs text-slate-500 uppercase tracking-wider">Longitude</p>
-                        <p className="font-mono font-semibold text-green-700 dark:text-green-400">{geoLocation.lng}&deg;</p>
-                      </div>
-                    </div>
-                    <a
-                      href={`https://www.google.com/maps?q=${geoLocation.lat},${geoLocation.lng}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 text-xs text-amber-600 hover:text-amber-700 dark:text-amber-400 hover:underline font-medium"
-                    >
-                      <MapPin className="w-3 h-3" />
-                      View on Google Maps &rarr;
-                    </a>
+                  <div className="p-4 bg-slate-100 dark:bg-slate-800 rounded-full">
+                    <Camera className="w-8 h-8 text-slate-500" />
                   </div>
-                )}
+                  <div className="text-center">
+                    <p className="font-medium text-slate-700 dark:text-slate-300">Click to capture or upload site photo</p>
+                    <p className="text-sm text-slate-500 mt-1">JPG, PNG, WEBP supported &bull; GPS tagged automatically</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 rounded-full">
+                      <Camera className="w-3 h-3" /> Camera
+                    </span>
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 rounded-full">
+                      <Upload className="w-3 h-3" /> File Upload
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Photo Preview */}
+              {sitePhotoPreview && (
+                <div className="relative rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700">
+                  <img src={sitePhotoPreview} alt="Site photo preview" className="w-full h-56 object-cover" />
+                  <button
+                    type="button"
+                    onClick={removeSitePhoto}
+                    className="absolute top-2 right-2 p-1.5 bg-red-600 text-white rounded-full shadow-lg hover:bg-red-700 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                  <div className="absolute bottom-0 left-0 right-0 px-3 py-2 bg-gradient-to-t from-black/60 to-transparent">
+                    <p className="text-white text-xs font-medium truncate">{sitePhoto?.name}</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Geolocation Section */}
+              <div className="rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+                <div className="px-4 py-3 bg-slate-50 dark:bg-slate-800/50 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-amber-600" />
+                    <span className="text-sm font-medium text-slate-700 dark:text-slate-300">GPS Coordinates</span>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={captureGeoLocation}
+                    disabled={geoLoading}
+                    className="text-xs"
+                  >
+                    {geoLoading ? (
+                      <><Loader2 className="w-3 h-3 mr-1.5 animate-spin" /> Locating&hellip;</>
+                    ) : (
+                      <><Navigation className="w-3 h-3 mr-1.5" /> {geoLocation ? 'Refresh' : 'Get Location'}</>
+                    )}
+                  </Button>
+                </div>
+                <div className="px-4 py-3">
+                  {geoError && <p className="text-sm text-red-600 dark:text-red-400">{geoError}</p>}
+                  {!geoLocation && !geoLoading && !geoError && (
+                    <p className="text-sm text-slate-500">Click &quot;Get Location&quot; or select a photo — GPS will be captured automatically.</p>
+                  )}
+                  {geoLoading && (
+                    <p className="text-sm text-slate-500 flex items-center gap-2">
+                      <Loader2 className="w-3 h-3 animate-spin" /> Acquiring GPS signal&hellip;
+                    </p>
+                  )}
+                  {geoLocation && (
+                    <div className="space-y-2">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="px-3 py-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                          <p className="text-xs text-slate-500 uppercase tracking-wider">Latitude</p>
+                          <p className="font-mono font-semibold text-green-700 dark:text-green-400">{geoLocation.lat}&deg;</p>
+                        </div>
+                        <div className="px-3 py-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                          <p className="text-xs text-slate-500 uppercase tracking-wider">Longitude</p>
+                          <p className="font-mono font-semibold text-green-700 dark:text-green-400">{geoLocation.lng}&deg;</p>
+                        </div>
+                      </div>
+                      <a
+                        href={`https://www.google.com/maps?q=${geoLocation.lat},${geoLocation.lng}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 text-xs text-amber-600 hover:text-amber-700 dark:text-amber-400 hover:underline font-medium"
+                      >
+                        <MapPin className="w-3 h-3" />
+                        View on Google Maps &rarr;
+                      </a>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Inventory Reservation */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Initial Project Inventory</CardTitle>
-            <CardDescription>Reserve solar panels or inverters right away (automatically creates a project for this customer)</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ProjectInventorySelector value={reservations} onChange={setReservations} />
-          </CardContent>
-        </Card>
+        {formData.customer_type === 'PROJECT' && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Initial Project Inventory</CardTitle>
+              <CardDescription>Reserve solar panels or inverters right away (automatically creates a project for this customer)</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ProjectInventorySelector value={reservations} onChange={setReservations} />
+            </CardContent>
+          </Card>
+        )}
 
         {/* ── Actions ── */}
         <div className="flex justify-end gap-4">
@@ -439,7 +460,7 @@ export default function NewCustomerPage() {
             {loading ? (
               <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving&hellip;</>
             ) : (
-              <><Save className="w-4 h-4 mr-2" /> {reservations.length > 0 ? 'Create Customer + Project' : 'Create Customer'}</>
+              <><Save className="w-4 h-4 mr-2" /> {formData.customer_type === 'PROJECT' && reservations.length > 0 ? 'Create Customer + Project' : 'Create Customer'}</>
             )}
           </Button>
         </div>
