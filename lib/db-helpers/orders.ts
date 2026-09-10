@@ -32,7 +32,7 @@ export interface Order {
   driver_mobile?: string;
   vehicle_photo_path?: string;
   total_amount: number;
-  status: 'DRAFT' | 'SENT_TO_OFFICE' | 'ACCEPTED_BY_OFFICE' | 'READY_FOR_DISPATCH' | 'DISPATCHED' | 'DELIVERED' | 'CANCELLED';
+  status: 'DRAFT' | 'SENT_TO_OFFICE' | 'ACCEPTED_BY_OFFICE' | 'PENDING_DISPATCH' | 'READY_FOR_DISPATCH' | 'DISPATCHED' | 'DELIVERED' | 'CANCELLED';
   created_by?: number;
   dispatched_at?: string;
   delivered_at?: string;
