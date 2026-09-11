@@ -199,8 +199,32 @@ class _OnGridBookingFormState extends State<OnGridBookingForm> {
       return;
     }
 
+    final ImageSource? source = await showDialog<ImageSource>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Select Image Source'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Camera'),
+              onTap: () => Navigator.pop(context, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Gallery'),
+              onTap: () => Navigator.pop(context, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (source == null) return;
+
     final ImagePicker picker = ImagePicker();
-    final XFile? image = await picker.pickImage(source: ImageSource.camera);
+    final XFile? image = await picker.pickImage(source: source);
 
     if (image != null) {
       setState(() {
@@ -295,6 +319,95 @@ class _OnGridBookingFormState extends State<OnGridBookingForm> {
         _geotagLocation = latlong;
         _isGettingLocation = false;
       });
+    }
+  }
+
+  Future<void> _submitBooking(bool isDraft) async {
+    if (_formKey.currentState!.validate()) {
+      if (_bookingType == 'PROJECT' && _sitePhoto == null && !isDraft) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please capture a site photo!')),
+        );
+        return;
+      }
+      
+      setState(() => _isSubmitting = true);
+      try {
+        var request = await ApiService.multipartRequest('POST', Uri.parse('$baseUrl/api/mobile/bookings'));
+        
+        // Add text fields
+        request.fields['customerType'] = _bookingType; // Added for backend
+        request.fields['isDraft'] = isDraft.toString(); // Add isDraft parameter
+        request.fields['customerName'] = _customerNameCtrl.text;
+        request.fields['mobileNumber'] = _mobileNumberCtrl.text;
+        request.fields['emailId'] = _emailIdCtrl.text;
+        request.fields['address'] = _addressCtrl.text;
+        request.fields['connectionType'] = 'On-Grid';
+        request.fields['pspclSubDivision'] = _pspclSubDivisionCtrl.text;
+        request.fields['pspclAccountNo'] = _pspclAccountNoCtrl.text;
+        request.fields['connectionPhase'] = connectionPhase;
+        request.fields['sanctionedLoad'] = _sanctionedLoadCtrl.text;
+        request.fields['proposedLoad'] = _proposedLoadCtrl.text;
+        request.fields['panelType'] = 'Top-con';
+        request.fields['panelMake'] = '';
+        request.fields['panelWattage'] = '0.0';
+        request.fields['inverterCapacityMake'] = '';
+        request.fields['numberOfPanels'] = '0';
+        request.fields['bookingAmount'] = _bookingAmountCtrl.text;
+        request.fields['materialAdvance'] = _materialAdvanceCtrl.text;
+        request.fields['balanceAmount'] = _balanceAmountCtrl.text;
+        request.fields['totalAmount'] = _totalAmountCtrl.text;
+        request.fields['geotag'] = _geotagLocation;
+
+        // Include the logged-in worker's ID for created_by
+        final prefs = await SharedPreferences.getInstance();
+        final workerId = prefs.getInt('worker_id') ?? 1;
+        request.fields['workerId'] = workerId.toString();
+
+        // Send selected inventory reservations as JSON
+        if (_selectedProducts.isNotEmpty) {
+          request.fields['reservations'] = jsonEncode(
+            _selectedProducts.map((s) => s.toJson()).toList(),
+          );
+        }
+
+        // Add image file
+        if (_sitePhoto != null) {
+          request.files.add(await http.MultipartFile.fromPath('sitePhoto', _sitePhoto!.path));
+        }
+
+        var streamedResponse = await request.send();
+        var response = await http.Response.fromStream(streamedResponse);
+
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(isDraft ? 'Booking saved as draft successfully!' : 'Booking created successfully!')),
+            );
+            // Reset the form instead of popping since this is a main tab
+            _formKey.currentState?.reset();
+            setState(() {
+              _sitePhoto = null;
+              _geotagLocation = '';
+              _selectedProducts.clear();
+            });
+          }
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Failed to save booking.')),
+            );
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Connection error')),
+          );
+        }
+      } finally {
+        if (mounted) setState(() => _isSubmitting = false);
+      }
     }
   }
 
@@ -669,102 +782,36 @@ class _OnGridBookingFormState extends State<OnGridBookingForm> {
               ),
             ),
             const SizedBox(height: 12),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF7C5800),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-              ),
-              onPressed: _isSubmitting ? null : () async {
-                if (_formKey.currentState!.validate()) {
-                  if (_bookingType == 'PROJECT' && _sitePhoto == null) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Please capture a site photo!')),
-                    );
-                    return;
-                  }
-                  
-                  setState(() => _isSubmitting = true);
-                  try {
-                    var request = await ApiService.multipartRequest('POST', Uri.parse('$baseUrl/api/mobile/bookings'));
-                    
-                    // Add text fields
-                    request.fields['customerType'] = _bookingType; // Added for backend
-                    request.fields['customerName'] = _customerNameCtrl.text;
-                    request.fields['mobileNumber'] = _mobileNumberCtrl.text;
-                    request.fields['emailId'] = _emailIdCtrl.text;
-                    request.fields['address'] = _addressCtrl.text;
-                    request.fields['connectionType'] = 'On-Grid';
-                    request.fields['pspclSubDivision'] = _pspclSubDivisionCtrl.text;
-                    request.fields['pspclAccountNo'] = _pspclAccountNoCtrl.text;
-                    request.fields['connectionPhase'] = connectionPhase;
-                    request.fields['sanctionedLoad'] = _sanctionedLoadCtrl.text;
-                    request.fields['proposedLoad'] = _proposedLoadCtrl.text;
-                    request.fields['panelType'] = 'Top-con';
-                    request.fields['panelMake'] = '';
-                    request.fields['panelWattage'] = '0.0';
-                    request.fields['inverterCapacityMake'] = '';
-                    request.fields['numberOfPanels'] = '0';
-                    request.fields['bookingAmount'] = _bookingAmountCtrl.text;
-                    request.fields['materialAdvance'] = _materialAdvanceCtrl.text;
-                    request.fields['balanceAmount'] = _balanceAmountCtrl.text;
-                    request.fields['totalAmount'] = _totalAmountCtrl.text;
-                    request.fields['geotag'] = _geotagLocation;
-
-                    // Include the logged-in worker's ID for created_by
-                    final prefs = await SharedPreferences.getInstance();
-                    final workerId = prefs.getInt('worker_id') ?? 1;
-                    request.fields['workerId'] = workerId.toString();
-
-                    // Send selected inventory reservations as JSON
-                    if (_selectedProducts.isNotEmpty) {
-                      request.fields['reservations'] = jsonEncode(
-                        _selectedProducts.map((s) => s.toJson()).toList(),
-                      );
-                    }
-
-                    // Add image file
-                    if (_sitePhoto != null) {
-                      request.files.add(await http.MultipartFile.fromPath('sitePhoto', _sitePhoto!.path));
-                    }
-
-                    var streamedResponse = await request.send();
-                    var response = await http.Response.fromStream(streamedResponse);
-
-                    if (response.statusCode == 200 || response.statusCode == 201) {
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Booking created successfully!')),
-                        );
-                        // Reset the form instead of popping since this is a main tab
-                        _formKey.currentState?.reset();
-                        setState(() {
-                          _sitePhoto = null;
-                          _geotagLocation = '';
-                          _selectedProducts.clear();
-                        });
-                      }
-                    } else {
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Failed to create booking.')),
-                        );
-                      }
-                    }
-                  } catch (e) {
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Connection error')),
-                      );
-                    }
-                  } finally {
-                    if (mounted) setState(() => _isSubmitting = false);
-                  }
-                }
-              },
-              child: _isSubmitting 
-                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                  : const Text('Save and Create Booking Record'),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      side: const BorderSide(color: Color(0xFF7C5800)),
+                      foregroundColor: const Color(0xFF7C5800),
+                    ),
+                    onPressed: _isSubmitting ? null : () => _submitBooking(true),
+                    child: _isSubmitting 
+                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Color(0xFF7C5800), strokeWidth: 2))
+                        : const Text('Save as Draft'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF7C5800),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                    ),
+                    onPressed: _isSubmitting ? null : () => _submitBooking(false),
+                    child: _isSubmitting 
+                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                        : const Text('Submit Booking', textAlign: TextAlign.center),
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 48),
           ],

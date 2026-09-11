@@ -48,6 +48,7 @@ export async function POST(request: Request) {
     const reservationsRaw = formData.get('reservations') as string;
 
     const customerType = formData.get('customerType') as string || 'PROJECT';
+    const isDraft = formData.get('isDraft') === 'true';
 
     // 1. Find or Insert Customer
     let customerId;
@@ -108,7 +109,7 @@ export async function POST(request: Request) {
         site_address, capacity, geotag_location, site_photo_path
       ) VALUES (?, ?, ?, ?, 'PSPCL', ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
-        projectId, customerId, 'NEW', workerId,
+        projectId, customerId, isDraft ? 'DRAFT' : 'NEW', workerId,
         pspclAccountNo || null,
         pspclAccountNo || null,
         pspclSubDiv || null,
