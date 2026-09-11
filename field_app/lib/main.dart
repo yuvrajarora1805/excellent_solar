@@ -20,6 +20,7 @@ import 'screens/profile_screen.dart';
 import 'screens/discom_screen.dart';
 import 'screens/orders_screen.dart';
 import 'screens/scan_inventory_screen.dart';
+import 'screens/retail_order_new_screen.dart';
 
 const String baseUrl = 'https://es.omvky.com';
 
@@ -491,6 +492,14 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               leading: const Icon(Icons.local_shipping),
               title: const Text('Orders'),
               onTap: () => _navigateToScreen(_getScreenIndex(OrdersScreen)),
+            ),
+            ListTile(
+              leading: const Icon(Icons.add_shopping_cart),
+              title: const Text('Raise Retail Order'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const RetailOrderNewScreen()));
+              },
             ),
 
             // ─── MANAGEMENT ───────────────────────────────────

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, Fragment } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -204,8 +204,8 @@ export default function RetailOrdersDashboardPage() {
                   </td>
                 </tr>
               ) : orders.map((o) => (
-                <>
-                  <tr key={o.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                <Fragment key={o.id}>
+                  <tr className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
                     <td className="p-3">
                       <div className="font-mono font-bold text-blue-700 dark:text-blue-400">{o.order_number}</div>
                       <div className="text-[10px] text-slate-400">{new Date(o.created_at).toLocaleDateString('en-IN')}</div>
@@ -282,7 +282,7 @@ export default function RetailOrdersDashboardPage() {
                       </td>
                     </tr>
                   )}
-                </>
+                </Fragment>
               ))}
             </tbody>
           </table>

@@ -18,21 +18,24 @@ interface Product {
 export default function NewRetailTicketPage() {
   const router = useRouter();
 
-  // Retail Customers (Dealers)
+  // Retail Customer (Free text instead of DB lookup)
+  const [customerName, setCustomerName] = useState('');
+  const [customerMobile, setCustomerMobile] = useState('');
+  const [customerAddress, setCustomerAddress] = useState('');
   const [customers, setCustomers] = useState<Array<{ id: number; name: string; mobile: string; address: string }>>([]);
-  const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
+  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
 
   // Products & Stock Item Selection
   const [products, setProducts] = useState<Product[]>([]);
-  const [selectedProductId, setSelectedProductId] = useState<number | string>('');
+  const [productInput, setProductInput] = useState('');
+  const [showProductDropdown, setShowProductDropdown] = useState(false);
   const [quantity, setQuantity] = useState<number>(1);
   const [unitPrice, setUnitPrice] = useState<number>(0);
 
   // Multi-Item Order List
   const [orderItems, setOrderItems] = useState<Array<{
-    product_id: number;
+    product_id: number | null; // null for custom materials
     product_name: string;
-    product_code: string;
     quantity: number;
     unit_price: number;
     line_total: number;
@@ -41,37 +44,57 @@ export default function NewRetailTicketPage() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    // Fetch products
+    // Fetch products for autocomplete
     fetch('/api/inventory/products')
       .then(res => res.json())
       .then(data => {
         const prodList = Array.isArray(data) ? data : (data.products || []);
         setProducts(prodList);
-        if (prodList.length > 0) {
-          setSelectedProductId(prodList[0].id);
-          setUnitPrice(prodList[0].selling_price || 0);
-        }
       })
       .catch(console.error);
 
-    // Fetch retail customers
+    // Fetch retail customers for autocomplete
     fetch('/api/customers?customer_type=RETAIL&limit=1000')
       .then(res => res.json())
       .then(data => {
-        const custs = data.customers || [];
-        setCustomers(custs);
-        if (custs.length > 0) {
-          setSelectedCustomerId(String(custs[0].id));
-        }
+        setCustomers(data.customers || []);
       })
       .catch(console.error);
   }, []);
 
-  const handleAddProduct = () => {
-    const prod = products.find(p => p.id === Number(selectedProductId));
-    if (!prod) return;
+  // When user types in dealer name, auto-fill details if it matches exactly
+  const handleCustomerNameChange = (val: string) => {
+    setCustomerName(val);
+    const match = customers.find(c => c.name.toLowerCase() === val.toLowerCase());
+    if (match) {
+      setCustomerMobile(match.mobile || '');
+      setCustomerAddress(match.address || '');
+    }
+  };
 
-    const existingIdx = orderItems.findIndex(i => i.product_id === prod.id);
+  // When user types in product name, auto-fill price if it matches exactly
+  const handleProductInputChange = (val: string) => {
+    setProductInput(val);
+    const match = products.find(p => p.name.toLowerCase() === val.toLowerCase());
+    if (match) {
+      setUnitPrice(match.selling_price || 0);
+    }
+  };
+
+  const handleAddProduct = () => {
+    const nameStr = productInput.trim();
+    if (!nameStr) return;
+
+    // Check if it matches an existing product exactly
+    const existingProduct = products.find(p => p.name.toLowerCase() === nameStr.toLowerCase());
+    const prodId = existingProduct ? existingProduct.id : null;
+    const finalName = existingProduct ? existingProduct.name : nameStr;
+
+    // Check if already in list
+    const existingIdx = orderItems.findIndex(i => 
+      (prodId && i.product_id === prodId) || (!prodId && i.product_name.toLowerCase() === finalName.toLowerCase())
+    );
+
     if (existingIdx >= 0) {
       const updated = [...orderItems];
       const newQty = updated[existingIdx].quantity + quantity;
@@ -86,43 +109,34 @@ export default function NewRetailTicketPage() {
       setOrderItems([
         ...orderItems,
         {
-          product_id: prod.id,
-          product_name: prod.name,
-          product_code: prod.product_code || 'ITEM',
+          product_id: prodId,
+          product_name: finalName,
           quantity: quantity,
           unit_price: unitPrice,
           line_total: quantity * unitPrice,
         },
       ]);
     }
+
+    setProductInput('');
+    setQuantity(1);
+    setUnitPrice(0);
   };
 
   const handleRemoveOrderItem = (index: number) => {
     setOrderItems(orderItems.filter((_, i) => i !== index));
   };
 
-  const handleProductSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const prodId = Number(e.target.value);
-    setSelectedProductId(prodId);
-    const prod = products.find(p => p.id === prodId);
-    if (prod) {
-      setUnitPrice(prod.selling_price || 0);
-    }
-  };
-
   const handleSubmitTicket = async () => {
-    if (!selectedCustomerId) {
-      alert('Please select a Retail Dealer!');
+    if (!customerName.trim()) {
+      alert('Please enter a Retail Dealer Name!');
       return;
     }
 
     if (orderItems.length === 0) {
-      alert('Please add at least one product.');
+      alert('Please add at least one product/material.');
       return;
     }
-
-    const selectedCust = customers.find(c => String(c.id) === selectedCustomerId);
-    if (!selectedCust) return;
 
     const totalAmount = orderItems.reduce((sum, item) => sum + item.line_total, 0);
 
@@ -132,15 +146,17 @@ export default function NewRetailTicketPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          customer_id: selectedCust.id,
-          customer_name: selectedCust.name,
-          customer_mobile: selectedCust.mobile,
-          delivery_address: selectedCust.address,
+          customer_id: null, // No longer strictly linked
+          customer_name: customerName.trim(),
+          customer_mobile: customerMobile.trim(),
+          delivery_address: customerAddress.trim(),
           total_amount: totalAmount,
           items: orderItems.map(i => ({
             product_id: i.product_id,
+            product_name: i.product_name,
             quantity: i.quantity,
             unit_price: i.unit_price,
+            is_custom: i.product_id === null,
           })),
         }),
       });
@@ -150,7 +166,7 @@ export default function NewRetailTicketPage() {
         throw new Error(data.error || 'Failed to send ticket');
       }
 
-      alert('Retail Requirement Ticket created and stock reserved successfully!');
+      alert('Retail Requirement created successfully!');
       router.push('/orders/retail');
     } catch (err: any) {
       alert(err.message || 'Error submitting ticket');
@@ -170,7 +186,7 @@ export default function NewRetailTicketPage() {
             Create Retail Order Ticket
           </h1>
           <p className="text-xs text-slate-500">
-            Fill in dealer requirements and send to the office section for dispatch.
+            Enter dealer details and requirements. Sends directly to dispatch.
           </p>
         </div>
       </div>
@@ -178,41 +194,68 @@ export default function NewRetailTicketPage() {
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-bold uppercase text-slate-700 dark:text-slate-300">
-            1. Select Retail Dealer
+            1. Dealer Details
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div>
-            <label className="block text-xs font-bold mb-1">Retail Dealer *</label>
-            <select
-              value={selectedCustomerId}
-              onChange={(e) => setSelectedCustomerId(e.target.value)}
-              className="w-full p-2 border rounded-md text-sm bg-background"
-            >
-              <option value="" disabled>Select a saved Retail Dealer...</option>
-              {customers.map(c => (
-                <option key={c.id} value={c.id}>{c.name} - {c.mobile}</option>
-              ))}
-            </select>
-            {customers.length === 0 && (
-              <p className="text-xs text-red-500 mt-1">
-                No retail dealers found. Please create one in the Customers section first.
-              </p>
-            )}
-          </div>
-          
-          {selectedCustomerId && (
-            <div className="grid grid-cols-2 gap-3 pt-3 border-t">
-              <div>
-                <label className="block text-xs font-bold mb-1 text-slate-500">Address</label>
-                <div className="text-sm font-medium">{customers.find(c => String(c.id) === selectedCustomerId)?.address || 'N/A'}</div>
-              </div>
-              <div>
-                <label className="block text-xs font-bold mb-1 text-slate-500">Mobile</label>
-                <div className="text-sm font-medium">{customers.find(c => String(c.id) === selectedCustomerId)?.mobile}</div>
-              </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="relative">
+              <label className="block text-xs font-bold mb-1">Dealer / Walk-in Name *</label>
+              <Input
+                placeholder="Search or Type new Dealer..."
+                value={customerName}
+                onChange={(e) => {
+                  handleCustomerNameChange(e.target.value);
+                  setShowCustomerDropdown(true);
+                }}
+                onFocus={() => setShowCustomerDropdown(true)}
+                onBlur={() => setTimeout(() => setShowCustomerDropdown(false), 200)}
+              />
+              {showCustomerDropdown && (
+                <ul className="absolute z-10 w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md shadow-lg mt-1 max-h-48 overflow-y-auto">
+                  {customers
+                    .filter(c => c.name.toLowerCase().includes(customerName.toLowerCase()))
+                    .map(c => (
+                      <li
+                        key={c.id}
+                        className="px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer text-sm border-b border-slate-100 dark:border-slate-700 last:border-0"
+                        onClick={() => {
+                          handleCustomerNameChange(c.name);
+                          setShowCustomerDropdown(false);
+                        }}
+                      >
+                        <div className="font-semibold text-slate-800 dark:text-slate-200">{c.name}</div>
+                        {c.mobile && <div className="text-xs text-slate-500">{c.mobile}</div>}
+                      </li>
+                  ))}
+                  {customerName && !customers.some(c => c.name.toLowerCase() === customerName.toLowerCase()) && (
+                    <li className="px-3 py-2 text-sm text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 italic">
+                      + Create new dealer: &quot;{customerName}&quot;
+                    </li>
+                  )}
+                  {customers.length === 0 && !customerName && (
+                    <li className="px-3 py-2 text-sm text-slate-500 italic">Start typing to create a dealer...</li>
+                  )}
+                </ul>
+              )}
             </div>
-          )}
+            <div>
+              <label className="block text-xs font-bold mb-1">Mobile Number</label>
+              <Input
+                placeholder="Optional"
+                value={customerMobile}
+                onChange={(e) => setCustomerMobile(e.target.value)}
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-bold mb-1">Address</label>
+            <Input
+              placeholder="Delivery address (Optional)"
+              value={customerAddress}
+              onChange={(e) => setCustomerAddress(e.target.value)}
+            />
+          </div>
         </CardContent>
       </Card>
 
@@ -224,21 +267,49 @@ export default function NewRetailTicketPage() {
         </CardHeader>
         <CardContent className="pt-4 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
-            <div>
-              <label className="block text-xs font-bold mb-1">Select Product</label>
-              <select
-                value={selectedProductId}
-                onChange={handleProductSelect}
-                className="w-full p-2 border rounded-md text-sm bg-background font-medium"
-              >
-                {products.map(p => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
-                ))}
-              </select>
+            <div className="relative">
+              <label className="block text-xs font-bold mb-1">Type Material or Select</label>
+              <Input
+                placeholder="E.g. 5kW Inverter or Custom Wire"
+                value={productInput}
+                onChange={(e) => {
+                  handleProductInputChange(e.target.value);
+                  setShowProductDropdown(true);
+                }}
+                onFocus={() => setShowProductDropdown(true)}
+                onBlur={() => setTimeout(() => setShowProductDropdown(false), 200)}
+              />
+              {showProductDropdown && (
+                <ul className="absolute z-10 w-full bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md shadow-lg mt-1 max-h-48 overflow-y-auto">
+                  {products
+                    .filter(p => p.name.toLowerCase().includes(productInput.toLowerCase()))
+                    .map(p => (
+                      <li
+                        key={p.id}
+                        className="px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer text-sm border-b border-slate-100 dark:border-slate-700 last:border-0"
+                        onClick={() => {
+                          handleProductInputChange(p.name);
+                          setShowProductDropdown(false);
+                        }}
+                      >
+                        <div className="font-semibold text-slate-800 dark:text-slate-200">{p.name}</div>
+                        {p.selling_price && <div className="text-xs text-slate-500">₹{p.selling_price}</div>}
+                      </li>
+                  ))}
+                  {productInput && !products.some(p => p.name.toLowerCase() === productInput.toLowerCase()) && (
+                    <li className="px-3 py-2 text-sm text-amber-600 bg-amber-50 dark:bg-amber-900/20 italic">
+                      + Create custom material: &quot;{productInput}&quot;
+                    </li>
+                  )}
+                  {products.length === 0 && !productInput && (
+                    <li className="px-3 py-2 text-sm text-slate-500 italic">Start typing to search inventory...</li>
+                  )}
+                </ul>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="block text-xs font-bold mb-1">Quantity</label>
+                <label className="block text-xs font-bold mb-1">Qty</label>
                 <Input
                   type="number"
                   min="1"
@@ -248,7 +319,7 @@ export default function NewRetailTicketPage() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold mb-1">Price w/o GST</label>
+                <label className="block text-xs font-bold mb-1">Price/Unit (₹)</label>
                 <Input
                   type="number"
                   value={unitPrice}
@@ -261,6 +332,7 @@ export default function NewRetailTicketPage() {
               <Button
                 type="button"
                 onClick={handleAddProduct}
+                disabled={!productInput.trim()}
                 className="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold"
               >
                 <Plus className="w-4 h-4 mr-1" /> Add Product
@@ -279,9 +351,9 @@ export default function NewRetailTicketPage() {
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-slate-50 dark:bg-slate-900 border-b font-bold text-slate-700 dark:text-slate-300">
-                    <th className="p-2">Product</th>
+                    <th className="p-2">Product / Material</th>
                     <th className="p-2 text-right">Qty</th>
-                    <th className="p-2 text-right">Price w/o GST</th>
+                    <th className="p-2 text-right">Price/Unit</th>
                     <th className="p-2 text-right">Total</th>
                     <th className="p-2 text-center">Action</th>
                   </tr>
@@ -289,8 +361,11 @@ export default function NewRetailTicketPage() {
                 <tbody className="divide-y">
                   {orderItems.map((item, idx) => (
                     <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-900/50">
-                      <td className="p-2 font-bold text-slate-900 dark:text-white">
+                      <td className="p-2 font-bold text-slate-900 dark:text-white flex items-center gap-2">
                         {item.product_name}
+                        {item.product_id === null && (
+                          <span className="bg-amber-100 text-amber-800 text-[9px] px-1.5 py-0.5 rounded-full uppercase">Custom</span>
+                        )}
                       </td>
                       <td className="p-2 text-right">{item.quantity}</td>
                       <td className="p-2 text-right">₹{item.unit_price}</td>

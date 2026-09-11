@@ -214,8 +214,8 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                 </CardTitle>
                 <div className="text-lg font-bold text-blue-700">
                   Total: ₹{(!isEditingPrices
-                      ? order.total_amount
-                      : editableItems.reduce((acc, curr) => acc + (curr.line_total || 0), 0)
+                      ? Number(order.total_amount)
+                      : editableItems.reduce((acc, curr) => acc + Number(curr.line_total || 0), 0)
                     ).toLocaleString('en-IN')}
                 </div>
               </CardHeader>
@@ -238,8 +238,8 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                               <p className="text-xs text-slate-500 font-mono">{item.product_code}</p>
                             </td>
                             <td className="p-3 text-right font-bold">{item.quantity}</td>
-                            <td className="p-3 text-right text-slate-600">₹{item.unit_price.toLocaleString('en-IN')}</td>
-                            <td className="p-3 text-right font-bold text-emerald-700">₹{item.line_total.toLocaleString('en-IN')}</td>
+                            <td className="p-3 text-right text-slate-600">₹{Number(item.unit_price).toLocaleString('en-IN')}</td>
+                            <td className="p-3 text-right font-bold text-emerald-700">₹{Number(item.line_total).toLocaleString('en-IN')}</td>
                           </tr>
                         ))
                       : editableItems.map((item, i) => (
@@ -254,7 +254,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                             <td className="p-3 text-right">
                               <input type="number" min="0" value={item.unit_price} onChange={(e) => handlePriceChange(i, 'unit_price', Number(e.target.value))} className="w-24 p-2 border rounded text-right font-bold" />
                             </td>
-                            <td className="p-3 text-right font-bold text-emerald-700">₹{item.line_total?.toLocaleString('en-IN')}</td>
+                            <td className="p-3 text-right font-bold text-emerald-700">₹{Number(item.line_total || 0).toLocaleString('en-IN')}</td>
                           </tr>
                         ))}
                   </tbody>
@@ -392,8 +392,8 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
                   <td className="p-2 border border-black font-mono">{item.product_code}</td>
                   <td className="p-2 border border-black font-bold">{item.product_name}</td>
                   <td className="p-2 border border-black text-right font-bold">{item.quantity}</td>
-                  <td className="p-2 border border-black text-right">₹{item.unit_price.toLocaleString('en-IN')}</td>
-                  <td className="p-2 border border-black text-right font-bold">₹{item.line_total.toLocaleString('en-IN')}</td>
+                  <td className="p-2 border border-black text-right">₹{Number(item.unit_price).toLocaleString('en-IN')}</td>
+                  <td className="p-2 border border-black text-right font-bold">₹{Number(item.line_total).toLocaleString('en-IN')}</td>
                 </tr>
               ))}
             </tbody>

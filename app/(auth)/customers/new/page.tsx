@@ -136,8 +136,8 @@ export default function NewCustomerPage() {
       const response = await fetch('/api/customers', { method: 'POST', body: payload });
 
       if (response.ok) {
-        const customer = await response.json();
-        router.push(`/customers/${customer.id}`);
+        toast.success('Customer created successfully!');
+        router.push('/customers');
       } else {
         const error = await response.json();
         setErrors({ form: error.error || 'Failed to create customer' });
