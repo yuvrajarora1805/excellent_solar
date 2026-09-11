@@ -20,7 +20,7 @@ export async function GET(request: Request) {
     `);
 
     const bookings = await query(`
-      SELECT b.id, b.project_id as reference, 'Booking' as type, b.status, b.created_at, c.name as customer_name, b.system_size as total_amount
+      SELECT b.id, b.project_id as reference, 'Booking' as type, b.status, b.created_at, c.name as customer_name, b.capacity as total_amount
       FROM projects b
       LEFT JOIN customers c ON b.customer_id = c.id
       WHERE b.status = 'DRAFT'
