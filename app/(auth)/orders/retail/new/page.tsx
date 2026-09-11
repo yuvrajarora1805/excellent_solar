@@ -127,7 +127,7 @@ export default function NewRetailTicketPage() {
     setOrderItems(orderItems.filter((_, i) => i !== index));
   };
 
-  const handleSubmitTicket = async () => {
+  const handleSubmitTicket = async (isDraft = false) => {
     if (!customerName.trim()) {
       alert('Please enter a Retail Dealer Name!');
       return;
@@ -146,11 +146,12 @@ export default function NewRetailTicketPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          customer_id: null, // No longer strictly linked
+          customer_id: null,
           customer_name: customerName.trim(),
           customer_mobile: customerMobile.trim(),
           delivery_address: customerAddress.trim(),
           total_amount: totalAmount,
+          is_draft: isDraft,
           items: orderItems.map(i => ({
             product_id: i.product_id,
             product_name: i.product_name,
@@ -391,12 +392,23 @@ export default function NewRetailTicketPage() {
       </Card>
 
       <div className="flex justify-end gap-3 pt-4 border-t">
-        <Button variant="outline" onClick={() => router.back()}>
-          Cancel
-        </Button>
+        <div className="flex gap-3">
+          <Button variant="outline" onClick={() => router.back()}>
+            Cancel
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => handleSubmitTicket(true)}
+            disabled={submitting}
+            className="text-slate-700 font-bold px-6 border-slate-300 hover:bg-slate-50"
+          >
+            Save as Draft
+          </Button>
+        </div>
         <Button
           type="button"
-          onClick={handleSubmitTicket}
+          onClick={() => handleSubmitTicket(false)}
           disabled={submitting}
           className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6"
         >

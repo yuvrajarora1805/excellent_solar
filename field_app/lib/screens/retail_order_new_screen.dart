@@ -115,7 +115,7 @@ class _RetailOrderNewScreenState extends State<RetailOrderNewScreen> {
     });
   }
 
-  Future<void> _submitOrder() async {
+  Future<void> _submitOrder(bool isDraft) async {
     if (!_formKey.currentState!.validate()) return;
     if (_orderItems.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -137,6 +137,7 @@ class _RetailOrderNewScreenState extends State<RetailOrderNewScreen> {
         'customer_mobile': _customerMobile,
         'delivery_address': _customerAddress,
         'total_amount': totalAmount,
+        'is_draft': isDraft,
         'items': _orderItems,
       };
       
@@ -357,14 +358,30 @@ class _RetailOrderNewScreenState extends State<RetailOrderNewScreen> {
                       ),
 
                     const SizedBox(height: 40),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton(
-                        onPressed: _submitOrder,
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
-                        child: const Text('Send to Office', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: SizedBox(
+                            height: 50,
+                            child: ElevatedButton(
+                              onPressed: () => _submitOrder(true),
+                              style: ElevatedButton.styleFrom(backgroundColor: Colors.grey.shade200, foregroundColor: Colors.black87, elevation: 0),
+                              child: const Text('Save Draft', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: SizedBox(
+                            height: 50,
+                            child: ElevatedButton(
+                              onPressed: () => _submitOrder(false),
+                              style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
+                              child: const Text('Send to Office', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 40),
                   ],

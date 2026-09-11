@@ -17,6 +17,7 @@ const navigation = [
   { name: 'Quotations', href: '/quotations', icon: 'description', roles: ['ADMIN', 'ORDER_MANAGER', 'MARKETING'] },
   { name: 'Orders & Dispatch', href: '/orders', icon: 'local_shipping', roles: ['ADMIN', 'ORDER_MANAGER', 'MARKETING', 'INSTALLATION', 'DISCOM'] },
   { name: 'Retail Orders', href: '/orders/retail', icon: 'store', roles: ['ADMIN', 'ORDER_MANAGER', 'MARKETING'] },
+  { name: 'Drafts', href: '/drafts', icon: 'edit_document', roles: ['ADMIN', 'ORDER_MANAGER', 'MARKETING'] },
 
   { name: 'DISCOM', href: '/discom', icon: 'account_balance', roles: ['ADMIN', 'DISCOM', 'SURVEY_VIEWER'] },
 

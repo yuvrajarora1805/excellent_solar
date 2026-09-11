@@ -498,9 +498,9 @@ class _OnGridBookingFormState extends State<OnGridBookingForm> {
             TextFormField(
               controller: _addressCtrl,
               maxLines: 2,
-              decoration: const InputDecoration(
-                labelText: 'Address *',
-                border: OutlineInputBorder(),
+              decoration: InputDecoration(
+                labelText: _bookingType == 'PROJECT' ? 'Site / Installation Address *' : 'Billing / Shop Address *',
+                border: const OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 12),
@@ -646,9 +646,9 @@ class _OnGridBookingFormState extends State<OnGridBookingForm> {
             ],
 
             // HARDWARE CONFIG
-            const Text(
-              '4. Solar Hardware Configuration',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            Text(
+              _bookingType == 'PROJECT' ? '4. Solar Hardware Configuration' : '2. Material Requirements',
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
             const SizedBox(height: 8),
             

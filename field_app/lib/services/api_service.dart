@@ -56,6 +56,12 @@ class ApiService {
     return await _checkResponse(response);
   }
 
+  static Future<http.Response> delete(Uri url, {Map<String, String>? headers, Object? body}) async {
+    final bodyData = (body is Map || body is List) ? jsonEncode(body) : body;
+    final response = await http.delete(url, headers: await _getHeaders(headers), body: bodyData);
+    return await _checkResponse(response);
+  }
+
 
   static Future<http.MultipartRequest> multipartRequest(String method, Uri url) async {
     final request = http.MultipartRequest(method, url);

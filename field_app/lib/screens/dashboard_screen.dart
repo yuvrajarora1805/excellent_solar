@@ -15,6 +15,7 @@ import 'payment_screen.dart';
 import 'customers_screen.dart';
 import 'scan_inventory_screen.dart';
 import 'add_product_screen.dart';
+import 'drafts_screen.dart';
 
 
 class FieldDashboardScreen extends StatefulWidget {
@@ -498,6 +499,28 @@ class _FieldDashboardScreenState extends State<FieldDashboardScreen> {
 
                 if (isSalesRole || isInstallerRole || isAdmin) ...[
                   const SizedBox(height: 20),
+                  Card(
+                  elevation: 0,
+                  color: Colors.teal.shade50,
+                  shape: RoundedRectangleBorder(
+                    side: BorderSide(color: Colors.teal.shade200),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    leading: const Icon(Icons.edit_document, color: Colors.teal, size: 36),
+                    title: const Text('My Drafts', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    subtitle: const Text('Resume your incomplete bookings and orders'),
+                    trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const DraftsScreen()),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 12),
                   Card(
                   elevation: 0,
                   color: Colors.blue.shade50,

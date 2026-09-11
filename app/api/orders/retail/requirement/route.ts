@@ -12,6 +12,7 @@ export async function POST(req: NextRequest) {
       delivery_address,
       total_amount,
       items,
+      is_draft,
     } = body;
 
     if (!customer_name) {
@@ -90,15 +91,17 @@ export async function POST(req: NextRequest) {
       serials: [],
       userId: 1, // System or default admin
       dispatchImmediately: false,
-      status: 'PENDING_DISPATCH',
+      status: is_draft ? 'DRAFT' : 'PENDING_DISPATCH',
     });
 
-    // Update reserved stock for each item
-    for (const item of processedItems) {
-      await execute(
-        'UPDATE products SET reserved_stock = COALESCE(reserved_stock, 0) + ? WHERE id = ?',
-        [Number(item.quantity), Number(item.product_id)]
-      );
+    // Update reserved stock for each item only if not draft
+    if (!is_draft) {
+      for (const item of processedItems) {
+        await execute(
+          'UPDATE products SET reserved_stock = COALESCE(reserved_stock, 0) + ? WHERE id = ?',
+          [Number(item.quantity), Number(item.product_id)]
+        );
+      }
     }
 
     return NextResponse.json({
