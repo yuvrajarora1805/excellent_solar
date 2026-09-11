@@ -16,6 +16,9 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# Explicitly add these modules to the build stage so the standalone tracer catches them
+RUN npm install mysql2 bcryptjs
+
 # Next.js telemetry is disabled
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_OPTIONS="--max_old_space_size=512"
@@ -51,8 +54,6 @@ COPY --from=builder --chown=nextjs:nodejs /app/scripts ./scripts
 # Ensure the uploads folder has full permissions even after copy
 RUN chmod -R 777 ./public/uploads
 
-# Install dependencies required for manual utility scripts (like password fixes)
-RUN npm install mysql2 bcryptjs
 
 # Copy utility scripts
 COPY --from=builder --chown=nextjs:nodejs /app/fix_passwords.js ./fix_passwords.js
