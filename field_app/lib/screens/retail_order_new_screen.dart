@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 import '../services/api_service.dart';
+import '../main.dart';
 
 class RetailOrderNewScreen extends StatefulWidget {
   const RetailOrderNewScreen({Key? key}) : super(key: key);
@@ -49,11 +51,14 @@ class _RetailOrderNewScreenState extends State<RetailOrderNewScreen> {
 
   Future<void> _fetchCustomers() async {
     try {
-      final response = await ApiService.get('/api/customers?customer_type=RETAIL&limit=1000');
-      if (response != null && response is Map && response['customers'] != null) {
-        setState(() {
-          _customers = response['customers'];
-        });
+      final response = await ApiService.get(Uri.parse('$baseUrl/api/customers?customer_type=RETAIL&limit=1000'));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data is Map && data['customers'] != null) {
+          setState(() {
+            _customers = data['customers'];
+          });
+        }
       }
     } catch (e) {
       print('Error fetching customers: $e');
@@ -62,15 +67,18 @@ class _RetailOrderNewScreenState extends State<RetailOrderNewScreen> {
 
   Future<void> _fetchProducts() async {
     try {
-      final response = await ApiService.get('/api/inventory/products');
-      if (response != null && response is Map) {
-        setState(() {
-          _products = response['products'] ?? [];
-        });
-      } else if (response is List) {
-        setState(() {
-          _products = response;
-        });
+      final response = await ApiService.get(Uri.parse('$baseUrl/api/inventory/products'));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data is Map) {
+          setState(() {
+            _products = data['products'] ?? [];
+          });
+        } else if (data is List) {
+          setState(() {
+            _products = data;
+          });
+        }
       }
     } catch (e) {
       print('Error fetching products: $e');
@@ -132,17 +140,31 @@ class _RetailOrderNewScreenState extends State<RetailOrderNewScreen> {
         'items': _orderItems,
       };
       
-      final response = await ApiService.post('/api/orders/retail/requirement', body: body);
+      final response = await ApiService.post(Uri.parse('$baseUrl/api/orders/retail/requirement'), body: body);
       
-      if (response != null && response['success'] == true) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Retail requirement created!')),
-        );
-        Navigator.pop(context, true); // return true to indicate success
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true || data['id'] != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Retail requirement created!')),
+          );
+          Navigator.pop(context, true); // return true to indicate success
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(data['error'] ?? 'Failed to create order')),
+          );
+        }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(response?['error'] ?? 'Failed to create order')),
-        );
+        try {
+          final data = jsonDecode(response.body);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(data['error'] ?? 'Failed to create order')),
+          );
+        } catch (_) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to create order (HTTP ${response.statusCode})')),
+          );
+        }
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -172,13 +194,13 @@ class _RetailOrderNewScreenState extends State<RetailOrderNewScreen> {
                     // Dealer Details
                     const Text('1. Dealer Details', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                     const SizedBox(height: 8),
-                    Autocomplete<dynamic>(
+                    Autocomplete<Map<String, dynamic>>(
                       optionsBuilder: (TextEditingValue textEditingValue) {
-                        if (textEditingValue.text.isEmpty) return const Iterable<dynamic>.empty();
-                        return _customers.where((c) => c['name']?.toString().toLowerCase().contains(textEditingValue.text.toLowerCase()) ?? false);
+                        if (textEditingValue.text.isEmpty) return const Iterable<Map<String, dynamic>>.empty();
+                        return _customers.whereType<Map<String, dynamic>>().where((c) => c['name']?.toString().toLowerCase().contains(textEditingValue.text.toLowerCase()) ?? false);
                       },
-                      displayStringForOption: (dynamic option) => option['name']?.toString() ?? '',
-                      onSelected: (dynamic selection) {
+                      displayStringForOption: (Map<String, dynamic> option) => option['name']?.toString() ?? '',
+                      onSelected: (Map<String, dynamic> selection) {
                         setState(() {
                           _customerName = selection['name']?.toString() ?? '';
                           _mobileController.text = selection['mobile']?.toString() ?? '';
@@ -231,13 +253,13 @@ class _RetailOrderNewScreenState extends State<RetailOrderNewScreen> {
                       ),
                       child: Column(
                         children: [
-                          Autocomplete<dynamic>(
+                          Autocomplete<Map<String, dynamic>>(
                             optionsBuilder: (TextEditingValue textEditingValue) {
-                              if (textEditingValue.text.isEmpty) return const Iterable<dynamic>.empty();
-                              return _products.where((p) => p['name']?.toString().toLowerCase().contains(textEditingValue.text.toLowerCase()) ?? false);
+                              if (textEditingValue.text.isEmpty) return const Iterable<Map<String, dynamic>>.empty();
+                              return _products.whereType<Map<String, dynamic>>().where((p) => p['name']?.toString().toLowerCase().contains(textEditingValue.text.toLowerCase()) ?? false);
                             },
-                            displayStringForOption: (dynamic option) => option['name']?.toString() ?? '',
-                            onSelected: (dynamic selection) {
+                            displayStringForOption: (Map<String, dynamic> option) => option['name']?.toString() ?? '',
+                            onSelected: (Map<String, dynamic> selection) {
                               setState(() {
                                 _productInput = selection['name']?.toString() ?? '';
                                 _selectedProductId = selection['id'];
