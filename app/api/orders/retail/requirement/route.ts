@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
       serials: [],
       userId: 1, // System or default admin
       dispatchImmediately: false,
-      status: 'SENT_TO_OFFICE',
+      status: 'PENDING_DISPATCH',
     });
 
     // Update reserved stock for each item

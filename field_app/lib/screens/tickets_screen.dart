@@ -115,15 +115,29 @@ class _MyTicketsListScreenState extends State<MyTicketsListScreen> {
                 // Customer Dropdown
                 const Text('Customer *', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                 const SizedBox(height: 6),
-                DropdownButtonFormField<int>(
-                  decoration: const InputDecoration(border: OutlineInputBorder(), contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10)),
-                  hint: const Text('Select Customer'),
-                  value: selectedCustomerId,
-                  items: _customers.map<DropdownMenuItem<int>>((c) => DropdownMenuItem<int>(
-                    value: c['id'] as int,
-                    child: Text('${c['name']} (${c['mobile'] ?? ''})', overflow: TextOverflow.ellipsis),
-                  )).toList(),
-                  onChanged: (v) => setS(() => selectedCustomerId = v),
+                Autocomplete<Map<String, dynamic>>(
+                  optionsBuilder: (TextEditingValue textEditingValue) {
+                    if (textEditingValue.text.isEmpty) {
+                      return const Iterable<Map<String, dynamic>>.empty();
+                    }
+                    return _customers.whereType<Map<String, dynamic>>().where((c) =>
+                        c['name']?.toString().toLowerCase().contains(textEditingValue.text.toLowerCase()) ?? false);
+                  },
+                  displayStringForOption: (Map<String, dynamic> option) => '${option['name']} (${option['mobile'] ?? ''})',
+                  onSelected: (Map<String, dynamic> selection) {
+                    setS(() => selectedCustomerId = selection['id'] as int);
+                  },
+                  fieldViewBuilder: (context, textEditingController, focusNode, onFieldSubmitted) {
+                    return TextFormField(
+                      controller: textEditingController,
+                      focusNode: focusNode,
+                      decoration: const InputDecoration(
+                        hintText: 'Search or type customer name...',
+                        border: OutlineInputBorder(),
+                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      ),
+                    );
+                  },
                 ),
                 const SizedBox(height: 14),
 
