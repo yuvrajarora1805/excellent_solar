@@ -324,30 +324,37 @@ function NewOrderPageInner() {
 
     try {
       setSubmitting(true);
-      const res = await fetch('/api/orders', {
-        method: 'POST',
+      const url = isDraftMode ? `/api/orders/${draftId}` : '/api/orders';
+      const payload: any = {
+        order_type: orderType,
+        customer_id: selectedCustomerId ? Number(selectedCustomerId) : undefined,
+        customer_name: customerName,
+        customer_mobile: customerMobile,
+        delivery_address: deliveryAddress,
+        vehicle_number: vehicleNumber,
+        driver_name: driverName,
+        driver_mobile: driverMobile,
+        vehicle_photo_path: vehiclePhotoPath,
+        vehicle_photo_base64: vehiclePhotoBase64,
+        total_amount: totalAmount,
+        items: finalItems.map(i => ({
+          product_id: i.product_id,
+          quantity: i.quantity,
+          unit_price: i.unit_price,
+        })),
+        serials: scannedSerials,
+        dispatchImmediately,
+        ticket_id: selectedTicketId ? Number(selectedTicketId) : undefined,
+      };
+
+      if (isDraftMode) {
+        payload.isDraftEdit = true;
+      }
+
+      const res = await fetch(url, {
+        method: isDraftMode ? 'PUT' : 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          order_type: orderType,
-          customer_id: selectedCustomerId ? Number(selectedCustomerId) : undefined,
-          customer_name: customerName,
-          customer_mobile: customerMobile,
-          delivery_address: deliveryAddress,
-          vehicle_number: vehicleNumber,
-          driver_name: driverName,
-          driver_mobile: driverMobile,
-          vehicle_photo_path: vehiclePhotoPath,
-          vehicle_photo_base64: vehiclePhotoBase64,
-          total_amount: totalAmount,
-          items: finalItems.map(i => ({
-            product_id: i.product_id,
-            quantity: i.quantity,
-            unit_price: i.unit_price,
-          })),
-          serials: scannedSerials,
-          dispatchImmediately,
-          ticket_id: selectedTicketId ? Number(selectedTicketId) : undefined,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
