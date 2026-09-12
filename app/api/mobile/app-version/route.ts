@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 export async function GET() {
   return NextResponse.json({
-    latest_version: '1.12.6',
+    latest_version: '1.12.7',
     version_code: 39,
     force_update: false,
     apk_url: 'https://es.omvky.com/downloads/excellent-solar-app.apk',
