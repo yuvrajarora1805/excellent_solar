@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,15 +23,59 @@ interface Customer {
   address: string;
 }
 
-export default function NewOrderPage() {
+function NewOrderPageInner() {
   const router = useRouter();
 
   // Order Details
   const [orderType, setOrderType] = useState<'PROJECT' | 'RETAIL'>('RETAIL');
-  const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
-  const [customerName, setCustomerName] = useState('');
-  const [customerMobile, setCustomerMobile] = useState('');
-  const [deliveryAddress, setDeliveryAddress] = useState('');
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>(\'\');
+  const [customerName, setCustomerName] = useState(\'\');
+  const [customerMobile, setCustomerMobile] = useState(\'\');
+  const [deliveryAddress, setDeliveryAddress] = useState(\'\');
+
+  const searchParams = useSearchParams();
+  const draftId = searchParams.get('order_id');
+  const [isDraftMode, setIsDraftMode] = useState(false);
+  const [draftLoading, setDraftLoading] = useState(false);
+
+  useEffect(() => {
+    if (draftId) {
+      loadDraftData(draftId);
+    }
+  }, [draftId]);
+
+  const loadDraftData = async (id: string) => {
+    try {
+      setDraftLoading(true);
+      const res = await fetch(`/api/orders/${id}`);
+      if (res.ok) {
+        const data = await res.json();
+        const order = data.order;
+        if (order && order.status === 'DRAFT') {
+          setIsDraftMode(true);
+          setOrderType(order.order_type);
+          if (order.customer_id) setSelectedCustomerId(order.customer_id.toString());
+          setCustomerName(order.customer_name || '');
+          setCustomerMobile(order.customer_mobile || '');
+          setDeliveryAddress(order.delivery_address || '');
+          
+          if (order.items && order.items.length > 0) {
+            setOrderItems(order.items.map((i: any) => ({
+              product_id: i.product_id,
+              product_name: i.product_name,
+              quantity: i.quantity,
+              unit_price: i.unit_price,
+            })));
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Failed to load draft:', e);
+    } finally {
+      setDraftLoading(false);
+    }
+  };
+
 
   // Retail Requirement Tickets
   const [retailTickets, setRetailTickets] = useState<any[]>([]);
@@ -729,5 +774,13 @@ export default function NewOrderPage() {
         </Button>
       </div>
     </div>
+  );
+}
+
+export default function NewOrderPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <NewOrderPageInner />
+    </Suspense>
   );
 }

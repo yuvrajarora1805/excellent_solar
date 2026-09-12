@@ -246,11 +246,19 @@ export default function OrdersDashboardPage() {
                         <Eye className="w-3.5 h-3.5" /> Photo
                       </Button>
                     )}
-                    <Link href={`/orders/${o.id}`}>
-                      <Button size="sm" variant="outline" className="h-7 text-xs font-semibold">
-                        Details & Serials
-                      </Button>
-                    </Link>
+                    {o.status === 'DRAFT' ? (
+                      <Link href={`/orders/new?order_id=${o.id}`}>
+                        <Button size="sm" variant="secondary" className="h-7 text-xs font-bold text-amber-700 bg-amber-100 hover:bg-amber-200 border-amber-200 mr-2">
+                          ✏️ Resume Draft
+                        </Button>
+                      </Link>
+                    ) : (
+                      <Link href={`/orders/${o.id}`}>
+                        <Button size="sm" variant="outline" className="h-7 text-xs font-semibold">
+                          Details & Serials
+                        </Button>
+                      </Link>
+                    )}
                   </td>
                 </tr>
               ))}
