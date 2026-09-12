@@ -28,10 +28,10 @@ function NewOrderPageInner() {
 
   // Order Details
   const [orderType, setOrderType] = useState<'PROJECT' | 'RETAIL'>('RETAIL');
-  const [selectedCustomerId, setSelectedCustomerId] = useState<string>(\'\');
-  const [customerName, setCustomerName] = useState(\'\');
-  const [customerMobile, setCustomerMobile] = useState(\'\');
-  const [deliveryAddress, setDeliveryAddress] = useState(\'\');
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>('');
+  const [customerName, setCustomerName] = useState('');
+  const [customerMobile, setCustomerMobile] = useState('');
+  const [deliveryAddress, setDeliveryAddress] = useState('');
 
   const searchParams = useSearchParams();
   const draftId = searchParams.get('order_id');
