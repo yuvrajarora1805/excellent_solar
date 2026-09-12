@@ -249,6 +249,7 @@ class _RetailOrderNewScreenState extends State<RetailOrderNewScreen> {
                     const Text('1. Dealer Details', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                     const SizedBox(height: 8),
                     Autocomplete<Map<String, dynamic>>(
+                      initialValue: TextEditingValue(text: _customerName),
                       optionsBuilder: (TextEditingValue textEditingValue) {
                         if (textEditingValue.text.isEmpty) return const Iterable<Map<String, dynamic>>.empty();
                         return _customers.whereType<Map<String, dynamic>>().where((c) => c['name']?.toString().toLowerCase().contains(textEditingValue.text.toLowerCase()) ?? false);

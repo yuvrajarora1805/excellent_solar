@@ -4,7 +4,7 @@ import { query } from '@/lib/db';
 export async function GET(request: Request) {
   try {
     const orders = await query(`
-      SELECT o.id, o.order_type, o.order_number as reference, 'Order' as type, o.status, o.created_at, c.name as customer_name, o.total_amount
+      SELECT o.id, o.order_type, o.order_number as reference, 'Order' as type, o.status, o.created_at, COALESCE(c.name, o.customer_name) as customer_name, o.total_amount
       FROM orders o
       LEFT JOIN customers c ON o.customer_id = c.id
       WHERE o.status = 'DRAFT'
@@ -12,7 +12,7 @@ export async function GET(request: Request) {
     `);
 
     const quotations = await query(`
-      SELECT q.id, q.quotation_number as reference, 'Quotation' as type, q.status, q.created_at, c.name as customer_name, q.total_amount
+      SELECT q.id, q.quotation_number as reference, 'Quotation' as type, q.status, q.created_at, COALESCE(c.name, q.customer_name) as customer_name, q.total_amount
       FROM quotations q
       LEFT JOIN customers c ON q.customer_id = c.id
       WHERE q.status = 'DRAFT'
@@ -20,7 +20,7 @@ export async function GET(request: Request) {
     `);
 
     const bookings = await query(`
-      SELECT b.id, b.project_id as reference, 'Booking' as type, b.status, b.created_at, c.name as customer_name, b.capacity as total_amount
+      SELECT b.id, b.project_id as reference, 'Booking' as type, b.status, b.created_at, COALESCE(c.name, b.customer_name) as customer_name, b.capacity as total_amount
       FROM projects b
       LEFT JOIN customers c ON b.customer_id = c.id
       WHERE b.status = 'DRAFT'
