@@ -6,6 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Truck, ArrowLeft, Printer, CheckCircle, User, MapPin, Calendar, Camera, Barcode, Download } from 'lucide-react';
 import type { Order } from '@/lib/db-helpers/orders';
+import { Modal } from '@/components/ui/modal';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 export default function OrderDetailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -16,6 +19,13 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
   const [isEditingPrices, setIsEditingPrices] = useState(false);
   const [editableItems, setEditableItems] = useState<any[]>([]);
   const [savingPrices, setSavingPrices] = useState(false);
+  const [isDispatchModalOpen, setIsDispatchModalOpen] = useState(false);
+  const [dispatchChecklist, setDispatchChecklist] = useState<any[]>([]);
+  const [scannedSerials, setScannedSerials] = useState<any[]>([]);
+  const [serialInput, setSerialInput] = useState('');
+  const [vehicleNumber, setVehicleNumber] = useState('');
+  const [driverName, setDriverName] = useState('');
+  const [driverMobile, setDriverMobile] = useState('');
 
   useEffect(() => {
     fetchOrder();
@@ -29,6 +39,33 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
         const data = await res.json();
         setOrder(data.order);
         setEditableItems(data.order.items || []);
+        
+        // Build Checklist
+        if (data.order.items) {
+          const checklist = [];
+          for (const item of data.order.items) {
+            const cat = (item.category || '').toString();
+            const name = (item.product_name || '').toString().toLowerCase();
+            if (cat === 'Solar Panels' || cat === 'Inverters' || name.includes('panel') || name.includes('inverter')) {
+              checklist.push({
+                product_id: item.product_id,
+                product_name: item.product_name,
+                required: item.quantity,
+                scanned: 0
+              });
+            }
+          }
+          setDispatchChecklist(checklist);
+        }
+        
+        // Pre-fill serials
+        if (data.order.serials) {
+           setScannedSerials(data.order.serials.map((s: any) => ({
+             serial_number: s.serial_number,
+             product_id: s.product_id,
+             model_number: s.product_name
+           })));
+        }
       }
     } catch (err) {
       console.error('Failed to fetch order:', err);
@@ -72,20 +109,28 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
     }
   };
 
-  const handleDispatch = async () => {
-    if (!confirm('Dispatch this order now? This will mark all scanned panel serial numbers as DISPATCHED and sync inventory stock.')) return;
+  const handleDispatchSubmit = async () => {
+    if (scannedSerials.length === 0) {
+      if (!confirm('You have not scanned any serial numbers. Are you sure you want to dispatch without any serials?')) return;
+    }
 
     try {
       setUpdating(true);
-      const res = await fetch(`/api/orders/${id}`, {
-        method: 'PUT',
+      const res = await fetch(`/api/orders/${id}/dispatch`, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'DISPATCHED' }),
+        body: JSON.stringify({ 
+           serials: scannedSerials.map(s => ({ product_id: s.product_id, serial_number: s.serial_number })),
+           vehicle_number: vehicleNumber,
+           driver_name: driverName,
+           driver_mobile: driverMobile
+        }),
       });
 
       const data = await res.json();
       if (res.ok) {
         alert(data.message || 'Order dispatched!');
+        setIsDispatchModalOpen(false);
         fetchOrder();
       } else {
         alert(data.error || 'Dispatch failed');
@@ -94,6 +139,53 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
       alert('Error dispatching order');
     } finally {
       setUpdating(false);
+    }
+  };
+
+  const handleSerialScan = async (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const val = serialInput.trim();
+      if (!val) return;
+
+      if (scannedSerials.some(s => s.serial_number === val)) {
+        setSerialInput('');
+        return; // already scanned
+      }
+
+      try {
+        const res = await fetch(`/api/serial-numbers?search=${encodeURIComponent(val)}`);
+        if (res.ok) {
+          const data = await res.json();
+          const list = Array.isArray(data) ? data : (data.serials || []);
+          if (list.length > 0) {
+            const match = list.find((i: any) => i.serial_number === val) || list[0];
+            const newScanned = {
+               serial_number: match.serial_number || val,
+               product_id: match.product_id,
+               model_number: match.product_name || match.model_number || 'Unknown Model'
+            };
+            setScannedSerials(prev => [newScanned, ...prev]);
+            
+            // update checklist
+            if (match.product_id) {
+               setDispatchChecklist(prev => {
+                 const exists = prev.find(p => p.product_id === match.product_id);
+                 if (exists) {
+                   return prev.map(p => p.product_id === match.product_id ? { ...p, scanned: p.scanned + 1 } : p);
+                 } else {
+                   return [...prev, { product_id: match.product_id, product_name: newScanned.model_number, required: 0, scanned: 1 }];
+                 }
+               });
+            }
+          } else {
+             alert('Serial number not found in stock!');
+          }
+        }
+      } catch (err) {
+        console.error(err);
+      }
+      setSerialInput('');
     }
   };
 
@@ -167,7 +259,7 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
               </Button>
             )}
             {order.status !== 'DISPATCHED' && order.status !== 'DELIVERED' && (
-              <Button onClick={handleDispatch} disabled={updating} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold">
+              <Button onClick={() => setIsDispatchModalOpen(true)} disabled={updating} className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold">
                 <Truck className="w-4 h-4 mr-2" />
                 Dispatch & Sync
               </Button>
@@ -448,6 +540,80 @@ export default function OrderDetailsPage({ params }: { params: Promise<{ id: str
           </div>
         </div>
       </div>
+
+      {/* Dispatch Modal */}
+      <Modal isOpen={isDispatchModalOpen} onClose={() => setIsDispatchModalOpen(false)} title="Dispatch Scanner & Checklist" size="xl">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+           <div className="space-y-4">
+              <h3 className="font-bold text-lg text-blue-700">Required Items Checklist</h3>
+              <div className="bg-slate-50 p-4 rounded-lg border max-h-60 overflow-y-auto">
+                 {dispatchChecklist.length === 0 ? <p className="text-sm text-slate-500">No serialized items required.</p> : null}
+                 {dispatchChecklist.map((c, i) => {
+                    const isComplete = c.scanned >= c.required && c.required > 0;
+                    const isOver = c.scanned > c.required;
+                    return (
+                       <div key={i} className="flex justify-between items-center py-2 border-b last:border-0">
+                          <span className="text-sm font-medium">{c.product_name}</span>
+                          <span className={`text-xs font-bold px-2 py-1 rounded-full ${isComplete ? 'bg-green-100 text-green-700' : (isOver ? 'bg-orange-100 text-orange-700' : 'bg-red-100 text-red-700')}`}>
+                             {c.scanned} / {c.required}
+                          </span>
+                       </div>
+                    )
+                 })}
+              </div>
+
+              <div className="pt-4 space-y-4">
+                <div>
+                   <Label>USB Barcode Scanner Input</Label>
+                   <Input 
+                      placeholder="Scan barcode here or type and press Enter..." 
+                      value={serialInput} 
+                      onChange={e => setSerialInput(e.target.value)}
+                      onKeyDown={handleSerialScan}
+                      autoFocus
+                      className="border-blue-300 focus-visible:ring-blue-500"
+                   />
+                </div>
+              </div>
+           </div>
+           
+           <div className="space-y-4">
+              <h3 className="font-bold text-lg text-slate-700">Dispatch Details</h3>
+              <div className="space-y-3">
+                 <div>
+                   <Label>Vehicle Number</Label>
+                   <Input value={vehicleNumber} onChange={e => setVehicleNumber(e.target.value)} placeholder="e.g. MH-12-AB-1234" />
+                 </div>
+                 <div>
+                   <Label>Driver Name</Label>
+                   <Input value={driverName} onChange={e => setDriverName(e.target.value)} placeholder="e.g. John Doe" />
+                 </div>
+                 <div>
+                   <Label>Driver Mobile</Label>
+                   <Input value={driverMobile} onChange={e => setDriverMobile(e.target.value)} placeholder="10-digit number" />
+                 </div>
+              </div>
+
+              <div className="pt-4">
+                 <h3 className="font-bold text-sm text-slate-700 mb-2">Scanned Serials ({scannedSerials.length})</h3>
+                 <div className="bg-slate-50 p-2 rounded-lg border h-32 overflow-y-auto">
+                    {scannedSerials.map((s, i) => (
+                       <div key={i} className="flex justify-between items-center text-xs py-1 border-b last:border-0">
+                         <span className="font-mono font-bold">{s.serial_number}</span>
+                         <span className="text-slate-500 truncate ml-2 max-w-[120px]">{s.model_number}</span>
+                       </div>
+                    ))}
+                 </div>
+              </div>
+
+              <div className="pt-4 flex justify-end">
+                 <Button onClick={handleDispatchSubmit} disabled={updating} className="bg-emerald-600 hover:bg-emerald-700 w-full text-white font-bold">
+                   {updating ? 'Confirming...' : 'Confirm Dispatch'}
+                 </Button>
+              </div>
+           </div>
+        </div>
+      </Modal>
     </div>
   );
 }
