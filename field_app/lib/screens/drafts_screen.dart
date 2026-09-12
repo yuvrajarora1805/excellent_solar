@@ -219,6 +219,8 @@ class _DraftsScreenState extends State<DraftsScreen> with SingleTickerProviderSt
         title: const Text('My Drafts'),
         bottom: TabBar(
           controller: _tabController,
+          isScrollable: true,
+          tabAlignment: TabAlignment.start,
           tabs: [
             Tab(text: 'Orders (${_orders.length})'),
             Tab(text: 'Quotations (${_quotations.length})'),
