@@ -526,7 +526,7 @@ export const orderDb = {
 
       // Delete existing serials and insert new ones
       await conn.execute(`DELETE FROM order_serials WHERE order_id = ?`, [orderId]);
-      for (const s of data.serials) {
+      for (const s of (data.serials || [])) {
         await conn.execute(
           `INSERT INTO order_serials (order_id, product_id, serial_number)
            VALUES (?, ?, ?)`,
@@ -540,7 +540,7 @@ export const orderDb = {
           `UPDATE orders SET status = 'DISPATCHED', dispatched_at = NOW() WHERE id = ?`,
           [orderId]
         );
-        for (const s of data.serials) {
+        for (const s of (data.serials || [])) {
           await conn.execute(
             `INSERT INTO product_serial_numbers (product_id, serial_number, status, current_location, remarks)
              VALUES (?, ?, 'ISSUED', 'ISSUED', ?)
