@@ -61,8 +61,8 @@ class _RetailOrderNewScreenState extends State<RetailOrderNewScreen> {
             _mobileController.text = _customerMobile;
             _addressController.text = _customerAddress;
             
-            if (data['items'] != null) {
-              for (var item in data['items']) {
+            if (order['items'] != null) {
+              for (var item in order['items']) {
                 _orderItems.add({
                   'product_id': item['product_id'],
                   'product_name': item['product_name'] ?? item['products']?['name'] ?? 'Unknown',
