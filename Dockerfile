@@ -8,7 +8,9 @@ WORKDIR /app
 
 # Install dependencies based on the preferred package manager
 COPY package.json package-lock.json* ./
-RUN npm install
+# Cache npm to speed up installs and explicitly install mysql2/bcryptjs for standalone tracer
+RUN --mount=type=cache,target=/root/.npm \
+    npm install && npm install mysql2 bcryptjs
 
 # Rebuild the source code only when needed
 FROM base AS builder
@@ -16,14 +18,13 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Explicitly add these modules to the build stage so the standalone tracer catches them
-RUN npm install mysql2 bcryptjs
-
 # Next.js telemetry is disabled
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_OPTIONS="--max_old_space_size=512"
 
-RUN BUILD_STANDALONE=true npm run build
+# Leverage BuildKit cache for Next.js to significantly speed up recompilation
+RUN --mount=type=cache,target=/app/.next/cache \
+    BUILD_STANDALONE=true npm run build
 
 # Production image, copy all the files and run next
 FROM base AS runner
