@@ -108,7 +108,7 @@ export const orderDb = {
     if (!order) return null;
 
     const items = await query<OrderItem>(
-      `SELECT oi.*, p.name as product_name, p.product_code
+      `SELECT oi.*, p.name as product_name, p.product_code, p.category
        FROM order_items oi
        JOIN products p ON oi.product_id = p.id
        WHERE oi.order_id = ?`,
@@ -188,14 +188,18 @@ export const orderDb = {
         );
       }
 
-      // Insert Scanned Serials & Update Stock if Dispatched
+      // Insert Scanned Serials
       for (const s of data.serials) {
         await conn.execute(
           `INSERT INTO order_serials (order_id, product_id, serial_number)
            VALUES (?, ?, ?)`,
           [orderId, s.product_id, s.serial_number]
         );
+      }
 
+      // Sync stock if dispatched
+      if (data.dispatchImmediately) {
+        for (const s of data.serials) {
           // Update or Upsert Serial Status in Inventory to ISSUED
           await conn.execute(
             `INSERT INTO product_serial_numbers (product_id, serial_number, status, current_location, remarks)
@@ -206,11 +210,8 @@ export const orderDb = {
                  remarks = CONCAT(COALESCE(remarks, ''), ' | Dispatched Order #${orderNumber} (${data.customer_name})')`,
             [s.product_id, s.serial_number, `Dispatched Order #${orderNumber} (${data.customer_name})`]
           );
+        }
 
-      }
-
-      // Sync stock if dispatched
-      if (data.dispatchImmediately) {
         for (const item of data.items) {
           if (data.order_type === 'RETAIL') {
             await conn.execute(
@@ -276,7 +277,7 @@ export const orderDb = {
       // 2. Insert serials and update serial status
       for (const s of data.serials) {
         await conn.execute(
-          `INSERT INTO order_serials (order_id, product_id, serial_number) VALUES (?, ?, ?)`,
+          `INSERT IGNORE INTO order_serials (order_id, product_id, serial_number) VALUES (?, ?, ?)`,
           [ticketId, s.product_id, s.serial_number]
         );
 
@@ -291,9 +292,57 @@ export const orderDb = {
         );
       }
 
-      // 3. Sync stock
+      // 3. Rebuild Items from Serials and Sync Stock
       if (order.items) {
-        for (const item of order.items) {
+        // Group scanned serials by product_id
+        const serialCounts: Record<number, number> = {};
+        for (const s of data.serials) {
+          serialCounts[s.product_id] = (serialCounts[s.product_id] || 0) + 1;
+        }
+
+        // Fetch products to know which ones are serialized
+        const [products] = await conn.execute('SELECT id, category, selling_price FROM products');
+        const productMap = (products as any[]).reduce((acc, p) => {
+          acc[p.id] = p;
+          return acc;
+        }, {} as any);
+
+        const isSerialized = (categoryId: string) => categoryId === 'Solar Panels' || categoryId === 'Inverters';
+
+        // Build the final dispatched items
+        const finalItems: any[] = [];
+        
+        // Add non-serialized items from original draft
+        for (const draftItem of order.items) {
+          const p = productMap[draftItem.product_id];
+          if (!p || !isSerialized(p.category)) {
+            finalItems.push(draftItem);
+          }
+        }
+
+        // Add serialized items based strictly on what was scanned
+        for (const [productIdStr, count] of Object.entries(serialCounts)) {
+          const pid = Number(productIdStr);
+          const draftItem = order.items.find(i => i.product_id === pid);
+          finalItems.push({
+            product_id: pid,
+            quantity: count,
+            unit_price: draftItem?.unit_price || productMap[pid]?.selling_price || 0,
+            line_total: count * (draftItem?.unit_price || productMap[pid]?.selling_price || 0)
+          });
+        }
+
+        // Update the order_items table to reflect reality
+        await conn.execute('DELETE FROM order_items WHERE order_id = ?', [ticketId]);
+        for (const item of finalItems) {
+          await conn.execute(
+            `INSERT INTO order_items (order_id, product_id, quantity, unit_price, line_total) VALUES (?, ?, ?, ?, ?)`,
+            [ticketId, item.product_id, item.quantity, item.unit_price, item.line_total]
+          );
+        }
+
+        // Now Sync stock based on final items
+        for (const item of finalItems) {
           if (order.order_type === 'RETAIL') {
             await conn.execute(
               'UPDATE products SET current_stock = GREATEST(0, current_stock - ?), reserved_stock = GREATEST(0, COALESCE(reserved_stock, 0) - ?) WHERE id = ?',

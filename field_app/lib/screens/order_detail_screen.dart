@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../main.dart' show baseUrl;
+import 'order_dispatch_scanner_screen.dart';
 
 class OrderDetailScreen extends StatefulWidget {
   final int orderId;
@@ -229,10 +230,34 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                           ),
                         ),
                       ),
-                      const SizedBox(height: 30),
                     ],
                   ),
                 ),
+      bottomNavigationBar: _order != null && _order!['status'] != 'DISPATCHED' && _order!['status'] != 'DELIVERED'
+          ? SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.qr_code_scanner),
+                  label: const Text('Scan & Dispatch Order', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    backgroundColor: Colors.blue.shade700,
+                    foregroundColor: Colors.white,
+                  ),
+                  onPressed: () async {
+                    final result = await Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => OrderDispatchScannerScreen(order: _order!)),
+                    );
+                    if (result == true) {
+                      _fetchOrderDetails();
+                    }
+                  },
+                ),
+              ),
+            )
+          : null,
     );
   }
 }

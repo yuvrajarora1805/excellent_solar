@@ -5,6 +5,7 @@ import '../main.dart' show baseUrl;
 import '../services/api_service.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'retail_order_new_screen.dart';
 
 class DraftsScreen extends StatefulWidget {
   const DraftsScreen({super.key});
@@ -168,6 +169,19 @@ class _DraftsScreenState extends State<DraftsScreen> with SingleTickerProviderSt
                     icon: const Icon(Icons.edit),
                     label: const Text('Resume / Edit'),
                     onPressed: () async {
+                      if (type == 'Order' && item['order_type'] == 'RETAIL') {
+                        final result = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => RetailOrderNewScreen(initialDraftId: item['id']),
+                          ),
+                        );
+                        if (result == true) {
+                          _fetchDrafts();
+                        }
+                        return;
+                      }
+
                       String endpoint = '';
                       if (type == 'Order') endpoint = '/orders/${item['id']}/edit';
                       if (type == 'Quotation') endpoint = '/quotations/${item['id']}/edit';

@@ -4,7 +4,7 @@ import { query } from '@/lib/db';
 export async function GET(request: Request) {
   try {
     const orders = await query(`
-      SELECT o.id, o.order_number as reference, 'Order' as type, o.status, o.created_at, c.name as customer_name, o.total_amount
+      SELECT o.id, o.order_type, o.order_number as reference, 'Order' as type, o.status, o.created_at, c.name as customer_name, o.total_amount
       FROM orders o
       LEFT JOIN customers c ON o.customer_id = c.id
       WHERE o.status = 'DRAFT'

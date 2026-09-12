@@ -5,7 +5,8 @@ import '../services/api_service.dart';
 import '../main.dart';
 
 class RetailOrderNewScreen extends StatefulWidget {
-  const RetailOrderNewScreen({Key? key}) : super(key: key);
+  final int? initialDraftId;
+  const RetailOrderNewScreen({Key? key, this.initialDraftId}) : super(key: key);
 
   @override
   _RetailOrderNewScreenState createState() => _RetailOrderNewScreenState();
@@ -40,6 +41,46 @@ class _RetailOrderNewScreenState extends State<RetailOrderNewScreen> {
     super.initState();
     _fetchProducts();
     _fetchCustomers();
+    if (widget.initialDraftId != null) {
+      _fetchDraftDetails(widget.initialDraftId!);
+    }
+  }
+
+  Future<void> _fetchDraftDetails(int draftId) async {
+    setState(() => _isLoading = true);
+    try {
+      final response = await ApiService.get(Uri.parse('$baseUrl/api/orders/$draftId'));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['order'] != null) {
+          final order = data['order'];
+          setState(() {
+            _customerName = order['customer_name']?.toString() ?? '';
+            _customerMobile = order['customer_mobile']?.toString() ?? '';
+            _customerAddress = order['delivery_address']?.toString() ?? '';
+            _mobileController.text = _customerMobile;
+            _addressController.text = _customerAddress;
+            
+            if (data['items'] != null) {
+              for (var item in data['items']) {
+                _orderItems.add({
+                  'product_id': item['product_id'],
+                  'product_name': item['product_name'] ?? item['products']?['name'] ?? 'Unknown',
+                  'quantity': item['quantity'],
+                  'unit_price': (item['unit_price'] as num).toDouble(),
+                  'line_total': (item['line_total'] as num).toDouble(),
+                  'is_custom': item['product_id'] == null,
+                });
+              }
+            }
+          });
+        }
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to load draft: $e')));
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -138,32 +179,44 @@ class _RetailOrderNewScreenState extends State<RetailOrderNewScreen> {
         'delivery_address': _customerAddress,
         'total_amount': totalAmount,
         'is_draft': isDraft,
+        'order_type': 'RETAIL',
         'items': _orderItems,
       };
+
+      if (widget.initialDraftId != null) {
+        body['isDraftEdit'] = true;
+        body['dispatchImmediately'] = !isDraft; // if it's not a draft, dispatch it? No, retail orders don't dispatch immediately here, they go to pending ticket unless we change it. Wait, the retail requirement API creates a draft or pending ticket. Let's just use PUT /api/orders.
+      }
       
-      final response = await ApiService.post(Uri.parse('$baseUrl/api/orders/retail/requirement'), body: body);
+      final url = widget.initialDraftId != null 
+          ? Uri.parse('$baseUrl/api/orders/${widget.initialDraftId}')
+          : Uri.parse('$baseUrl/api/orders/retail/requirement');
+          
+      final response = widget.initialDraftId != null 
+          ? await ApiService.put(url, body: body)
+          : await ApiService.post(url, body: body);
       
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = jsonDecode(response.body);
         if (data['success'] == true || data['id'] != null) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Retail requirement created!')),
+            SnackBar(content: Text(widget.initialDraftId != null ? 'Retail requirement updated!' : 'Retail requirement created!')),
           );
           Navigator.pop(context, true); // return true to indicate success
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(data['error'] ?? 'Failed to create order')),
+            SnackBar(content: Text(data['error'] ?? 'Failed to save order')),
           );
         }
       } else {
         try {
           final data = jsonDecode(response.body);
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(data['error'] ?? 'Failed to create order')),
+            SnackBar(content: Text(data['error'] ?? 'Failed to save order')),
           );
         } catch (_) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Failed to create order (HTTP ${response.statusCode})')),
+            SnackBar(content: Text('Failed to save order (HTTP ${response.statusCode})')),
           );
         }
       }
