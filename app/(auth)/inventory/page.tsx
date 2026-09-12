@@ -98,7 +98,7 @@ export default function InventoryPage() {
           <p className="text-label-sm text-secondary mt-1">Active items in catalog</p>
         </div>
         <div className="card-base p-4">
-          <div className="font-label-bold text-on-surface-variant mb-2">Total Stock & Panels</div>
+          <div className="font-label-bold text-on-surface-variant mb-2">Total Stock</div>
           <div className="text-headline-md font-bold text-emerald-600">
             {loading ? '...' : stats.totalStock}
           </div>
