@@ -140,14 +140,25 @@ class _RetailOrderNewScreenState extends State<RetailOrderNewScreen> {
     final finalName = existing != null ? existing['name'] : nameStr;
 
     setState(() {
-      _orderItems.add({
-        'product_id': prodId,
-        'product_name': finalName,
-        'quantity': _quantity,
-        'unit_price': _unitPrice,
-        'line_total': _quantity * _unitPrice,
-        'is_custom': prodId == null,
-      });
+      int existingIndex = _orderItems.indexWhere((item) =>
+          (prodId != null && item['product_id'] == prodId) ||
+          (prodId == null && item['product_name'] == finalName));
+
+      if (existingIndex >= 0) {
+        _orderItems[existingIndex]['quantity'] = (_orderItems[existingIndex]['quantity'] as num) + _quantity;
+        // Optionally update unit_price if it's different, but typically we keep the existing or overwrite. We'll just update line_total.
+        _orderItems[existingIndex]['unit_price'] = _unitPrice; // Use the newest unit price entered
+        _orderItems[existingIndex]['line_total'] = (_orderItems[existingIndex]['quantity'] as num) * _unitPrice;
+      } else {
+        _orderItems.add({
+          'product_id': prodId,
+          'product_name': finalName,
+          'quantity': _quantity,
+          'unit_price': _unitPrice,
+          'line_total': _quantity * _unitPrice,
+          'is_custom': prodId == null,
+        });
+      }
       
       _productInput = '';
       _selectedProductId = null;
