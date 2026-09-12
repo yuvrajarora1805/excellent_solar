@@ -19,19 +19,29 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   try {
     const { id } = await params;
     const body = await req.json();
-    const { status, items, user_id } = body;
+    const { status, items, user_id, order_type, customer_name, serials, dispatchImmediately, isDraftEdit } = body;
 
     const userId = user_id || 1;
     let message = 'Order updated successfully!';
 
-    if (items && Array.isArray(items)) {
-      await orderDb.updateItems(Number(id), items);
-      message = 'Order items and prices updated!';
-    }
+    if (isDraftEdit) {
+      // Full draft update
+      await orderDb.updateDraft(Number(id), {
+        ...body,
+        userId
+      });
+      message = dispatchImmediately ? 'Order dispatched successfully!' : 'Draft order saved successfully!';
+    } else {
+      // Partial updates (e.g. from order details page)
+      if (items && Array.isArray(items)) {
+        await orderDb.updateItems(Number(id), items);
+        message = 'Order items and prices updated!';
+      }
 
-    if (status) {
-      await orderDb.updateStatus(Number(id), status, userId);
-      message = `Order status updated to ${status}. Stock and serial status synced!`;
+      if (status) {
+        await orderDb.updateStatus(Number(id), status, userId);
+        message = `Order status updated to ${status}. Stock and serial status synced!`;
+      }
     }
 
     return NextResponse.json({

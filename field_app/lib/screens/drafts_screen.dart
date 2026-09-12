@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import '../main.dart' show baseUrl;
 import '../services/api_service.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class DraftsScreen extends StatefulWidget {
   const DraftsScreen({super.key});
@@ -166,10 +167,26 @@ class _DraftsScreenState extends State<DraftsScreen> with SingleTickerProviderSt
                     ),
                     icon: const Icon(Icons.edit),
                     label: const Text('Resume / Edit'),
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Please edit this draft from the web dashboard.'))
-                      );
+                    onPressed: () async {
+                      String endpoint = '';
+                      if (type == 'Order') endpoint = '/orders/${item['id']}/edit';
+                      if (type == 'Quotation') endpoint = '/quotations/${item['id']}/edit';
+                      if (type == 'Booking') endpoint = '/projects/${item['id']}/edit'; // Assuming projects route
+                      
+                      final url = Uri.parse('https://es.omvky.com$endpoint');
+                      try {
+                        if (await canLaunchUrl(url)) {
+                          await launchUrl(url, mode: LaunchMode.externalApplication);
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Could not launch edit page.'))
+                          );
+                        }
+                      } catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Please edit this draft from the web dashboard.'))
+                        );
+                      }
                     },
                   ),
                 ),

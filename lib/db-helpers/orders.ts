@@ -419,4 +419,120 @@ export const orderDb = {
       await conn.execute(`UPDATE orders SET total_amount = ? WHERE id = ?`, [newTotal, orderId]);
     });
   },
+
+  // Update Draft Order
+  updateDraft: async (orderId: number, data: {
+    order_type: 'PROJECT' | 'RETAIL';
+    project_id?: number;
+    customer_id?: number;
+    customer_name: string;
+    customer_mobile?: string;
+    delivery_address?: string;
+    vehicle_number?: string;
+    driver_name?: string;
+    driver_mobile?: string;
+    vehicle_photo_path?: string;
+    total_amount: number;
+    items: OrderItem[];
+    serials: OrderSerial[];
+    userId: number;
+    dispatchImmediately?: boolean;
+    status?: string;
+  }): Promise<void> => {
+    return transaction(async (conn) => {
+      const order = await orderDb.findById(orderId);
+      if (!order) throw new Error('Order not found');
+      // Update main order details
+      await conn.execute(
+        `UPDATE orders SET
+         order_type = ?, project_id = ?, customer_id = ?, customer_name = ?, customer_mobile = ?, delivery_address = ?,
+         vehicle_number = ?, driver_name = ?, driver_mobile = ?, vehicle_photo_path = ?, total_amount = ?
+         WHERE id = ?`,
+        [
+          data.order_type,
+          data.project_id || null,
+          data.customer_id || null,
+          data.customer_name,
+          data.customer_mobile || null,
+          data.delivery_address || null,
+          data.vehicle_number || null,
+          data.driver_name || null,
+          data.driver_mobile || null,
+          data.vehicle_photo_path || null,
+          data.total_amount,
+          orderId
+        ]
+      );
+
+      // Delete existing items and insert new ones
+      await conn.execute(`DELETE FROM order_items WHERE order_id = ?`, [orderId]);
+      for (const item of data.items) {
+        const lineTotal = item.quantity * item.unit_price;
+        await conn.execute(
+          `INSERT INTO order_items (order_id, product_id, quantity, unit_price, line_total)
+           VALUES (?, ?, ?, ?, ?)`,
+          [orderId, item.product_id, item.quantity, item.unit_price, lineTotal]
+        );
+      }
+
+      // Delete existing serials and insert new ones
+      await conn.execute(`DELETE FROM order_serials WHERE order_id = ?`, [orderId]);
+      for (const s of data.serials) {
+        await conn.execute(
+          `INSERT INTO order_serials (order_id, product_id, serial_number)
+           VALUES (?, ?, ?)`,
+          [orderId, s.product_id, s.serial_number]
+        );
+      }
+
+      // Sync stock if dispatched
+      if (data.dispatchImmediately) {
+        await conn.execute(
+          `UPDATE orders SET status = 'DISPATCHED', dispatched_at = NOW() WHERE id = ?`,
+          [orderId]
+        );
+        for (const s of data.serials) {
+          await conn.execute(
+            `INSERT INTO product_serial_numbers (product_id, serial_number, status, current_location, remarks)
+             VALUES (?, ?, 'ISSUED', 'ISSUED', ?)
+             ON DUPLICATE KEY UPDATE
+                 status = 'ISSUED',
+                 current_location = 'ISSUED',
+                 remarks = CONCAT(COALESCE(remarks, ''), ' | Dispatched Order #${order.order_number} (${data.customer_name})')`,
+            [s.product_id, s.serial_number, `Dispatched Order #${order.order_number} (${data.customer_name})`]
+          );
+        }
+        for (const item of data.items) {
+          if (data.order_type === 'RETAIL') {
+            await conn.execute(
+              'UPDATE products SET current_stock = GREATEST(0, current_stock - ?), reserved_stock = GREATEST(0, COALESCE(reserved_stock, 0) - ?) WHERE id = ?',
+              [item.quantity, item.quantity, item.product_id]
+            );
+          } else {
+            await conn.execute(
+              'UPDATE products SET current_stock = GREATEST(0, current_stock - ?) WHERE id = ?',
+              [item.quantity, item.product_id]
+            );
+          }
+
+          await conn.execute(
+            `INSERT INTO stock_transactions (product_id, type, quantity, reference_id, reference_type, remarks, created_by)
+             VALUES (?, 'ISSUE', ?, ?, 'ORDER_DISPATCH', ?, ?)`,
+            [
+              item.product_id,
+              item.quantity,
+              orderId,
+              `Dispatched Order #${order.order_number} to ${data.customer_name} (Vehicle: ${data.vehicle_number || 'N/A'})`,
+              data.userId,
+            ]
+          );
+        }
+      } else if (data.status) {
+        await conn.execute(
+          `UPDATE orders SET status = ? WHERE id = ?`,
+          [data.status, orderId]
+        );
+      }
+    });
+  },
 };
