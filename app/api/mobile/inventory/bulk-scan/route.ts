@@ -57,7 +57,7 @@ export async function POST(req: Request) {
         }
 
         const [existingSerials] = await connection.query(
-          'SELECT id FROM inventory_serials WHERE serial_number = ? LIMIT 1',
+          'SELECT id FROM product_serial_numbers WHERE serial_number = ? LIMIT 1',
           [serial_number]
         );
 
@@ -67,8 +67,8 @@ export async function POST(req: Request) {
         }
 
         await connection.query(
-          'INSERT INTO inventory_serials (product_id, serial_number, status, added_by) VALUES (?, ?, ?, ?)',
-          [product.id, serial_number, 'IN_STOCK', finalUserId]
+          'INSERT INTO product_serial_numbers (product_id, serial_number, status, current_location, warehouse_id) VALUES (?, ?, ?, ?, ?)',
+          [product.id, serial_number, 'AVAILABLE', 'WAREHOUSE', 1]
         );
 
         await connection.query(

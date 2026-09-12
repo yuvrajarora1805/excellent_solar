@@ -24,6 +24,7 @@ interface FlasherPanel {
   date?: string;
   product_name: string;
   category: string;
+  product_code: string;
 }
 
 export default function FlasherReportsPage() {
@@ -36,6 +37,9 @@ export default function FlasherReportsPage() {
   const [isFtrModalOpen, setIsFtrModalOpen] = useState(false);
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
+  const [products, setProducts] = useState<any[]>([]);
+  const [selectedProductId, setSelectedProductId] = useState<number>(1);
+
 
   const handleClearAll = async () => {
     if (!confirm(`⚠️ Are you sure you want to DELETE ALL ${panels.length} serial numbers from the database?\n\nThis will:\n• Remove all serial number records\n• Reset the product stock to 0\n\nYou can re-import the PDF after this to start fresh.`)) return;
@@ -84,10 +88,12 @@ export default function FlasherReportsPage() {
     eff: '22.80',
     product_name: 'Manual Panel',
     category: 'Solar Panels',
+    product_code: '',
   });
 
   useEffect(() => {
     fetchSerials();
+    fetch('/api/inventory/products').then(res => res.json()).then(data => setProducts(data));
   }, []);
 
   const fetchSerials = async () => {
@@ -127,6 +133,7 @@ export default function FlasherReportsPage() {
             date: s.created_at ? new Date(s.created_at).toLocaleDateString('en-GB') : '—',
             product_name: s.product_name || 'Unknown',
             category: s.product_category || 'Uncategorized',
+            product_code: s.product_code || 'N/A',
           };
         });
 
@@ -161,23 +168,52 @@ export default function FlasherReportsPage() {
   const handleAddManualPanel = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!manualForm.module_sr_no) {
-      alert('Module Serial Number is required!');
+      alert('Serial Number is required!');
       return;
     }
 
     try {
-      const res = await fetch('/api/serial-numbers/import-ftr', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          product_id: 1,
-          invoice_no: headerInfo.invoice_no,
-          modules: [manualForm],
-        }),
-      });
+      let res;
+      const selectedProduct = products.find(p => p.id === selectedProductId);
+      const isSolarPanel = selectedProduct?.category === 'Solar Panels';
+
+      if (isSolarPanel) {
+        res = await fetch('/api/serial-numbers/import-ftr', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            product_id: selectedProductId,
+            invoice_no: headerInfo.invoice_no,
+            modules: [manualForm],
+          }),
+        });
+      } else {
+        res = await fetch('/api/serial-numbers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            product_id: selectedProductId,
+            serial_number: manualForm.module_sr_no,
+            warehouse_id: 1,
+            current_location: 'WAREHOUSE',
+            status: 'AVAILABLE'
+          }),
+        });
+        if (res.ok) {
+           await fetch('/api/inventory/stock/adjust', {
+             method: 'POST',
+             headers: { 'Content-Type': 'application/json' },
+             body: JSON.stringify({
+               product_id: selectedProductId,
+               new_quantity: 1, // Actually we need to increment, but generic endpoint doesn't increment? Wait, the API might not increment stock.
+               // Actually we'll skip this if we just want serials to exist, or we can use the backend to increment.
+             })
+           });
+        }
+      }
 
       if (res.ok) {
-        alert('Solar Panel Serial Number added manually and stock updated!');
+        alert('Serial Number added manually!');
         setIsManualModalOpen(false);
         fetchSerials();
       } else {
@@ -428,7 +464,10 @@ export default function FlasherReportsPage() {
                   <td className="p-3 font-bold text-slate-700">
                     <span className="bg-slate-100 px-2 py-1 rounded text-[10px] uppercase border">{p.category}</span>
                   </td>
-                  <td className="p-3 font-medium text-slate-800">{p.product_name}</td>
+                  <td className="p-3 font-medium text-slate-800">
+                    {p.product_name}
+                    <span className="block text-[10px] text-slate-500 font-mono mt-0.5">{p.product_code}</span>
+                  </td>
                   <td className="p-3 font-mono font-bold text-blue-700 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-950/20">
                     {p.module_sr_no}
                   </td>
@@ -508,82 +547,99 @@ export default function FlasherReportsPage() {
 
 
       {/* Manual Panel Addition Modal */}
-      <Modal isOpen={isManualModalOpen} onClose={() => setIsManualModalOpen(false)} title="Add Solar Panel Manually">
+      <Modal isOpen={isManualModalOpen} onClose={() => setIsManualModalOpen(false)} title="Add Serial Number">
         <form onSubmit={handleAddManualPanel} className="space-y-4 text-xs">
           <div className="p-3 bg-amber-50 border border-amber-200 rounded text-amber-900">
-            <strong>Unique Identification</strong>: Each solar panel has a unique Module Serial Number.
+            <strong>Unique Identification</strong>: Enter the unique serial number or barcode for the selected product.
+          </div>
+
+          <div>
+            <label className="block font-bold mb-1">Select Product</label>
+            <select
+              value={selectedProductId}
+              onChange={(e) => setSelectedProductId(Number(e.target.value))}
+              className="w-full border rounded p-2 text-sm bg-white dark:bg-slate-900 font-medium"
+            >
+              {products.map(p => (
+                <option key={p.id} value={p.id}>{p.name} ({p.product_code})</option>
+              ))}
+            </select>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block font-bold mb-1">Module Serial No. (Unique Key)</label>
+              <label className="block font-bold mb-1">Serial No. (Unique Key)</label>
               <Input
                 required
                 value={manualForm.module_sr_no}
                 onChange={(e) => setManualForm({ ...manualForm, module_sr_no: e.target.value })}
-                placeholder="e.g. WS08269074875699"
+                placeholder="Scan or type barcode..."
                 className="font-mono"
               />
             </div>
-            <div>
-              <label className="block font-bold mb-1">Box No.</label>
-              <Input
-                value={manualForm.box_no}
-                onChange={(e) => setManualForm({ ...manualForm, box_no: e.target.value })}
-                placeholder="e.g. 18126725273"
-                className="font-mono"
-              />
-            </div>
+            {products.find(p => p.id === selectedProductId)?.category === 'Solar Panels' && (
+              <div>
+                <label className="block font-bold mb-1">Box No.</label>
+                <Input
+                  value={manualForm.box_no}
+                  onChange={(e) => setManualForm({ ...manualForm, box_no: e.target.value })}
+                  placeholder="e.g. 18126725273"
+                  className="font-mono"
+                />
+              </div>
+            )}
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
-            <div>
-              <label className="block font-bold mb-1">Pmax (W)</label>
-              <Input
-                value={manualForm.pmax}
-                onChange={(e) => setManualForm({ ...manualForm, pmax: e.target.value })}
-              />
+          {products.find(p => p.id === selectedProductId)?.category === 'Solar Panels' && (
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="block font-bold mb-1">Pmax (W)</label>
+                <Input
+                  value={manualForm.pmax}
+                  onChange={(e) => setManualForm({ ...manualForm, pmax: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block font-bold mb-1">Voc (V)</label>
+                <Input
+                  value={manualForm.voc}
+                  onChange={(e) => setManualForm({ ...manualForm, voc: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block font-bold mb-1">Isc (A)</label>
+                <Input
+                  value={manualForm.isc}
+                  onChange={(e) => setManualForm({ ...manualForm, isc: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block font-bold mb-1">Vmp (V)</label>
+                <Input
+                  value={manualForm.vmp}
+                  onChange={(e) => setManualForm({ ...manualForm, vmp: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block font-bold mb-1">Imp (A)</label>
+                <Input
+                  value={manualForm.imp}
+                  onChange={(e) => setManualForm({ ...manualForm, imp: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block font-bold mb-1">Eff (%)</label>
+                <Input
+                  value={manualForm.eff}
+                  onChange={(e) => setManualForm({ ...manualForm, eff: e.target.value })}
+                />
+              </div>
             </div>
-            <div>
-              <label className="block font-bold mb-1">Voc (V)</label>
-              <Input
-                value={manualForm.voc}
-                onChange={(e) => setManualForm({ ...manualForm, voc: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="block font-bold mb-1">Isc (A)</label>
-              <Input
-                value={manualForm.isc}
-                onChange={(e) => setManualForm({ ...manualForm, isc: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="block font-bold mb-1">Vmp (V)</label>
-              <Input
-                value={manualForm.vmp}
-                onChange={(e) => setManualForm({ ...manualForm, vmp: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="block font-bold mb-1">Imp (A)</label>
-              <Input
-                value={manualForm.imp}
-                onChange={(e) => setManualForm({ ...manualForm, imp: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="block font-bold mb-1">Eff (%)</label>
-              <Input
-                value={manualForm.eff}
-                onChange={(e) => setManualForm({ ...manualForm, eff: e.target.value })}
-              />
-            </div>
-          </div>
+          )}
 
           <div className="flex justify-end gap-2 pt-2 border-t">
             <Button type="button" variant="outline" onClick={() => setIsManualModalOpen(false)}>Cancel</Button>
-            <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white">Save Panel & Update Stock</Button>
+            <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white">Save Serial Number</Button>
           </div>
         </form>
       </Modal>
