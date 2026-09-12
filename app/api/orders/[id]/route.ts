@@ -8,6 +8,16 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     if (!order) {
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     }
+    
+    // Convert DECIMAL strings to numbers for mobile app compatibility (Dart expects num)
+    if (order.items && Array.isArray(order.items)) {
+      order.items = order.items.map((i: any) => ({
+        ...i,
+        unit_price: Number(i.unit_price || 0),
+        line_total: Number(i.line_total || 0),
+      }));
+    }
+    
     return NextResponse.json({ order });
   } catch (error: any) {
     console.error('Error fetching order details:', error);
