@@ -22,6 +22,8 @@ interface FlasherPanel {
   ff: string | number;
   eff: string | number;
   date?: string;
+  product_name: string;
+  category: string;
 }
 
 export default function FlasherReportsPage() {
@@ -30,6 +32,7 @@ export default function FlasherReportsPage() {
   const [search, setSearch] = useState('');
   const [selectedInvoice, setSelectedInvoice] = useState<string>('All');
   const [selectedDate, setSelectedDate] = useState<string>('All');
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [isFtrModalOpen, setIsFtrModalOpen] = useState(false);
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
@@ -79,6 +82,8 @@ export default function FlasherReportsPage() {
     imp: '15.00',
     ff: '80.50',
     eff: '22.80',
+    product_name: 'Manual Panel',
+    category: 'Solar Panels',
   });
 
   useEffect(() => {
@@ -118,8 +123,10 @@ export default function FlasherReportsPage() {
             box_no: box_no,
             invoice_no: s.invoice_no || '—',
             module_sr_no: s.serial_number,
-            pmax, voc, isc, vmp, imp, ff, eff,
+            vmp, imp, ff, eff,
             date: s.created_at ? new Date(s.created_at).toLocaleDateString('en-GB') : '—',
+            product_name: s.product_name || 'Unknown',
+            category: s.product_category || 'Uncategorized',
           };
         });
 
@@ -188,11 +195,13 @@ export default function FlasherReportsPage() {
     const matchesSearch = p.module_sr_no.toLowerCase().includes(search.toLowerCase()) || p.box_no.toLowerCase().includes(search.toLowerCase());
     const matchesInvoice = selectedInvoice === 'All' || p.invoice_no === selectedInvoice;
     const matchesDate = selectedDate === 'All' || p.date === selectedDate;
-    return matchesSearch && matchesInvoice && matchesDate;
+    const matchesCategory = selectedCategory === 'All' || p.category === selectedCategory;
+    return matchesSearch && matchesInvoice && matchesDate && matchesCategory;
   });
 
   const uniqueInvoices = ['All', ...Array.from(new Set(panels.filter(p => selectedDate === 'All' || p.date === selectedDate).map(p => p.invoice_no).filter(inv => inv && inv !== '—')))];
   const uniqueDates = ['All', ...Array.from(new Set(panels.map(p => p.date).filter(date => date && date !== '—')))];
+  const uniqueCategories = ['All', ...Array.from(new Set(panels.map(p => p.category).filter(cat => cat)))];
 
   useEffect(() => {
     if (selectedInvoice !== 'All') {
@@ -228,10 +237,10 @@ export default function FlasherReportsPage() {
         <div>
           <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
             <Zap className="w-7 h-7 text-amber-500" />
-            Solar Panel Flasher Reports & Serial Tracker
+            Serial Numbers Tracking & Flasher Reports
           </h1>
           <p className="text-slate-600 dark:text-slate-400 mt-1">
-            Track Waaree flasher test metrics, OA No., Box No., and unique module serial numbers
+            Track all inventory serial numbers across categories (Inverters, Panels) and FTR metrics
           </p>
         </div>
         <div className="flex gap-2 flex-wrap">
@@ -341,6 +350,21 @@ export default function FlasherReportsPage() {
               ))}
             </select>
           </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-600 dark:text-slate-400 font-semibold">Category:</span>
+            <select
+              value={selectedCategory}
+              onChange={(e) => {
+                setSelectedCategory(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="text-xs border rounded p-1.5 bg-white dark:bg-slate-900 dark:border-slate-700 font-semibold"
+            >
+              {uniqueCategories.map(cat => (
+                <option key={cat as string} value={cat as string}>{cat}</option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div className="flex items-center gap-3 w-full sm:w-auto justify-between">
@@ -378,14 +402,20 @@ export default function FlasherReportsPage() {
                 <th className="p-3">Box No.</th>
                 <th className="p-3">Invoice No.</th>
                 <th className="p-3">Date</th>
-                <th className="p-3 text-amber-300">Module Sr. No. (Unique Key)</th>
-                <th className="p-3 text-right">Pmax (W)</th>
-                <th className="p-3 text-right">Voc (V)</th>
-                <th className="p-3 text-right">Isc (A)</th>
-                <th className="p-3 text-right">Vmp (V)</th>
-                <th className="p-3 text-right">Imp (A)</th>
-                <th className="p-3 text-right">FF (%)</th>
-                <th className="p-3 text-right text-emerald-300">Eff (%)</th>
+                <th className="p-3">Category</th>
+                <th className="p-3">Product Name</th>
+                <th className="p-3 text-amber-300">Serial No. (Unique Key)</th>
+                {selectedCategory !== 'Inverters' && selectedCategory !== 'Batteries' && selectedCategory !== 'Structures' && (
+                  <>
+                    <th className="p-3 text-right">Pmax (W)</th>
+                    <th className="p-3 text-right">Voc (V)</th>
+                    <th className="p-3 text-right">Isc (A)</th>
+                    <th className="p-3 text-right">Vmp (V)</th>
+                    <th className="p-3 text-right">Imp (A)</th>
+                    <th className="p-3 text-right">FF (%)</th>
+                    <th className="p-3 text-right text-emerald-300">Eff (%)</th>
+                  </>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y font-medium text-slate-800 dark:text-slate-200">
@@ -395,16 +425,24 @@ export default function FlasherReportsPage() {
                   <td className="p-3 font-mono">{p.box_no}</td>
                   <td className="p-3 font-mono text-slate-600 dark:text-slate-400">{p.invoice_no || '—'}</td>
                   <td className="p-3 font-mono text-slate-600 dark:text-slate-400">{p.date || '—'}</td>
+                  <td className="p-3 font-bold text-slate-700">
+                    <span className="bg-slate-100 px-2 py-1 rounded text-[10px] uppercase border">{p.category}</span>
+                  </td>
+                  <td className="p-3 font-medium text-slate-800">{p.product_name}</td>
                   <td className="p-3 font-mono font-bold text-blue-700 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-950/20">
                     {p.module_sr_no}
                   </td>
-                  <td className="p-3 text-right font-bold">{p.pmax}</td>
-                  <td className="p-3 text-right">{p.voc}</td>
-                  <td className="p-3 text-right">{p.isc}</td>
-                  <td className="p-3 text-right">{p.vmp}</td>
-                  <td className="p-3 text-right">{p.imp}</td>
-                  <td className="p-3 text-right">{p.ff}</td>
-                  <td className="p-3 text-right font-bold text-emerald-600">{p.eff}%</td>
+                  {selectedCategory !== 'Inverters' && selectedCategory !== 'Batteries' && selectedCategory !== 'Structures' && (
+                    <>
+                      <td className="p-3 text-right font-bold">{p.pmax}</td>
+                      <td className="p-3 text-right">{p.voc}</td>
+                      <td className="p-3 text-right">{p.isc}</td>
+                      <td className="p-3 text-right">{p.vmp}</td>
+                      <td className="p-3 text-right">{p.imp}</td>
+                      <td className="p-3 text-right">{p.ff}</td>
+                      <td className="p-3 text-right font-bold text-emerald-600">{p.eff !== '—' ? `${p.eff}%` : '—'}</td>
+                    </>
+                  )}
                 </tr>
               ))}
               {paginatedPanels.length === 0 && (

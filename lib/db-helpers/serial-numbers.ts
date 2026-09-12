@@ -131,7 +131,7 @@ export const serialNumberDb = {
     offset?: number;
   }): Promise<ProductSerialNumber[]> => {
     let sql = `
-      SELECT psn.*, p.name as product_name, p.product_code, w.name as warehouse_name, w.code as warehouse_code
+      SELECT psn.*, p.name as product_name, p.category as product_category, p.product_code, w.name as warehouse_name, w.code as warehouse_code
       FROM product_serial_numbers psn
       LEFT JOIN products p ON psn.product_id = p.id
       LEFT JOIN warehouses w ON psn.warehouse_id = w.id
@@ -197,7 +197,7 @@ export const serialNumberDb = {
   // Search serial number across all products
   search: async (searchTerm: string): Promise<any[]> => {
     const psnResults = await query<any>(
-      `SELECT psn.*, p.name as product_name, p.product_code, pr.project_id, c.name as customer_name, 'product_serial_numbers' as source_table
+      `SELECT psn.*, p.name as product_name, p.category as product_category, p.product_code, pr.project_id, c.name as customer_name, 'product_serial_numbers' as source_table
        FROM product_serial_numbers psn
        LEFT JOIN products p ON psn.product_id = p.id
        LEFT JOIN projects pr ON psn.project_id = pr.id
