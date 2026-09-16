@@ -57,6 +57,23 @@ function extractSerialsFromPdfBuffer(buffer: Buffer, fileName: string) {
   const modelMatch = text.match(/BIN-\d+-\d+/i) || text.match(/Waaree\s*[\w-]+/i);
   const moduleModel = modelMatch ? modelMatch[0] : 'BIN-21-615';
 
+  // Extract date
+  let extractedDate = new Date().toISOString().split('T')[0];
+  const dateMatch = text.match(/(?:Date|Dated)\s*[:\-]?\s*(\d{1,2}[\.\-\/]\d{1,2}[\.\-\/]\d{2,4})/i);
+  if (dateMatch && dateMatch[1]) {
+    const dStr = dateMatch[1].replace(/\./g, '-').replace(/\//g, '-');
+    const parts = dStr.split('-');
+    if (parts.length === 3) {
+      if (parts[0].length === 4) {
+        extractedDate = dStr;
+      } else if (parts[2].length === 4) {
+        extractedDate = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+      } else if (parts[2].length === 2) {
+        extractedDate = `20${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+      }
+    }
+  }
+
   const modules = uniqueSerials.map((sr, idx) => ({
     sr_no: String(idx + 1),
     box_no: `B${Math.floor(idx / 30) + 1}`,
@@ -74,7 +91,7 @@ function extractSerialsFromPdfBuffer(buffer: Buffer, fileName: string) {
     type: 'FLASHER_REPORT',
     customer: 'M/S Excellent Solar',
     invoice_no: invoiceNo,
-    date: new Date().toISOString().split('T')[0],
+    date: extractedDate,
     module_model: moduleModel,
     total_quantity: String(modules.length),
     raw_text: `Extracted via Decompressed Native PDF Engine (${fileName})`,

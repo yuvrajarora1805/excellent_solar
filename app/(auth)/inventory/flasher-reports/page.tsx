@@ -130,7 +130,7 @@ export default function FlasherReportsPage() {
             invoice_no: s.invoice_no || '—',
             module_sr_no: s.serial_number,
             vmp, imp, ff, eff,
-            date: s.created_at ? new Date(s.created_at).toLocaleDateString('en-GB') : '—',
+            date: s.manufacturing_date ? new Date(s.manufacturing_date).toLocaleDateString('en-GB') : (s.created_at ? new Date(s.created_at).toLocaleDateString('en-GB') : '—'),
             product_name: s.product_name || 'Unknown',
             category: s.product_category || 'Uncategorized',
             product_code: s.product_code || 'N/A',
@@ -336,7 +336,7 @@ export default function FlasherReportsPage() {
             </div>
             <div className="p-2.5 bg-white dark:bg-slate-900 border rounded shadow-sm">
               <span className="text-slate-500 block">Total Quantity</span>
-              <span className="font-extrabold text-sm text-emerald-600">{panels.length} Nos.</span>
+              <span className="font-extrabold text-sm text-emerald-600">{filteredPanels.length} Nos.</span>
             </div>
           </div>
         </CardContent>

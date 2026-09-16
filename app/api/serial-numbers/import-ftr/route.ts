@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
     await ensureInvoiceNoColumn();
 
     const body = await req.json();
-    const { product_id, invoice_no, warehouse_id, modules, user_id } = body;
+    const { product_id, invoice_no, date, warehouse_id, modules, user_id } = body;
     let targetProductId = product_id ? Number(product_id) : 0;
 
     // Verify if the provided product_id actually exists
@@ -70,6 +70,7 @@ export async function POST(req: NextRequest) {
     const result = await serialNumberDb.importFlasherReport({
       product_id: targetProductId,
       invoice_no,
+      date,
       warehouse_id: warehouse_id ? Number(warehouse_id) : undefined,
       modules,
       userId,

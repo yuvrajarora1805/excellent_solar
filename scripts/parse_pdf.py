@@ -70,9 +70,21 @@ def parse_flasher_report(pdf):
     if invoice_m:
         result["invoice_no"] = invoice_m.group(1).strip()
 
-    date_m = re.search(r'Date\s*:\s*([\d\.]+)', first_page_text, re.IGNORECASE)
+    date_m = re.search(r'Date\s*:\s*([\d\.\-]+)', first_page_text, re.IGNORECASE)
     if date_m:
-        result["date"] = date_m.group(1).strip()
+        d_str = date_m.group(1).strip().replace('.', '-').replace('/', '-')
+        parts = d_str.split('-')
+        if len(parts) == 3:
+            if len(parts[0]) == 4:
+                result["date"] = d_str
+            elif len(parts[2]) == 4:
+                result["date"] = f"{parts[2]}-{parts[1].zfill(2)}-{parts[0].zfill(2)}"
+            elif len(parts[2]) == 2:
+                result["date"] = f"20{parts[2]}-{parts[1].zfill(2)}-{parts[0].zfill(2)}"
+            else:
+                result["date"] = d_str
+        else:
+            result["date"] = d_str
 
     model_m = re.search(r'Module\s*Model\s*:\s*([^\n\r]+)', first_page_text, re.IGNORECASE)
     if model_m:

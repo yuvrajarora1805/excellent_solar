@@ -68,7 +68,7 @@ export const FTRImportModal: React.FC<FTRImportModalProps> = ({ isOpen, onClose,
       const res = await fetch('/api/inventory/products');
       if (res.ok) {
         const data = await res.json();
-        const prods: ProductItem[] = data.products || [];
+        const prods: ProductItem[] = Array.isArray(data) ? data : (data.products || []);
         setProductList(prods);
       }
     } catch (err) {
@@ -177,7 +177,7 @@ export const FTRImportModal: React.FC<FTRImportModalProps> = ({ isOpen, onClose,
       const updatedRes = await fetch('/api/inventory/products');
       if (updatedRes.ok) {
         const updatedData = await updatedRes.json();
-        const updatedProds: ProductItem[] = updatedData.products || [];
+        const updatedProds: ProductItem[] = Array.isArray(updatedData) ? updatedData : (updatedData.products || []);
         setProductList(updatedProds);
         const newProd = updatedProds.find(p => p.product_code === modelName);
         if (newProd) {

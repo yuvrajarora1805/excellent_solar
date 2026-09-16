@@ -12,6 +12,7 @@ interface Order {
   order_number: string;
   order_type: 'PROJECT' | 'RETAIL';
   customer_name: string;
+  project_customer_name?: string;
   customer_mobile?: string;
   vehicle_number?: string;
   driver_name?: string;
@@ -199,7 +200,7 @@ export default function OrdersDashboardPage() {
                     </span>
                   </td>
                   <td className="p-3 font-bold text-slate-900 dark:text-white">
-                    {o.customer_name}
+                    {o.project_customer_name || o.customer_name}
                     {o.customer_mobile && <div className="text-[11px] text-slate-500 font-normal">{o.customer_mobile}</div>}
                   </td>
                   <td className="p-3">

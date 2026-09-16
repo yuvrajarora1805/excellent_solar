@@ -289,6 +289,7 @@ export const serialNumberDb = {
   importFlasherReport: async (data: {
     product_id: number;
     invoice_no?: string;
+    date?: string;
     warehouse_id?: number;
     modules: Array<{
       module_sr_no: string;
@@ -316,10 +317,10 @@ export const serialNumberDb = {
           const remarks = `Box: ${mod.box_no || 'N/A'} | Pmax: ${mod.pmax || ''}W | Voc: ${mod.voc || ''}V | Isc: ${mod.isc || ''}A | Vmp: ${mod.vmp || ''}V | Imp: ${mod.imp || ''}A | FF: ${mod.ff || ''}% | Eff: ${mod.eff || ''}%`;
           
           const [result] = await conn.execute(
-            `INSERT INTO product_serial_numbers (product_id, serial_number, warehouse_id, current_location, remarks, status)
-             VALUES (?, ?, ?, 'WAREHOUSE', ?, 'AVAILABLE')
-             ON DUPLICATE KEY UPDATE remarks = VALUES(remarks)`,
-            [data.product_id, mod.module_sr_no, data.warehouse_id || null, remarks]
+            `INSERT INTO product_serial_numbers (product_id, serial_number, warehouse_id, current_location, remarks, status, manufacturing_date)
+             VALUES (?, ?, ?, 'WAREHOUSE', ?, 'AVAILABLE', ?)
+             ON DUPLICATE KEY UPDATE remarks = VALUES(remarks), manufacturing_date = VALUES(manufacturing_date)`,
+            [data.product_id, mod.module_sr_no, data.warehouse_id || null, remarks, data.date || null]
           );
 
           importedCount++;

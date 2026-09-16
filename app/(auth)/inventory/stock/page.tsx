@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
@@ -25,6 +25,36 @@ export default function StockPage() {
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('');
   const [isFtrOpen, setIsFtrOpen] = useState(false);
+  const [expandedProductId, setExpandedProductId] = useState<number | null>(null);
+  const [productSerials, setProductSerials] = useState<any[]>([]);
+  const [loadingSerials, setLoadingSerials] = useState(false);
+
+  const toggleExpand = async (productId: number) => {
+    if (expandedProductId === productId) {
+      setExpandedProductId(null);
+      setProductSerials([]);
+      return;
+    }
+    setExpandedProductId(productId);
+    setLoadingSerials(true);
+    try {
+      const res = await fetch(`/api/serial-numbers?product_id=${productId}`);
+      if (res.ok) {
+        const data = await res.json();
+        const allSerials = data.serials || data || [];
+        allSerials.sort((a: any, b: any) => {
+          if (a.status === 'AVAILABLE' && b.status !== 'AVAILABLE') return -1;
+          if (a.status !== 'AVAILABLE' && b.status === 'AVAILABLE') return 1;
+          return 0;
+        });
+        setProductSerials(allSerials);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingSerials(false);
+    }
+  };
 
 
   useEffect(() => {
@@ -145,21 +175,55 @@ export default function StockPage() {
                 </thead>
                 <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                   {stock.map((item) => (
-                    <tr key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-800">
-                      <td className="px-4 py-3">
-                        <div className="font-medium">{item.name}</div>
-                        <div className="text-xs text-slate-500">{item.product_code}</div>
-                      </td>
-                      <td className="px-4 py-3 text-sm">{item.category}</td>
-                      <td className="px-4 py-3 text-right font-bold text-slate-900 dark:text-white">
-                        {item.current_stock} {item.unit}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          In Stock
-                        </span>
-                      </td>
-                    </tr>
+                    <React.Fragment key={item.id}>
+                      <tr className="hover:bg-slate-50 dark:hover:bg-slate-800">
+                        <td className="px-4 py-3">
+                          <div className="font-medium">{item.name}</div>
+                          <div className="text-xs text-slate-500">{item.product_code}</div>
+                        </td>
+                        <td className="px-4 py-3 text-sm">{item.category}</td>
+                        <td className="px-4 py-3 text-right font-bold text-slate-900 dark:text-white">
+                          {item.current_stock} {item.unit}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="text-xs"
+                            onClick={() => toggleExpand(item.id)}
+                          >
+                            {expandedProductId === item.id ? 'Hide Serials' : 'View Serials'}
+                          </Button>
+                        </td>
+                      </tr>
+                      {expandedProductId === item.id && (
+                        <tr className="bg-slate-50 dark:bg-slate-800/50">
+                          <td colSpan={4} className="p-4 border-t border-slate-200 dark:border-slate-700">
+                            {loadingSerials ? (
+                              <div className="text-center text-sm text-slate-500 animate-pulse">Loading serial numbers...</div>
+                            ) : productSerials.length === 0 ? (
+                              <div className="text-center text-sm text-slate-500">No serial numbers recorded in stock for this product.</div>
+                            ) : (
+                              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2">
+                                {productSerials.map((s, idx) => {
+                                  const isAvailable = s.status === 'AVAILABLE';
+                                  return (
+                                    <div key={idx} className={`p-2 rounded border flex flex-col gap-1 items-center justify-center ${isAvailable ? 'bg-green-50 border-green-200 dark:bg-green-950/30 dark:border-green-800' : 'bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-800'}`}>
+                                      <span className={`text-xs font-mono font-bold text-center break-all ${isAvailable ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
+                                        {s.serial_number}
+                                      </span>
+                                      <span className={`text-[9px] font-black uppercase ${isAvailable ? 'text-green-600' : 'text-red-500'}`}>
+                                        {isAvailable ? 'In Stock' : (s.status === 'ISSUED' ? 'Sold Out' : s.status)}
+                                      </span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   ))}
                 </tbody>
               </table>
