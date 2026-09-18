@@ -327,6 +327,7 @@ export default function EditOrderPage({ params }: { params: Promise<{ id: string
           })),
           serials: scannedSerials,
           dispatchImmediately,
+          status: dispatchImmediately ? undefined : 'DRAFT',
           ticket_id: selectedTicketId ? Number(selectedTicketId) : undefined,
         }),
       });
