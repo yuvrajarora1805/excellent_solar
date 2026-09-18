@@ -17,7 +17,13 @@ export async function GET(
 
     let reservations: any[] = [];
     try {
-      reservations = await reservationDb.findByProject(installation.project_id as number);
+      // installation.project_id is a string identifier due to the SQL join (e.g., 'PRJ-1234')
+      const project = typeof installation.project_id === 'string' 
+        ? await projectDb.findByProjectId(installation.project_id)
+        : null;
+      const realProjectId = project ? project.id : installation.project_id as number;
+      
+      reservations = await reservationDb.findByProject(realProjectId);
     } catch {
       // reservations optional
     }
@@ -41,20 +47,23 @@ export async function POST(
       await installationDb.verifyInstallation(id, body.approved, body.reason);
       const inst = await installationDb.findById(id);
 
-      if (body.approved) {
-        if (inst?.project_id) {
-          await reservationDb.issue(inst.project_id as number);
+      if (inst?.project_id) {
+        const project = typeof inst.project_id === 'string'
+          ? await projectDb.findByProjectId(inst.project_id)
+          : null;
+        const realProjectId = project ? project.id : inst.project_id as number;
+
+        if (body.approved) {
+          await reservationDb.issue(realProjectId);
           await projectDb.updateStatus(
-            inst.project_id as number,
+            realProjectId,
             'FINAL_VERIFICATION' as any,
             1,
             'Installation verified by manager'
           );
-        }
-      } else {
-        if (inst?.project_id) {
+        } else {
           await projectDb.updateStatus(
-            inst.project_id as number,
+            realProjectId,
             'INSTALLATION_STARTED' as any,
             1,
             `Installation rejected: ${body.reason || 'Needs revision'}`
