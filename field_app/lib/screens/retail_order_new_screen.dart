@@ -35,6 +35,7 @@ class _RetailOrderNewScreenState extends State<RetailOrderNewScreen> {
   int? _selectedProductId;
   int _quantity = 1;
   double _unitPrice = 0.0;
+  int? _selectedCustomerId;
 
   @override
   void initState() {
@@ -58,6 +59,7 @@ class _RetailOrderNewScreenState extends State<RetailOrderNewScreen> {
             _customerName = order['customer_name']?.toString() ?? '';
             _customerMobile = order['customer_mobile']?.toString() ?? '';
             _customerAddress = order['delivery_address']?.toString() ?? '';
+            _selectedCustomerId = order['customer_id'];
             _mobileController.text = _customerMobile;
             _addressController.text = _customerAddress;
             
@@ -184,12 +186,13 @@ class _RetailOrderNewScreenState extends State<RetailOrderNewScreen> {
     
     try {
       final body = {
-        'customer_id': null,
+        'customer_id': _selectedCustomerId,
         'customer_name': _customerName,
         'customer_mobile': _customerMobile,
         'delivery_address': _customerAddress,
         'total_amount': totalAmount,
         'is_draft': isDraft,
+        'status': isDraft ? 'DRAFT' : 'PENDING_DISPATCH',
         'order_type': 'RETAIL',
         'items': _orderItems,
       };
@@ -268,6 +271,7 @@ class _RetailOrderNewScreenState extends State<RetailOrderNewScreen> {
                       displayStringForOption: (Map<String, dynamic> option) => option['name']?.toString() ?? '',
                       onSelected: (Map<String, dynamic> selection) {
                         setState(() {
+                          _selectedCustomerId = selection['id'];
                           _customerName = selection['name']?.toString() ?? '';
                           _mobileController.text = selection['mobile']?.toString() ?? '';
                           _addressController.text = selection['address']?.toString() ?? '';
@@ -283,7 +287,10 @@ class _RetailOrderNewScreenState extends State<RetailOrderNewScreen> {
                             border: OutlineInputBorder(),
                           ),
                           validator: (val) => val == null || val.trim().isEmpty ? 'Required' : null,
-                          onChanged: (val) => _customerName = val,
+                          onChanged: (val) {
+                            _customerName = val;
+                            _selectedCustomerId = null;
+                          },
                           onSaved: (val) => _customerName = val?.trim() ?? '',
                         );
                       },

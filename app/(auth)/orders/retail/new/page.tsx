@@ -24,6 +24,7 @@ export default function NewRetailTicketPage() {
   const [customerAddress, setCustomerAddress] = useState('');
   const [customers, setCustomers] = useState<Array<{ id: number; name: string; mobile: string; address: string }>>([]);
   const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
 
   // Products & Stock Item Selection
   const [products, setProducts] = useState<Product[]>([]);
@@ -69,6 +70,9 @@ export default function NewRetailTicketPage() {
     if (match) {
       setCustomerMobile(match.mobile || '');
       setCustomerAddress(match.address || '');
+      setSelectedCustomerId(match.id);
+    } else {
+      setSelectedCustomerId(null);
     }
   };
 
@@ -146,12 +150,13 @@ export default function NewRetailTicketPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          customer_id: null,
+          customer_id: selectedCustomerId,
           customer_name: customerName.trim(),
           customer_mobile: customerMobile.trim(),
           delivery_address: customerAddress.trim(),
           total_amount: totalAmount,
           is_draft: isDraft,
+          status: isDraft ? 'DRAFT' : 'PENDING_DISPATCH',
           items: orderItems.map(i => ({
             product_id: i.product_id,
             product_name: i.product_name,
@@ -220,8 +225,11 @@ export default function NewRetailTicketPage() {
                       <li
                         key={c.id}
                         className="px-3 py-2 hover:bg-slate-100 dark:hover:bg-slate-700 cursor-pointer text-sm border-b border-slate-100 dark:border-slate-700 last:border-0"
-                        onClick={() => {
-                          handleCustomerNameChange(c.name);
+                        onMouseDown={() => {
+                          setCustomerName(c.name);
+                          setCustomerMobile(c.mobile || '');
+                          setCustomerAddress(c.address || '');
+                          setSelectedCustomerId(c.id);
                           setShowCustomerDropdown(false);
                         }}
                       >
