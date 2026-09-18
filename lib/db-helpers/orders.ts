@@ -577,10 +577,24 @@ export const orderDb = {
           );
         }
       } else if (data.status) {
+        // Find current status before updating
+        const [rows] = await conn.execute(`SELECT status FROM orders WHERE id = ?`, [orderId]);
+        const oldStatus = (rows as any)[0]?.status;
+
         await conn.execute(
           `UPDATE orders SET status = ? WHERE id = ?`,
           [data.status, orderId]
         );
+        
+        // Sync stock reservation if transitioning from DRAFT to PENDING_DISPATCH for retail
+        if (oldStatus === 'DRAFT' && data.status === 'PENDING_DISPATCH' && data.order_type === 'RETAIL') {
+          for (const item of data.items) {
+            await conn.execute(
+              'UPDATE products SET reserved_stock = COALESCE(reserved_stock, 0) + ? WHERE id = ?',
+              [Number(item.quantity), Number(item.product_id)]
+            );
+          }
+        }
       }
     });
   },
