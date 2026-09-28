@@ -32,10 +32,21 @@ export const discomDb = {
     status?: DiscomStatus;
     search?: string;
   }): Promise<(DiscomApplication & { project_id: string; customer_name: string })[]> => {
-    let sql = `SELECT da.*, p.project_id, c.name as customer_name
+    let sql = `SELECT da.*, p.project_id, c.name as customer_name,
+               eb.phase as meter_phase,
+               jv.status as je_approval_status,
+               sv.status as sdo_approval_status,
+               xv.status as xen_approval_status,
+               est.estimate_amount as estimated_amount,
+               est.id as has_estimate
                FROM discom_applications da
                JOIN projects p ON da.project_id = p.id
-               JOIN customers c ON p.customer_id = c.id`;
+               JOIN customers c ON p.customer_id = c.id
+               LEFT JOIN electricity_bills eb ON p.id = eb.project_id
+               LEFT JOIN je_verifications jv ON da.id = jv.discom_application_id
+               LEFT JOIN sdo_verifications sv ON da.id = sv.discom_application_id
+               LEFT JOIN xen_verifications xv ON da.id = xv.discom_application_id
+               LEFT JOIN estimates est ON da.id = est.discom_application_id`;
     const params: any[] = [];
     const conditions: string[] = [];
 

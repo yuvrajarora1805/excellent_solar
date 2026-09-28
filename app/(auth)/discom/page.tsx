@@ -105,33 +105,38 @@ export default function DiscomPage() {
       ) : (
         <div className="card-base overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1000px]">
+            <table className="w-full min-w-[1400px]">
               <thead className="bg-surface-container-low">
                 <tr>
-                  <th className="px-4 py-3 text-left text-label-bold text-on-surface-variant">Application ID</th>
-                  <th className="px-4 py-3 text-left text-label-bold text-on-surface-variant">Project</th>
-                  <th className="px-4 py-3 text-left text-label-bold text-on-surface-variant">Customer</th>
-                  <th className="px-4 py-3 text-left text-label-bold text-on-surface-variant">Application Date</th>
-                  <th className="px-4 py-3 text-left text-label-bold text-on-surface-variant">Status</th>
+                  <th className="px-4 py-3 text-left text-label-bold text-on-surface-variant">No</th>
+                  <th className="px-4 py-3 text-left text-label-bold text-on-surface-variant">Meter Phase</th>
+                  <th className="px-4 py-3 text-left text-label-bold text-on-surface-variant">JE Approval</th>
+                  <th className="px-4 py-3 text-left text-label-bold text-on-surface-variant">SDO Approval</th>
+                  <th className="px-4 py-3 text-left text-label-bold text-on-surface-variant">Processing Fee</th>
+                  <th className="px-4 py-3 text-left text-label-bold text-on-surface-variant">Estimated Make</th>
+                  <th className="px-4 py-3 text-left text-label-bold text-on-surface-variant">Meter Received</th>
+                  <th className="px-4 py-3 text-left text-label-bold text-on-surface-variant">Meter Installed</th>
+                  <th className="px-4 py-3 text-left text-label-bold text-on-surface-variant">Meter Fected</th>
+                  <th className="px-4 py-3 text-left text-label-bold text-on-surface-variant">XEN Approval</th>
                   <th className="px-4 py-3 text-right text-label-bold text-on-surface-variant">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant">
                 {applications.map((app: any) => {
-                  const status = statusConfig[app.status] || { label: app.status, color: 'bg-gray-100' };
                   return (
                     <tr key={app.id} className="hover:bg-surface-container-low transition-colors">
                       <td className="px-4 py-3 text-sm font-technical-mono">{app.application_id}</td>
-                      <td className="px-4 py-3 text-sm text-on-surface">{app.project_id}</td>
-                      <td className="px-4 py-3 text-sm text-on-surface">{app.customer_name}</td>
-                      <td className="px-4 py-3 text-sm text-on-surface-variant">
-                        {app.application_date ? new Date(app.application_date).toLocaleDateString('en-IN') : (app.created_at ? new Date(app.created_at).toLocaleDateString('en-IN') : 'N/A')}
+                      <td className="px-4 py-3 text-sm text-on-surface capitalize">{app.meter_phase ? app.meter_phase.toLowerCase() : '-'}</td>
+                      <td className="px-4 py-3 text-sm text-on-surface">{app.je_approval_status === 'APPROVED' ? 'Yes' : 'No'}</td>
+                      <td className="px-4 py-3 text-sm text-on-surface">{app.sdo_approval_status === 'APPROVED' ? 'Yes' : 'No'}</td>
+                      <td className="px-4 py-3 text-sm text-on-surface">{app.processing_fee ? 'Yes' : 'No'}</td>
+                      <td className="px-4 py-3 text-sm text-on-surface">
+                        {app.has_estimate ? `Yes (${app.estimated_amount ? '₹' + app.estimated_amount : 'Unpaid'})` : 'No'}
                       </td>
-                      <td className="px-4 py-3">
-                        <span className={`status-badge ${status.color}`}>
-                          {status.label}
-                        </span>
-                      </td>
+                      <td className="px-4 py-3 text-sm text-on-surface">{(app.meter_status === 'RECEIVED' || app.meter_status === 'INSTALLED') ? 'Yes' : 'No'}</td>
+                      <td className="px-4 py-3 text-sm text-on-surface">{app.meter_status === 'INSTALLED' ? 'Yes' : 'No'}</td>
+                      <td className="px-4 py-3 text-sm text-on-surface">{app.meter_effect === 'YES' ? 'Yes' : 'No'}</td>
+                      <td className="px-4 py-3 text-sm text-on-surface">{app.xen_approval_status === 'APPROVED' ? 'Yes' : 'No'}</td>
                       <td className="px-4 py-3 text-right">
                         <Link href={`/discom/${app.id}`}>
                           <button className="p-2 rounded hover:bg-surface-container transition-colors">

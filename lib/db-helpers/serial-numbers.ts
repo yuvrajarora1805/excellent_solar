@@ -160,7 +160,7 @@ export const serialNumberDb = {
       params.push(options.status);
     }
 
-    sql += ' ORDER BY psn.created_at DESC';
+    sql += " ORDER BY CASE WHEN psn.status = 'AVAILABLE' THEN 1 ELSE 2 END ASC, psn.created_at DESC";
 
     const limitVal = options?.limit ? Number(options.limit) : 2000;
     sql += ` LIMIT ${limitVal}`;

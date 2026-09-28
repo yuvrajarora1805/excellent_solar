@@ -98,17 +98,23 @@ class _DiscomListScreenState extends State<DiscomListScreen> {
                     child: ListTile(
                       contentPadding: const EdgeInsets.all(16),
                       title: Text(
-                        app['customer_name'] ?? 'Unknown Customer',
+                        '${app['application_id'] ?? '-'} | ${app['customer_name'] ?? 'Unknown Customer'}',
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       subtitle: Padding(
-                        padding: const EdgeInsets.only(top: 8.0),
+                        padding: const EdgeInsets.only(top: 12.0),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Project: ${app['project_id']}'),
-                            const SizedBox(height: 4),
-                            Text('Status: ${app['status']}', style: const TextStyle(color: Colors.blueGrey)),
+                            _buildFieldRow('Meter Phase', app['meter_phase']?.toString().toLowerCase() ?? '-'),
+                            _buildFieldRow('JE Approval', app['je_approval_status'] == 'APPROVED' ? 'Yes' : 'No'),
+                            _buildFieldRow('SDO Approval', app['sdo_approval_status'] == 'APPROVED' ? 'Yes' : 'No'),
+                            _buildFieldRow('Processing Fee', (app['processing_fee'] != null) ? 'Yes' : 'No'),
+                            _buildFieldRow('Estimated Make', (app['has_estimate'] != null) ? 'Yes (₹${app['estimated_amount'] ?? 'Unpaid'})' : 'No'),
+                            _buildFieldRow('Meter Received', (app['meter_status'] == 'RECEIVED' || app['meter_status'] == 'INSTALLED') ? 'Yes' : 'No'),
+                            _buildFieldRow('Meter Installed', app['meter_status'] == 'INSTALLED' ? 'Yes' : 'No'),
+                            _buildFieldRow('Meter Fected', app['meter_effect'] == 'YES' ? 'Yes' : 'No'),
+                            _buildFieldRow('XEN Approval', app['xen_approval_status'] == 'APPROVED' ? 'Yes' : 'No'),
                           ],
                         ),
                       ),
@@ -127,6 +133,19 @@ class _DiscomListScreenState extends State<DiscomListScreen> {
                   );
                 },
               ),
+    );
+  }
+
+  Widget _buildFieldRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(color: Colors.blueGrey, fontSize: 13)),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13)),
+        ],
+      ),
     );
   }
 }

@@ -28,6 +28,10 @@ export default function StockPage() {
   const [expandedProductId, setExpandedProductId] = useState<number | null>(null);
   const [productSerials, setProductSerials] = useState<any[]>([]);
   const [loadingSerials, setLoadingSerials] = useState(false);
+  const [loadingMoreSerials, setLoadingMoreSerials] = useState(false);
+  const [serialOffset, setSerialOffset] = useState(0);
+  const [hasMoreSerials, setHasMoreSerials] = useState(false);
+  const SERIALS_PER_PAGE = 50;
 
   const toggleExpand = async (productId: number) => {
     if (expandedProductId === productId) {
@@ -37,22 +41,39 @@ export default function StockPage() {
     }
     setExpandedProductId(productId);
     setLoadingSerials(true);
+    setSerialOffset(0);
     try {
-      const res = await fetch(`/api/serial-numbers?product_id=${productId}`);
+      const res = await fetch(`/api/serial-numbers?product_id=${productId}&limit=${SERIALS_PER_PAGE}&offset=0`);
       if (res.ok) {
         const data = await res.json();
         const allSerials = data.serials || data || [];
-        allSerials.sort((a: any, b: any) => {
-          if (a.status === 'AVAILABLE' && b.status !== 'AVAILABLE') return -1;
-          if (a.status !== 'AVAILABLE' && b.status === 'AVAILABLE') return 1;
-          return 0;
-        });
         setProductSerials(allSerials);
+        setHasMoreSerials(allSerials.length === SERIALS_PER_PAGE);
       }
     } catch (e) {
       console.error(e);
     } finally {
       setLoadingSerials(false);
+    }
+  };
+
+  const loadMoreSerials = async () => {
+    if (!expandedProductId) return;
+    setLoadingMoreSerials(true);
+    const newOffset = serialOffset + SERIALS_PER_PAGE;
+    try {
+      const res = await fetch(`/api/serial-numbers?product_id=${expandedProductId}&limit=${SERIALS_PER_PAGE}&offset=${newOffset}`);
+      if (res.ok) {
+        const data = await res.json();
+        const newSerials = data.serials || data || [];
+        setProductSerials(prev => [...prev, ...newSerials]);
+        setSerialOffset(newOffset);
+        setHasMoreSerials(newSerials.length === SERIALS_PER_PAGE);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingMoreSerials(false);
     }
   };
 
@@ -204,20 +225,34 @@ export default function StockPage() {
                             ) : productSerials.length === 0 ? (
                               <div className="text-center text-sm text-slate-500">No serial numbers recorded in stock for this product.</div>
                             ) : (
-                              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2">
-                                {productSerials.map((s, idx) => {
-                                  const isAvailable = s.status === 'AVAILABLE';
-                                  return (
-                                    <div key={idx} className={`p-2 rounded border flex flex-col gap-1 items-center justify-center ${isAvailable ? 'bg-green-50 border-green-200 dark:bg-green-950/30 dark:border-green-800' : 'bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-800'}`}>
-                                      <span className={`text-xs font-mono font-bold text-center break-all ${isAvailable ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
-                                        {s.serial_number}
-                                      </span>
-                                      <span className={`text-[9px] font-black uppercase ${isAvailable ? 'text-green-600' : 'text-red-500'}`}>
-                                        {isAvailable ? 'In Stock' : (s.status === 'ISSUED' ? 'Sold Out' : s.status)}
-                                      </span>
-                                    </div>
-                                  );
-                                })}
+                              <div className="flex flex-col gap-4">
+                                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2">
+                                  {productSerials.map((s, idx) => {
+                                    const isAvailable = s.status === 'AVAILABLE';
+                                    return (
+                                      <div key={idx} className={`p-2 rounded border flex flex-col gap-1 items-center justify-center ${isAvailable ? 'bg-green-50 border-green-200 dark:bg-green-950/30 dark:border-green-800' : 'bg-red-50 border-red-200 dark:bg-red-950/30 dark:border-red-800'}`}>
+                                        <span className={`text-xs font-mono font-bold text-center break-all ${isAvailable ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
+                                          {s.serial_number}
+                                        </span>
+                                        <span className={`text-[9px] font-black uppercase ${isAvailable ? 'text-green-600' : 'text-red-500'}`}>
+                                          {isAvailable ? 'In Stock' : (s.status === 'ISSUED' ? 'Sold Out' : s.status)}
+                                        </span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                                {hasMoreSerials && (
+                                  <div className="flex justify-center mt-2">
+                                    <Button 
+                                      variant="outline" 
+                                      size="sm" 
+                                      onClick={loadMoreSerials} 
+                                      disabled={loadingMoreSerials}
+                                    >
+                                      {loadingMoreSerials ? 'Loading...' : 'Load More'}
+                                    </Button>
+                                  </div>
+                                )}
                               </div>
                             )}
                           </td>
