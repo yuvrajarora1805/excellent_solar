@@ -28,6 +28,9 @@ class _DiscomDetailScreenState extends State<DiscomDetailScreen> {
   
   String _meterStatus = 'PENDING';
   String _meterEffect = 'NO';
+  String _mcoIssue = 'NO';
+  late TextEditingController _estimatePaidController;
+  String _secondXenApproval = 'PENDING';
 
   final ImagePicker _picker = ImagePicker();
 
@@ -37,6 +40,7 @@ class _DiscomDetailScreenState extends State<DiscomDetailScreen> {
     _npNumberController = TextEditingController(text: widget.application['np_number'] ?? '');
     _applicationDateController = TextEditingController(text: widget.application['application_date'] != null ? widget.application['application_date'].toString().split('T')[0] : '');
     _processingFeeController = TextEditingController(text: widget.application['processing_fee']?.toString() ?? '');
+    _estimatePaidController = TextEditingController(text: widget.application['estimate_paid']?.toString() ?? '');
     _jeNameController = TextEditingController(text: widget.application['je_name'] ?? '');
     _jePhoneController = TextEditingController(text: widget.application['je_phone'] ?? '');
     _fetchDetails();
@@ -55,11 +59,14 @@ class _DiscomDetailScreenState extends State<DiscomDetailScreen> {
             _npNumberController.text = _fullDetails!['np_number'] ?? '';
             _applicationDateController.text = _fullDetails!['application_date'] != null ? _fullDetails!['application_date'].toString().split('T')[0] : '';
             _processingFeeController.text = _fullDetails!['processing_fee']?.toString() ?? '';
+            _estimatePaidController.text = _fullDetails!['estimate_paid']?.toString() ?? '';
             _jeNameController.text = _fullDetails!['je_name'] ?? '';
             _jePhoneController.text = _fullDetails!['je_phone'] ?? '';
 
             _meterStatus = _fullDetails!['meter_status'] ?? 'PENDING';
             _meterEffect = _fullDetails!['meter_effect'] ?? 'NO';
+            _mcoIssue = _fullDetails!['mco_issue'] ?? 'NO';
+            _secondXenApproval = _fullDetails!['second_xen_approval'] ?? 'PENDING';
             
             _isLoading = false;
           });
@@ -76,6 +83,7 @@ class _DiscomDetailScreenState extends State<DiscomDetailScreen> {
     _npNumberController.dispose();
     _applicationDateController.dispose();
     _processingFeeController.dispose();
+    _estimatePaidController.dispose();
     _jeNameController.dispose();
     _jePhoneController.dispose();
     super.dispose();
@@ -112,6 +120,9 @@ class _DiscomDetailScreenState extends State<DiscomDetailScreen> {
             'je_phone': _jePhoneController.text,
             'meter_status': _meterStatus,
             'meter_effect': _meterEffect,
+            'mco_issue': _mcoIssue,
+            'estimate_paid': _estimatePaidController.text.isNotEmpty ? double.parse(_estimatePaidController.text) : null,
+            'second_xen_approval': _secondXenApproval,
           }
         }),
       );
@@ -577,7 +588,7 @@ class _DiscomDetailScreenState extends State<DiscomDetailScreen> {
             DropdownButtonFormField<String>(
               value: _meterEffect,
               decoration: const InputDecoration(
-                labelText: 'Meter Effect',
+                labelText: 'Meter Tested',
                 border: OutlineInputBorder(),
                 prefixIcon: Icon(Icons.bolt),
               ),
@@ -587,6 +598,48 @@ class _DiscomDetailScreenState extends State<DiscomDetailScreen> {
               ],
               onChanged: (val) {
                 if (val != null) setState(() => _meterEffect = val);
+              },
+            ),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              value: _mcoIssue,
+              decoration: const InputDecoration(
+                labelText: 'MCO Issue',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.assignment),
+              ),
+              items: const [
+                DropdownMenuItem(value: 'NO', child: Text('No')),
+                DropdownMenuItem(value: 'YES', child: Text('Yes')),
+              ],
+              onChanged: (val) {
+                if (val != null) setState(() => _mcoIssue = val);
+              },
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _estimatePaidController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'Estimate Amount Paid (₹)',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.currency_rupee),
+              ),
+            ),
+            const SizedBox(height: 16),
+            DropdownButtonFormField<String>(
+              value: _secondXenApproval,
+              decoration: const InputDecoration(
+                labelText: 'Second Approval From XEN Office',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.verified_user),
+              ),
+              items: const [
+                DropdownMenuItem(value: 'PENDING', child: Text('No')),
+                DropdownMenuItem(value: 'APPROVED', child: Text('Yes')),
+              ],
+              onChanged: (val) {
+                if (val != null) setState(() => _secondXenApproval = val);
               },
             ),
             const SizedBox(height: 16),
