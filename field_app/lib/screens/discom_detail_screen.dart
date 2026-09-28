@@ -602,11 +602,37 @@ class _DiscomDetailScreenState extends State<DiscomDetailScreen> {
               ),
             ),
             const SizedBox(height: 16),
-            TextField(
-              controller: _processingFeeController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Processing Fee (₹)', border: OutlineInputBorder(), prefixIcon: Icon(Icons.currency_rupee)),
+            DropdownButtonFormField<String>(
+              value: _processingFeeController.text.isNotEmpty ? 'YES' : 'NO',
+              decoration: const InputDecoration(
+                labelText: 'Fee Charge (Yes/No)',
+                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.receipt),
+              ),
+              items: const [
+                DropdownMenuItem(value: 'NO', child: Text('No')),
+                DropdownMenuItem(value: 'YES', child: Text('Yes')),
+              ],
+              onChanged: (val) {
+                if (val != null) {
+                  setState(() {
+                    if (val == 'NO') {
+                      _processingFeeController.clear();
+                    } else if (_processingFeeController.text.isEmpty) {
+                      _processingFeeController.text = '0'; // default so the YES state persists
+                    }
+                  });
+                }
+              },
             ),
+            if (_processingFeeController.text.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              TextField(
+                controller: _processingFeeController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(labelText: 'Fee Amount (₹)', border: OutlineInputBorder(), prefixIcon: Icon(Icons.currency_rupee)),
+              ),
+            ],
             const SizedBox(height: 16),
             TextField(
               controller: _jeNameController,
@@ -641,11 +667,7 @@ class _DiscomDetailScreenState extends State<DiscomDetailScreen> {
             ),
             const SizedBox(height: 12),
             
-            // Primary Required Document 1: Fee Charge
-            _buildDocCard(feeChargeTitle, 'fee_charge', uploadedDocs),
-            
-            // Primary Required Document 2: Estimate Fee Charge
-            _buildDocCard(estimateFeeTitle, 'estimate_fee_charge', uploadedDocs),
+            // Document uploads for fees have been removed per request
             
             if (extraDocs.isNotEmpty) ...[
               const SizedBox(height: 16),
