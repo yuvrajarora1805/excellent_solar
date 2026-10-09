@@ -124,7 +124,7 @@ export const projectDb = {
       [`ES-${currentYear}-%`]
     );
     
-    const projectId = generateProjectId();
+    const projectId = generateProjectId(latestProject?.project_id);
     const id = await insert(
       `INSERT INTO projects (project_id, customer_id, status, account_number, consumer_number, discom,
                           subdivision, division, sanctioned_load, solar_load, site_address, latitude, longitude,

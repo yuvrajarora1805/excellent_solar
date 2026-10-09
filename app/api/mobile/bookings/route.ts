@@ -66,7 +66,13 @@ export async function POST(request: Request) {
   }
   
   const { generateProjectId } = await import('@/lib/utils');
-  const projectId = generateProjectId();
+  const currentYear = new Date().getFullYear();
+  const latestProjectQuery = await query(
+    `SELECT project_id FROM projects WHERE project_id LIKE 'ES-${currentYear}-%' ORDER BY id DESC LIMIT 1`
+  ) as any[];
+  
+  const latestProjectId = latestProjectQuery && latestProjectQuery.length > 0 ? latestProjectQuery[0].project_id : undefined;
+  const projectId = generateProjectId(latestProjectId);
 
     if (customerType === 'RETAIL') {
       // For RETAIL, we might just create the customer and maybe an order/ticket if there are reservations.

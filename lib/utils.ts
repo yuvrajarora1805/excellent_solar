@@ -17,14 +17,24 @@ export async function verifyPassword(password: string, hashedPassword: string): 
   return bcrypt.compare(password, hashedPassword);
 }
 
-// Generate project ID
-export function generateProjectId(): string {
+// Generate project ID sequentially
+export function generateProjectId(lastId?: string): string {
   const year = new Date().getFullYear();
-  // Using a combination of a random number and the last 4 digits of the timestamp
-  // to practically eliminate the chance of collisions (duplicate entries)
-  const timestamp = Date.now().toString().slice(-4);
-  const random = Math.floor(Math.random() * 9000) + 1000;
-  return `ES-${year}-${timestamp}-${random}`;
+  
+  if (!lastId) {
+    return `ES-${year}-0001`;
+  }
+  
+  const parts = lastId.split('-');
+  if (parts.length === 3 && parts[1] === year.toString()) {
+    const sequence = parseInt(parts[2], 10);
+    if (!isNaN(sequence)) {
+      const nextSequence = (sequence + 1).toString().padStart(4, '0');
+      return `ES-${year}-${nextSequence}`;
+    }
+  }
+  
+  return `ES-${year}-0001`;
 }
 
 // Generate DISCOM application ID
