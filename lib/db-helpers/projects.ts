@@ -117,7 +117,14 @@ export const projectDb = {
 
   // Create new project
   create: async (data: Omit<Project, 'id' | 'project_id' | 'created_at' | 'updated_at'>): Promise<number> => {
-    const projectId = await generateProjectId();
+    // Fetch the latest project ID for the current year
+    const currentYear = new Date().getFullYear();
+    const latestProject = await queryOne<{ project_id: string }>(
+      `SELECT project_id FROM projects WHERE project_id LIKE ? ORDER BY id DESC LIMIT 1`,
+      [`ES-${currentYear}-%`]
+    );
+    
+    const projectId = generateProjectId();
     const id = await insert(
       `INSERT INTO projects (project_id, customer_id, status, account_number, consumer_number, discom,
                           subdivision, division, sanctioned_load, solar_load, site_address, latitude, longitude,

@@ -58,13 +58,15 @@ export async function POST(request: Request) {
       customerId = existingCust[0].id;
       // Optionally update customer_type if they are now a RETAIL dealer? We'll just leave it.
     } else {
-      const custResult = await query(
-        'INSERT INTO customers (name, mobile, email, address, city, district, state, customer_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-        [customerName, mobileNumber, emailId || null, address, 'N/A', 'N/A', 'N/A', customerType]
-      ) as any;
-      customerId = custResult.insertId;
-    }
-    const projectId = `ES-${new Date().getFullYear()}-${customerId.toString().padStart(4, '0')}`;
+    const custResult = await query(
+      'INSERT INTO customers (name, mobile, email, address, city, district, state, customer_type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [customerName, mobileNumber, emailId || null, address, 'N/A', 'N/A', 'N/A', customerType]
+    ) as any;
+    customerId = custResult.insertId;
+  }
+  
+  const { generateProjectId } = await import('@/lib/utils');
+  const projectId = generateProjectId();
 
     if (customerType === 'RETAIL') {
       // For RETAIL, we might just create the customer and maybe an order/ticket if there are reservations.

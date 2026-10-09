@@ -20,8 +20,11 @@ export async function verifyPassword(password: string, hashedPassword: string): 
 // Generate project ID
 export function generateProjectId(): string {
   const year = new Date().getFullYear();
+  // Using a combination of a random number and the last 4 digits of the timestamp
+  // to practically eliminate the chance of collisions (duplicate entries)
+  const timestamp = Date.now().toString().slice(-4);
   const random = Math.floor(Math.random() * 9000) + 1000;
-  return `ES-${year}-${random}`;
+  return `ES-${year}-${timestamp}-${random}`;
 }
 
 // Generate DISCOM application ID
