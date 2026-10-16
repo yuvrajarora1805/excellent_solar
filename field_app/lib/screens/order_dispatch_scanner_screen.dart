@@ -252,8 +252,12 @@ class _OrderDispatchScannerScreenState extends State<OrderDispatchScannerScreen>
     setState(() => _isSubmitting = true);
     
     try {
+      final defaultPid = (widget.order['items'] != null && widget.order['items'].isNotEmpty)
+          ? widget.order['items'][0]['product_id']
+          : null;
+
       final serialsPayload = _scannedItems.map((item) => {
-        'product_id': item.productId,
+        'product_id': item.productId ?? defaultPid,
         'serial_number': item.serialNumber,
       }).toList();
 

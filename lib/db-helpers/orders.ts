@@ -274,11 +274,15 @@ export const orderDb = {
         ]
       );
 
+      // Fetch fallback product_id if any item lacks one
+      const fallbackProductId = order.items?.[0]?.product_id || 1;
+
       // 2. Insert serials and update serial status
       for (const s of data.serials) {
+        const prodId = s.product_id || fallbackProductId;
         await conn.execute(
           `INSERT IGNORE INTO order_serials (order_id, product_id, serial_number) VALUES (?, ?, ?)`,
-          [ticketId, s.product_id, s.serial_number]
+          [ticketId, prodId, s.serial_number]
         );
 
         await conn.execute(
@@ -288,7 +292,7 @@ export const orderDb = {
                status = 'ISSUED',
                current_location = 'ISSUED',
                remarks = CONCAT(COALESCE(remarks, ''), ' | Dispatched Ticket #${order.order_number} (${order.customer_name})')`,
-          [s.product_id, s.serial_number, `Dispatched Ticket #${order.order_number} (${order.customer_name})`]
+          [prodId, s.serial_number, `Dispatched Ticket #${order.order_number} (${order.customer_name})`]
         );
       }
 
