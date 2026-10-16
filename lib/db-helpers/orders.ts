@@ -272,6 +272,11 @@ export const orderDb = {
           data.vehicle_photo_path || null,
           ticketId
         ]
+      );
+
+      // Fetch fallback product_id if any item lacks one
+      const fallbackProductId = order.items?.[0]?.product_id || 1;
+
       // Clear any previously saved draft serials for this ticket to prevent duplicate rows
       await conn.execute('DELETE FROM order_serials WHERE order_id = ?', [ticketId]);
 
