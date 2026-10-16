@@ -431,10 +431,44 @@ class _ScanInventoryScreenState extends State<ScanInventoryScreen> {
               children: [
                 Text('${_scannedItems.length} items scanned', style: const TextStyle(fontWeight: FontWeight.bold)),
                 if (_scannedItems.isNotEmpty)
-                  ElevatedButton(
-                    onPressed: _isSubmitting ? null : _submitBulkScan,
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, foregroundColor: Colors.white),
-                    child: _isSubmitting ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text('Submit All'),
+                  Row(
+                    children: [
+                      TextButton(
+                        onPressed: () {
+                          showDialog(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              title: const Text('Clear Scanned Items?'),
+                              content: const Text('Are you sure you want to clear all scanned inventory barcodes?'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(ctx),
+                                  child: const Text('No, Keep'),
+                                ),
+                                ElevatedButton(
+                                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+                                  onPressed: () {
+                                    Navigator.pop(ctx);
+                                    setState(() {
+                                      _scannedItems.clear();
+                                      _processingSerials.clear();
+                                    });
+                                  },
+                                  child: const Text('Yes, Clear All'),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                        child: const Text('Clear All', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton(
+                        onPressed: _isSubmitting ? null : _submitBulkScan,
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, foregroundColor: Colors.white),
+                        child: _isSubmitting ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text('Submit All'),
+                      ),
+                    ],
                   ),
               ],
             ),

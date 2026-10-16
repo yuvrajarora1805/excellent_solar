@@ -272,16 +272,27 @@ export const orderDb = {
           data.vehicle_photo_path || null,
           ticketId
         ]
-      );
+      // Clear any previously saved draft serials for this ticket to prevent duplicate rows
+      await conn.execute('DELETE FROM order_serials WHERE order_id = ?', [ticketId]);
 
-      // Fetch fallback product_id if any item lacks one
-      const fallbackProductId = order.items?.[0]?.product_id || 1;
+      // Deduplicate serials payload by serial_number
+      const uniqueSerialsMap = new Map();
+      for (const s of data.serials) {
+        const cleanSn = String(s.serial_number || '').trim();
+        if (cleanSn && !uniqueSerialsMap.has(cleanSn)) {
+          uniqueSerialsMap.set(cleanSn, {
+            product_id: s.product_id || fallbackProductId,
+            serial_number: cleanSn,
+          });
+        }
+      }
+      const uniqueSerials = Array.from(uniqueSerialsMap.values());
 
       // 2. Insert serials and update serial status
-      for (const s of data.serials) {
+      for (const s of uniqueSerials) {
         const prodId = s.product_id || fallbackProductId;
         await conn.execute(
-          `INSERT IGNORE INTO order_serials (order_id, product_id, serial_number) VALUES (?, ?, ?)`,
+          `INSERT INTO order_serials (order_id, product_id, serial_number) VALUES (?, ?, ?)`,
           [ticketId, prodId, s.serial_number]
         );
 
@@ -298,9 +309,9 @@ export const orderDb = {
 
       // 3. Rebuild Items from Serials and Sync Stock
       if (order.items) {
-        // Group scanned serials by product_id
+        // Group scanned serials by product_id using deduplicated serials
         const serialCounts: Record<number, number> = {};
-        for (const s of data.serials) {
+        for (const s of uniqueSerials) {
           serialCounts[s.product_id] = (serialCounts[s.product_id] || 0) + 1;
         }
 

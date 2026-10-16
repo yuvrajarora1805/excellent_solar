@@ -256,10 +256,18 @@ class _OrderDispatchScannerScreenState extends State<OrderDispatchScannerScreen>
           ? widget.order['items'][0]['product_id']
           : null;
 
-      final serialsPayload = _scannedItems.map((item) => {
-        'product_id': item.productId ?? defaultPid,
-        'serial_number': item.serialNumber,
-      }).toList();
+      final seenSn = <String>{};
+      final serialsPayload = <Map<String, dynamic>>[];
+      for (final item in _scannedItems) {
+        final sn = item.serialNumber.trim();
+        if (sn.isNotEmpty && !seenSn.contains(sn)) {
+          seenSn.add(sn);
+          serialsPayload.add({
+            'product_id': item.productId ?? defaultPid,
+            'serial_number': sn,
+          });
+        }
+      }
 
       final body = {
         'vehicle_number': _vehicleNumberController.text.trim(),
@@ -404,16 +412,54 @@ class _OrderDispatchScannerScreenState extends State<OrderDispatchScannerScreen>
                       ),
                     ),
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     color: Colors.grey.shade100,
                     child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Icon(Icons.qr_code, color: Colors.black87),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Scanned Serials (${_scannedItems.length})',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        Row(
+                          children: [
+                            const Icon(Icons.qr_code, color: Colors.black87),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Scanned Serials (${_scannedItems.length})',
+                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                            ),
+                          ],
                         ),
+                        if (_scannedItems.isNotEmpty)
+                          TextButton(
+                            onPressed: () {
+                              showDialog(
+                                context: context,
+                                builder: (ctx) => AlertDialog(
+                                  title: const Text('Clear Scanned Serials?'),
+                                  content: const Text('Are you sure you want to remove all scanned serial numbers? This action cannot be undone.'),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(ctx),
+                                      child: const Text('No, Keep'),
+                                    ),
+                                    ElevatedButton(
+                                      style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+                                      onPressed: () {
+                                        Navigator.pop(ctx);
+                                        setState(() {
+                                          _scannedItems.clear();
+                                          _processingSerials.clear();
+                                          for (var key in _checklist.keys) {
+                                            _checklist[key]!.scannedQuantity = 0;
+                                          }
+                                        });
+                                      },
+                                      child: const Text('Yes, Clear All'),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                            child: const Text('Clear All', style: TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.bold)),
+                          ),
                       ],
                     ),
                   ),

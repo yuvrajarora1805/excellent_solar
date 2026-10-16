@@ -1294,11 +1294,33 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
                         ),
                         if (_scannedItems.isNotEmpty)
                           TextButton(
-                            onPressed: () => setState(() {
-                              _scannedItems.clear();
-                              _processingSerials.clear();
-                            }),
-                            child: const Text('Clear All', style: TextStyle(color: Colors.red, fontSize: 12)),
+                            onPressed: () {
+                              showDialog(
+                                context: context,
+                                builder: (ctx) => AlertDialog(
+                                  title: const Text('Clear Scanned Items?'),
+                                  content: const Text('Are you sure you want to remove all scanned serial numbers? This action cannot be undone.'),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(ctx),
+                                      child: const Text('No, Keep'),
+                                    ),
+                                    ElevatedButton(
+                                      style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+                                      onPressed: () {
+                                        Navigator.pop(ctx);
+                                        setState(() {
+                                          _scannedItems.clear();
+                                          _processingSerials.clear();
+                                        });
+                                      },
+                                      child: const Text('Yes, Clear All'),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                            child: const Text('Clear All', style: TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.bold)),
                           ),
                       ],
                     ),
