@@ -2,10 +2,10 @@ import { NextResponse } from 'next/server';
 
 export async function GET() {
   return NextResponse.json({
-    latest_version: '1.12.14',
-    version_code: 47,
+    latest_version: '1.12.15',
+    version_code: 48,
     force_update: false,
     apk_url: 'https://es.omvky.com/downloads/excellent-solar-app.apk',
-    release_notes: '• Fixed barcode scanning and product matching for dispatch\n• Fixed stock synchronization on order dispatch\n• Fixed fallback product ID for scanned serials',
+    release_notes: '• Fixed order creation & draft saving when scanning serials\n• Surface exact server errors on mobile\n• Safe product deletion and archiving in inventory',
   });
 }

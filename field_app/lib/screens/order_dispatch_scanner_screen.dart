@@ -284,11 +284,18 @@ class _OrderDispatchScannerScreenState extends State<OrderDispatchScannerScreen>
           throw Exception(data['error'] ?? 'Unknown error');
         }
       } else {
-        throw Exception('Failed to dispatch order (HTTP ${response.statusCode})');
+        String msg = 'Failed to dispatch order (HTTP ${response.statusCode})';
+        try {
+          final errData = jsonDecode(response.body);
+          if (errData is Map && errData['error'] != null) {
+            msg = errData['error'].toString();
+          }
+        } catch (_) {}
+        throw Exception(msg);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red.shade800));
       }
     } finally {
       if (mounted) {

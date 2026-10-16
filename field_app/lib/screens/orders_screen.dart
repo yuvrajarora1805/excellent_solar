@@ -498,7 +498,7 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
 
       final response = await ApiService.post(Uri.parse('$baseUrl/api/orders'), body: body);
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         if (mounted) {
           Navigator.pop(context);
           ScaffoldMessenger.of(context).showSnackBar(
@@ -510,11 +510,20 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
         }
       } else {
         setState(() => _isSubmitting = false);
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Failed to submit order')));
+        String errorMsg = 'Failed to submit order (HTTP ${response.statusCode})';
+        try {
+          final errData = jsonDecode(response.body);
+          if (errData is Map && errData['error'] != null) {
+            errorMsg = errData['error'].toString();
+          }
+        } catch (_) {}
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('❌ $errorMsg'), backgroundColor: Colors.red.shade800),
+        );
       }
     } catch (e) {
       setState(() => _isSubmitting = false);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red.shade800));
     }
   }
 

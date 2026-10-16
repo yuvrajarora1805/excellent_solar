@@ -52,8 +52,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'customer_name is required' }, { status: 400 });
     }
 
-    if (!items || !Array.isArray(items) || items.length === 0) {
-      return NextResponse.json({ error: 'At least one order item is required' }, { status: 400 });
+    const hasSerials = Array.isArray(serials) && serials.length > 0;
+    const hasItems = Array.isArray(items) && items.length > 0;
+
+    if (!hasItems && !hasSerials) {
+      return NextResponse.json({ error: 'At least one order item or scanned serial number is required' }, { status: 400 });
     }
 
     const userId = user_id || 1;
