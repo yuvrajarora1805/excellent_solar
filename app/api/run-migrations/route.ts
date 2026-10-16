@@ -336,6 +336,16 @@ export async function GET() {
       MODIFY COLUMN unit VARCHAR(255) NULL
     `);
 
+    await safeAlter('orders', `
+      ALTER TABLE orders
+      MODIFY COLUMN status ENUM('DRAFT', 'SENT_TO_OFFICE', 'ACCEPTED_BY_OFFICE', 'PENDING_DISPATCH', 'READY_FOR_DISPATCH', 'DISPATCHED', 'DELIVERED', 'CANCELLED') DEFAULT 'DRAFT'
+    `);
+
+    await safeAlter('product_serial_numbers', `
+      ALTER TABLE product_serial_numbers
+      MODIFY COLUMN current_location ENUM('WAREHOUSE','RESERVED','ISSUED','INSTALLED','RETURNED','DAMAGED','SOLD') DEFAULT 'WAREHOUSE'
+    `);
+
     return NextResponse.json({ success: true, messages: results });
   } catch (error: any) {
     console.error('Migration error:', error);
