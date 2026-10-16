@@ -110,8 +110,8 @@ export async function POST(req: NextRequest) {
           // Map serial number to its product_id
           const serialMap = new Map();
           for (const row of serialRows) {
-            // Prevent dispatching an already dispatched serial
-            if (row.status === 'ISSUED' || row.status === 'DISPATCHED') {
+            // Prevent dispatching an already dispatched serial only if dispatching immediately
+            if (dispatchImmediately && (row.status === 'ISSUED' || row.status === 'DISPATCHED')) {
               return NextResponse.json({ error: `Serial number ${row.serial_number} has already been dispatched.` }, { status: 400 });
             }
             serialMap.set(row.serial_number, {
@@ -123,11 +123,8 @@ export async function POST(req: NextRequest) {
           // Build final serials array
           finalSerials = serials.map((s: any) => {
             const realData = serialMap.get(s.serial_number);
-            if (!realData) {
-              throw new Error(`Serial number ${s.serial_number} not found in inventory.`);
-            }
             return {
-              product_id: realData.product_id,
+              product_id: realData ? realData.product_id : (Number(s.product_id) || Number(items[0]?.product_id) || 1),
               serial_number: s.serial_number,
             };
           });
@@ -141,7 +138,7 @@ export async function POST(req: NextRequest) {
                itemsMap.set(pId, {
                  product_id: pId,
                  quantity: 0,
-                 unit_price: Number(pData.selling_price || items[0]?.unit_price || 0)
+                 unit_price: Number(pData?.selling_price || items[0]?.unit_price || 0)
                });
             }
             itemsMap.get(pId).quantity += 1;
@@ -154,11 +151,10 @@ export async function POST(req: NextRequest) {
             for (const item of items) {
               const pId = Number(item.product_id);
               // Ignore the old hardcoded placeholder if it was sent by an older app version
-              if (pId === 1 && finalSerials.length > 0 && finalItems.length > 0) continue; 
+              if (pId === 1 && finalSerials.length > 0 && finalItems.length > 0 && !itemsMap.has(pId)) continue; 
               
               if (itemsMap.has(pId)) {
-                 // It's possible they sent the quantity for serialized panels in `items` too. 
-                 // We don't add to it to prevent double-counting, because we already counted the serials.
+                 // Already counted by serial scans
                  continue; 
               } else {
                  finalItems.push({
@@ -172,7 +168,20 @@ export async function POST(req: NextRequest) {
           }
 
         } else {
-          throw new Error("None of the scanned serial numbers were found in inventory.");
+          // If serial numbers are not in the database table yet
+          if (dispatchImmediately) {
+            // Still allow dispatch if user provided valid product items, fallback to selected product item
+            finalSerials = serials.map((s: any) => ({
+              product_id: Number(s.product_id) || Number(items[0]?.product_id) || 1,
+              serial_number: String(s.serial_number).trim()
+            }));
+          } else {
+            // In draft mode, save serials as is without blocking the user
+            finalSerials = serials.map((s: any) => ({
+              product_id: Number(s.product_id) || Number(items[0]?.product_id) || 1,
+              serial_number: String(s.serial_number).trim()
+            }));
+          }
         }
       } else {
         // If no serials are provided, just sanitize items

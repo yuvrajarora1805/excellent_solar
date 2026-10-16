@@ -18,7 +18,7 @@ async function resolveFilePath(filePath: string): Promise<string | null> {
   const candidates = [
     path.join(process.cwd(), 'public', rel),
     path.join(process.cwd(), 'app', rel),
-    path.join(process.cwd(), rel),
+    path.join(/*turbopackIgnore: true*/ process.cwd(), rel),
   ];
 
   for (const candidate of candidates) {
@@ -74,7 +74,7 @@ export async function GET(
             console.warn('File not found on disk, skipping:', photo.file_path);
             continue;
           }
-          const content = await readFile(absPath);
+          const content = await readFile(/*turbopackIgnore: true*/ absPath);
           const fname = photo.file_name || path.basename(photo.file_path);
           folder?.file(`${photo.category || 'GENERAL'}_${fname}`, content);
           fileCount++;
@@ -101,7 +101,7 @@ export async function GET(
             console.warn('File not found on disk, skipping:', photo.file_path);
             continue;
           }
-          const content = await readFile(absPath);
+          const content = await readFile(/*turbopackIgnore: true*/ absPath);
           const fname = photo.file_name || path.basename(photo.file_path);
           folder?.file(`${photo.category || 'GENERAL'}_${fname}`, content);
           fileCount++;
@@ -122,7 +122,7 @@ export async function GET(
             console.warn('File not found on disk, skipping:', photo.file_path);
             continue;
           }
-          const content = await readFile(absPath);
+          const content = await readFile(/*turbopackIgnore: true*/ absPath);
           const fname = photo.file_name || path.basename(photo.file_path);
           folder?.file(`${photo.category || 'GENERAL'}_${fname}`, content);
           fileCount++;

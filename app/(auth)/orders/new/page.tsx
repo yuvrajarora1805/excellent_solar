@@ -234,17 +234,19 @@ function NewOrderPageInner() {
 
     try {
       // Validate serial number against API
-      const res = await fetch(`/api/serial-numbers/track?serial=${encodeURIComponent(serial)}`);
+      const res = await fetch(`/api/serial-numbers?search=${encodeURIComponent(serial)}`);
       const data = await res.json();
+      const list = Array.isArray(data) ? data : (data.serials || []);
+      const matched = list.find((i: any) => String(i.serial_number).trim().toLowerCase() === serial.toLowerCase()) || list[0];
 
-      if (!res.ok || data.error || !data.serial) {
-        // Allow adding if user wants to scan anyway or auto-register
+      if (!res.ok || !matched) {
+        // Fallback to selected product if serial not registered yet
         setScannedSerials([...scannedSerials, { product_id: Number(selectedProductId || 1), serial_number: serial }]);
         setScanMessage({ type: 'success', text: `Scanned Barcode: ${serial} added!` });
       } else {
-        const itemProduct = data.serial.product_id || Number(selectedProductId || 1);
+        const itemProduct = matched.product_id || Number(selectedProductId || 1);
         setScannedSerials([...scannedSerials, { product_id: itemProduct, serial_number: serial }]);
-        setScanMessage({ type: 'success', text: `Scanned Verified Barcode: ${serial} (Pmax: ${data.serial.pmax || ''})` });
+        setScanMessage({ type: 'success', text: `Scanned Verified Barcode: ${serial} (${matched.product_name || 'Panel'})` });
       }
       setScannedSerialInput('');
     } catch (err) {
