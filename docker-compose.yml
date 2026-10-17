@@ -22,6 +22,7 @@ services:
         condition: service_healthy
     volumes:
       - ./public/uploads:/app/public/uploads
+      - ./public/downloads:/app/public/downloads
     restart: unless-stopped
 
   db:
