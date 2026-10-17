@@ -22,12 +22,18 @@ class ScannedItem {
   final String modelNumber;
   final bool isMatched;
   final int? productId;
+  final bool isAlreadyDispatched;
+  final String? dispatchedOrderNumber;
+  final String? dispatchedCustomerName;
 
   ScannedItem({
     required this.serialNumber,
     required this.modelNumber,
     required this.isMatched,
     this.productId,
+    this.isAlreadyDispatched = false,
+    this.dispatchedOrderNumber,
+    this.dispatchedCustomerName,
   });
 }
 
@@ -110,16 +116,23 @@ class _OrderDispatchScannerScreenState extends State<OrderDispatchScannerScreen>
     if (widget.order['serials'] != null) {
       for (var s in widget.order['serials']) {
         final pid = s['product_id'];
+        final isDispatched = s['is_already_dispatched'] == 1 ||
+            s['is_already_dispatched'] == true ||
+            s['status'] == 'ISSUED' ||
+            s['status'] == 'DISPATCHED';
         _scannedItems.add(ScannedItem(
           serialNumber: s['serial_number'],
           modelNumber: s['product_name'] ?? 'Unknown Model',
-          isMatched: true,
+          isMatched: !isDispatched,
           productId: pid,
+          isAlreadyDispatched: isDispatched,
+          dispatchedOrderNumber: s['dispatched_order_number'],
+          dispatchedCustomerName: s['dispatched_customer_name'],
         ));
         _processingSerials.add(s['serial_number']);
         
-        // Update checklist progress for pre-filled serials
-        if (pid != null) {
+        // Update checklist progress for pre-filled serials only if valid
+        if (pid != null && !isDispatched) {
           if (_checklist.containsKey(pid)) {
             _checklist[pid]!.scannedQuantity++;
           } else {
@@ -172,7 +185,29 @@ class _OrderDispatchScannerScreenState extends State<OrderDispatchScannerScreen>
         _scannedItems.insert(0, matchedItem);
       });
 
-      if (!matchedItem.isMatched) {
+      if (matchedItem.isAlreadyDispatched) {
+        final ordMsg = matchedItem.dispatchedOrderNumber != null
+            ? ' in Order #${matchedItem.dispatchedOrderNumber}'
+            : '';
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Cannot add: Serial $serialNumber was already dispatched$ordMsg! Discarding...'),
+            backgroundColor: Colors.red.shade900,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+
+        Future.delayed(const Duration(seconds: 2), () {
+          if (mounted) {
+            setState(() {
+              _scannedItems.removeWhere((p) => p.serialNumber == serialNumber || p.serialNumber == rawVal);
+              _processingSerials.remove(serialNumber);
+              _processingSerials.remove(rawVal);
+            });
+          }
+        });
+      } else if (!matchedItem.isMatched) {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -222,15 +257,36 @@ class _OrderDispatchScannerScreenState extends State<OrderDispatchScannerScreen>
       }
 
       if (list.isNotEmpty) {
-        var match = list.firstWhere(
+        final matchingItems = list.where(
           (item) => item['serial_number'] == serial || item['serial_number'] == rawInput,
-          orElse: () => list.first,
+        ).toList();
+        final match = matchingItems.isNotEmpty ? matchingItems.first : list.first;
+
+        // Check if ANY matching item is flagged as dispatched
+        final bool isDispatched = matchingItems.isNotEmpty
+            ? matchingItems.any((item) =>
+                item['is_dispatched'] == 1 ||
+                item['is_dispatched'] == true ||
+                item['status'] == 'ISSUED' ||
+                item['status'] == 'DISPATCHED')
+            : (match['is_dispatched'] == 1 ||
+                match['is_dispatched'] == true ||
+                match['status'] == 'ISSUED' ||
+                match['status'] == 'DISPATCHED');
+
+        final dispatchedItem = matchingItems.firstWhere(
+          (item) => item['dispatched_order_number'] != null,
+          orElse: () => match,
         );
+
         return ScannedItem(
           serialNumber: match['serial_number'] ?? serial,
           modelNumber: match['product_name'] ?? match['model_number'] ?? 'Unknown Model',
-          isMatched: true,
+          isMatched: !isDispatched,
           productId: match['product_id'],
+          isAlreadyDispatched: isDispatched,
+          dispatchedOrderNumber: dispatchedItem['dispatched_order_number'],
+          dispatchedCustomerName: dispatchedItem['dispatched_customer_name'],
         );
       }
     } catch (e) {
@@ -246,6 +302,22 @@ class _OrderDispatchScannerScreenState extends State<OrderDispatchScannerScreen>
   Future<void> _submitDispatch() async {
     if (_scannedItems.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please scan at least one serial number.')));
+      return;
+    }
+
+    final conflicts = _scannedItems.where((i) => i.isAlreadyDispatched).toList();
+    if (conflicts.isNotEmpty) {
+      final conflict = conflicts.first;
+      final ordMsg = conflict.dispatchedOrderNumber != null
+          ? ' in Order #${conflict.dispatchedOrderNumber}'
+          : '';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Cannot dispatch: Serial ${conflict.serialNumber} was already dispatched$ordMsg. Please delete it first.'),
+          backgroundColor: Colors.red.shade900,
+          duration: const Duration(seconds: 4),
+        ),
+      );
       return;
     }
 
@@ -471,14 +543,33 @@ class _OrderDispatchScannerScreenState extends State<OrderDispatchScannerScreen>
                       final item = _scannedItems[index];
                       return ListTile(
                         leading: CircleAvatar(
-                          backgroundColor: item.isMatched ? Colors.green.shade100 : Colors.red.shade100,
+                          backgroundColor: item.isAlreadyDispatched
+                              ? Colors.red.shade100
+                              : (item.isMatched ? Colors.green.shade100 : Colors.red.shade100),
                           child: Icon(
-                            item.isMatched ? Icons.check : Icons.close,
-                            color: item.isMatched ? Colors.green : Colors.red,
+                            item.isAlreadyDispatched
+                                ? Icons.warning_amber
+                                : (item.isMatched ? Icons.check : Icons.close),
+                            color: item.isAlreadyDispatched
+                                ? Colors.red.shade900
+                                : (item.isMatched ? Colors.green : Colors.red),
                           ),
                         ),
                         title: Text(item.serialNumber, style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Text(item.modelNumber),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(item.modelNumber),
+                            if (item.isAlreadyDispatched)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 2.0),
+                                child: Text(
+                                  '❌ Already Dispatched in Order #${item.dispatchedOrderNumber ?? ''} (${item.dispatchedCustomerName ?? 'Customer'})',
+                                  style: TextStyle(color: Colors.red.shade900, fontWeight: FontWeight.bold, fontSize: 11),
+                                ),
+                              ),
+                          ],
+                        ),
                         trailing: IconButton(
                           icon: const Icon(Icons.delete, color: Colors.red),
                           onPressed: () {
@@ -530,6 +621,28 @@ class _OrderDispatchScannerScreenState extends State<OrderDispatchScannerScreen>
                           keyboardType: TextInputType.phone,
                         ),
                         const SizedBox(height: 24),
+                        if (_scannedItems.any((i) => i.isAlreadyDispatched))
+                          Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: Colors.red.shade50,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.red.shade300),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(Icons.error_outline, color: Colors.red.shade800, size: 20),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    'Cannot dispatch: Conflicting already dispatched serials detected! Remove them before confirming.',
+                                    style: TextStyle(color: Colors.red.shade900, fontWeight: FontWeight.bold, fontSize: 12),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton.icon(
@@ -542,7 +655,7 @@ class _OrderDispatchScannerScreenState extends State<OrderDispatchScannerScreen>
                               backgroundColor: Colors.green.shade600,
                               foregroundColor: Colors.white,
                             ),
-                            onPressed: _isSubmitting ? null : _submitDispatch,
+                            onPressed: _isSubmitting || _scannedItems.any((i) => i.isAlreadyDispatched) ? null : _submitDispatch,
                           ),
                         ),
                       ],

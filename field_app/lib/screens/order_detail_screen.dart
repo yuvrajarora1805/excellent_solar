@@ -218,11 +218,25 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                                 Wrap(
                                   spacing: 6,
                                   runSpacing: 6,
-                                  children: (_order!['serials'] as List).map((s) => Chip(
-                                    label: Text(s['serial_number'] ?? '', style: const TextStyle(fontSize: 11)),
-                                    backgroundColor: Colors.teal.shade50,
-                                    side: BorderSide(color: Colors.teal.shade200),
-                                  )).toList(),
+                                  children: (_order!['serials'] as List).map((s) {
+                                    final isDispatched = s['is_already_dispatched'] == 1 ||
+                                        s['is_already_dispatched'] == true;
+                                    return Chip(
+                                      avatar: isDispatched ? const Icon(Icons.warning, size: 14, color: Colors.red) : null,
+                                      label: Text(
+                                        isDispatched
+                                            ? '${s['serial_number']} (Already Dispatched in #${s['dispatched_order_number'] ?? ''})'
+                                            : (s['serial_number'] ?? ''),
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: isDispatched ? FontWeight.bold : FontWeight.normal,
+                                          color: isDispatched ? Colors.red.shade900 : Colors.teal.shade900,
+                                        ),
+                                      ),
+                                      backgroundColor: isDispatched ? Colors.red.shade50 : Colors.teal.shade50,
+                                      side: BorderSide(color: isDispatched ? Colors.red.shade300 : Colors.teal.shade200),
+                                    );
+                                  }).toList(),
                                 )
                               else
                                 const Text('No serialized items scanned', style: TextStyle(color: Colors.grey)),

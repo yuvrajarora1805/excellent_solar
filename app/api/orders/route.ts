@@ -115,7 +115,18 @@ export async function POST(req: NextRequest) {
           for (const row of serialRows) {
             // Prevent dispatching an already dispatched serial only if dispatching immediately
             if (dispatchImmediately && (row.status === 'ISSUED' || row.status === 'DISPATCHED')) {
-              return NextResponse.json({ error: `Serial number ${row.serial_number} has already been dispatched.` }, { status: 400 });
+              const dispatchedInfo: any = await query(
+                `SELECT o.order_number, o.customer_name 
+                 FROM order_serials os 
+                 JOIN orders o ON os.order_id = o.id 
+                 WHERE os.serial_number = ? AND o.status IN ('DISPATCHED', 'DELIVERED')
+                 LIMIT 1`,
+                [row.serial_number]
+              );
+              const extra = dispatchedInfo && dispatchedInfo.length > 0
+                ? ` in Order #${dispatchedInfo[0].order_number} (${dispatchedInfo[0].customer_name})`
+                : '';
+              return NextResponse.json({ error: `Serial number ${row.serial_number} has already been dispatched${extra}.` }, { status: 400 });
             }
             serialMap.set(row.serial_number, {
               product_id: row.product_id,

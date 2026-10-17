@@ -27,7 +27,7 @@ export default function OrdersDashboardPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [orderTypeTab, setOrderTypeTab] = useState<'ALL' | 'PROJECT' | 'RETAIL'>('ALL');
+  const [orderTypeTab, setOrderTypeTab] = useState<'ALL' | 'READY_FOR_DISPATCH' | 'PROJECT' | 'RETAIL' | 'DISPATCHED'>('ALL');
   const [previewPhoto, setPreviewPhoto] = useState<{ url: string; title: string } | null>(null);
 
   useEffect(() => {
@@ -38,7 +38,11 @@ export default function OrdersDashboardPage() {
     try {
       setLoading(true);
       const params = new URLSearchParams();
-      if (orderTypeTab !== 'ALL') params.set('order_type', orderTypeTab);
+      if (orderTypeTab === 'READY_FOR_DISPATCH' || orderTypeTab === 'DISPATCHED') {
+        params.set('status', orderTypeTab);
+      } else if (orderTypeTab !== 'ALL') {
+        params.set('order_type', orderTypeTab);
+      }
       if (search) params.set('search', search);
 
       const res = await fetch(`/api/orders?${params}`);
@@ -56,6 +60,7 @@ export default function OrdersDashboardPage() {
   const projectCount = orders.filter(o => o.order_type === 'PROJECT').length;
   const retailCount = orders.filter(o => o.order_type === 'RETAIL').length;
   const dispatchedCount = orders.filter(o => o.status === 'DISPATCHED' || o.status === 'DELIVERED').length;
+  const readyCount = orders.filter(o => o.status === 'READY_FOR_DISPATCH' || o.status === 'DRAFT' || o.status === 'PENDING_DISPATCH' || o.status === 'SENT_TO_OFFICE').length;
 
   return (
     <div className="space-y-6">
@@ -136,6 +141,14 @@ export default function OrdersDashboardPage() {
             All Orders ({orders.length})
           </button>
           <button
+            onClick={() => setOrderTypeTab('READY_FOR_DISPATCH')}
+            className={`px-4 py-2 text-xs font-bold rounded-md transition-colors ${
+              orderTypeTab === 'READY_FOR_DISPATCH' ? 'bg-amber-600 text-white' : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+            }`}
+          >
+            Ready for Dispatch ({readyCount})
+          </button>
+          <button
             onClick={() => setOrderTypeTab('PROJECT')}
             className={`px-4 py-2 text-xs font-bold rounded-md transition-colors ${
               orderTypeTab === 'PROJECT' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
@@ -150,6 +163,14 @@ export default function OrdersDashboardPage() {
             }`}
           >
             Retail OTC Sales ({retailCount})
+          </button>
+          <button
+            onClick={() => setOrderTypeTab('DISPATCHED')}
+            className={`px-4 py-2 text-xs font-bold rounded-md transition-colors ${
+              orderTypeTab === 'DISPATCHED' ? 'bg-green-700 text-white' : 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+            }`}
+          >
+            Dispatched ({dispatchedCount})
           </button>
         </div>
 

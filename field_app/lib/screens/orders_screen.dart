@@ -51,7 +51,11 @@ class _OrdersScreenState extends State<OrdersScreen> {
       if (mounted) setState(() => _isLoading = true);
       String url = '$baseUrl/api/orders';
       if (_selectedTab != 'ALL') {
-        url += '?order_type=$_selectedTab';
+        if (_selectedTab == 'READY_FOR_DISPATCH' || _selectedTab == 'DISPATCHED') {
+          url += '?status=$_selectedTab';
+        } else {
+          url += '?order_type=$_selectedTab';
+        }
       }
 
       final response = await ApiService.get(Uri.parse(url));
@@ -104,16 +108,21 @@ class _OrdersScreenState extends State<OrdersScreen> {
       ),
       body: Column(
         children: [
-          // Filter Tabs
-          Padding(
-            padding: const EdgeInsets.all(12.0),
+          // Filter Tabs (Horizontally Scrollable)
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
             child: Row(
               children: [
-                _buildFilterChip('ALL', 'All Orders'),
+                _buildFilterChip('ALL', 'All Orders', Colors.blue.shade800),
                 const SizedBox(width: 8),
-                _buildFilterChip('PROJECT', 'Customer Project'),
+                _buildFilterChip('READY_FOR_DISPATCH', 'Ready for Dispatch', Colors.amber.shade800),
                 const SizedBox(width: 8),
-                _buildFilterChip('RETAIL', 'Retail Sale'),
+                _buildFilterChip('PROJECT', 'Customer Project', Colors.purple.shade700),
+                const SizedBox(width: 8),
+                _buildFilterChip('RETAIL', 'Retail Sale', Colors.teal.shade700),
+                const SizedBox(width: 8),
+                _buildFilterChip('DISPATCHED', 'Dispatched', Colors.green.shade700),
               ],
             ),
           ),
@@ -144,8 +153,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
                           final isDispatched = order['status'] == 'DISPATCHED' || order['status'] == 'DELIVERED';
 
                           return InkWell(
-                            onTap: () {
-                              Navigator.push(
+                            onTap: () async {
+                              await Navigator.push(
                                 context,
                                 MaterialPageRoute(
                                   builder: (context) => OrderDetailScreen(
@@ -154,6 +163,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                                   ),
                                 ),
                               );
+                              _fetchOrders();
                             },
                             child: Card(
                               elevation: 0,
@@ -254,12 +264,13 @@ class _OrdersScreenState extends State<OrdersScreen> {
     );
   }
 
-  Widget _buildFilterChip(String tabKey, String label) {
+  Widget _buildFilterChip(String tabKey, String label, [Color? activeColor]) {
     final isSelected = _selectedTab == tabKey;
+    final color = activeColor ?? Colors.blue.shade700;
     return ChoiceChip(
       label: Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isSelected ? Colors.white : Colors.black87)),
       selected: isSelected,
-      selectedColor: Colors.blue.shade700,
+      selectedColor: color,
       backgroundColor: Colors.grey.shade200,
       onSelected: (_) {
         setState(() => _selectedTab = tabKey);
@@ -418,7 +429,44 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
       }
 
       if (list.isNotEmpty) {
-        final item = list.first;
+        final matchingItems = list.where(
+          (i) => i['serial_number'] == code || i['serial_number'] == rawInput,
+        ).toList();
+        final item = matchingItems.isNotEmpty ? matchingItems.first : list.first;
+
+        final bool isAlreadyDispatched = matchingItems.isNotEmpty
+            ? matchingItems.any((i) =>
+                i['is_dispatched'] == 1 ||
+                i['is_dispatched'] == true ||
+                i['status'] == 'ISSUED' ||
+                i['status'] == 'DISPATCHED')
+            : (item['is_dispatched'] == 1 ||
+                item['is_dispatched'] == true ||
+                item['status'] == 'ISSUED' ||
+                item['status'] == 'DISPATCHED');
+
+        final dispatchedItem = matchingItems.firstWhere(
+          (i) => i['dispatched_order_number'] != null,
+          orElse: () => item,
+        );
+
+        if (isAlreadyDispatched) {
+          final orderInfo = dispatchedItem['dispatched_order_number'] != null
+              ? ' in Order #${dispatchedItem['dispatched_order_number']} (${dispatchedItem['dispatched_customer_name'] ?? 'Customer'})'
+              : '';
+          if (!mounted) return;
+          setState(() => _isCheckingManual = false);
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('❌ Cannot add: Serial $code is already dispatched$orderInfo!'),
+              backgroundColor: Colors.red.shade900,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+          return;
+        }
+
         final String matchedSerial = item['serial_number'] ?? code;
         final String modelStr = item['model_number'] ?? item['product_code'] ?? item['model'] ?? 'Unknown Model';
         final String nameStr = item['product_name'] ?? 'Unknown Product';
@@ -1160,17 +1208,43 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
       }
 
       if (list.isNotEmpty) {
-        final item = list.first;
+        final matchingItems = list.where(
+          (i) => i['serial_number'] == serial || i['serial_number'] == rawInput,
+        ).toList();
+        final item = matchingItems.isNotEmpty ? matchingItems.first : list.first;
+
+        final bool isAlreadyDispatched = matchingItems.isNotEmpty
+            ? matchingItems.any((i) =>
+                i['is_dispatched'] == 1 ||
+                i['is_dispatched'] == true ||
+                i['status'] == 'ISSUED' ||
+                i['status'] == 'DISPATCHED')
+            : (item['is_dispatched'] == 1 ||
+                item['is_dispatched'] == true ||
+                item['status'] == 'ISSUED' ||
+                item['status'] == 'DISPATCHED');
+
+        final dispatchedItem = matchingItems.firstWhere(
+          (i) => i['dispatched_order_number'] != null,
+          orElse: () => item,
+        );
+
         final String matchedSerial = item['serial_number'] ?? serial;
         final String modelStr = item['model_number'] ?? item['product_code'] ?? item['model'] ?? 'Unknown Model';
         final String nameStr = item['product_name'] ?? 'Unknown Product';
+        final orderInfo = dispatchedItem['dispatched_order_number'] != null
+            ? ' (Dispatched in Order #${dispatchedItem['dispatched_order_number']})'
+            : ' (Already Dispatched)';
+
         return ScannedItem(
           serialNumber: matchedSerial,
-          isMatched: true,
-          status: item['status'] ?? 'AVAILABLE',
+          isMatched: !isAlreadyDispatched,
+          status: isAlreadyDispatched ? 'DISPATCHED' : (item['status'] ?? 'AVAILABLE'),
           productName: nameStr,
           modelNumber: modelStr,
-          remarks: item['remarks'] ?? 'Matched in MySQL Stock',
+          remarks: isAlreadyDispatched
+              ? 'Already Dispatched$orderInfo'
+              : (item['remarks'] ?? 'Matched in MySQL Stock'),
         );
       }
     } catch (e) {
@@ -1347,7 +1421,6 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
                             itemCount: _scannedItems.length,
                             itemBuilder: (context, index) {
                               final item = _scannedItems[index];
-                              final isAvailable = item.status == 'AVAILABLE';
 
                               return Card(
                                 margin: const EdgeInsets.only(bottom: 8),

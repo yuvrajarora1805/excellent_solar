@@ -74,8 +74,14 @@ export const orderDb = {
     }
 
     if (options?.status) {
-      sql += ' AND o.status = ?';
-      params.push(options.status);
+      if (options.status === 'READY_FOR_DISPATCH') {
+        sql += " AND o.status IN ('READY_FOR_DISPATCH', 'PENDING_DISPATCH', 'DRAFT', 'SENT_TO_OFFICE')";
+      } else if (options.status === 'DISPATCHED') {
+        sql += " AND o.status IN ('DISPATCHED', 'DELIVERED')";
+      } else {
+        sql += ' AND o.status = ?';
+        params.push(options.status);
+      }
     }
 
     if (options?.search) {
@@ -115,12 +121,30 @@ export const orderDb = {
       [id]
     );
 
-    const serials = await query<OrderSerial>(
-      `SELECT os.*, p.name as product_name
+    const isOrderDispatched = ['DISPATCHED', 'DELIVERED'].includes(order.status);
+    const serials = await query<any>(
+      `SELECT os.*, p.name as product_name,
+              os_dispatched.dispatched_order_id,
+              os_dispatched.dispatched_order_number,
+              os_dispatched.dispatched_customer_name,
+              CASE 
+                WHEN ? = 1 THEN 0
+                WHEN os_dispatched.dispatched_order_id IS NOT NULL THEN 1
+                WHEN EXISTS (SELECT 1 FROM product_serial_numbers WHERE serial_number = os.serial_number AND status = 'ISSUED') THEN 1
+                WHEN EXISTS (SELECT 1 FROM inventory_serials WHERE serial_number = os.serial_number AND status = 'DISPATCHED') THEN 1
+                ELSE 0 
+              END as is_already_dispatched
        FROM order_serials os
        JOIN products p ON os.product_id = p.id
+       LEFT JOIN (
+          SELECT os2.serial_number, o2.id as dispatched_order_id, o2.order_number as dispatched_order_number, o2.customer_name as dispatched_customer_name
+          FROM order_serials os2
+          JOIN orders o2 ON os2.order_id = o2.id
+          WHERE o2.id != ? AND o2.status IN ('DISPATCHED', 'DELIVERED')
+          GROUP BY os2.serial_number
+       ) os_dispatched ON os.serial_number = os_dispatched.serial_number
        WHERE os.order_id = ?`,
-      [id]
+      [isOrderDispatched ? 1 : 0, id, id]
     );
 
     return {
@@ -210,6 +234,10 @@ export const orderDb = {
                  remarks = CONCAT(COALESCE(remarks, ''), ' | Dispatched Order #${orderNumber} (${data.customer_name})')`,
             [s.product_id, s.serial_number, `Dispatched Order #${orderNumber} (${data.customer_name})`]
           );
+          await conn.execute(
+            `UPDATE inventory_serials SET status = 'DISPATCHED' WHERE serial_number = ?`,
+            [s.serial_number]
+          );
         }
 
         for (const item of data.items) {
@@ -293,7 +321,46 @@ export const orderDb = {
       }
       const uniqueSerials = Array.from(uniqueSerialsMap.values());
 
-      // 2. Insert serials and update serial status
+      // VALIDATION: Prevent dispatching if any serial was already dispatched in another completed order
+      if (uniqueSerials.length > 0) {
+        const sns = uniqueSerials.map(s => s.serial_number);
+        const placeholders = sns.map(() => '?').join(',');
+        const [dispatchedRows]: any = await conn.execute(
+          `SELECT os.serial_number, o.order_number, o.customer_name
+           FROM order_serials os
+           JOIN orders o ON os.order_id = o.id
+           WHERE os.serial_number IN (${placeholders})
+             AND o.id != ?
+             AND o.status IN ('DISPATCHED', 'DELIVERED')
+           LIMIT 1`,
+          [...sns, ticketId]
+        );
+
+        if (dispatchedRows && dispatchedRows.length > 0) {
+          throw new Error(
+            `Serial number ${dispatchedRows[0].serial_number} was already dispatched in Order #${dispatchedRows[0].order_number} (${dispatchedRows[0].customer_name}).`
+          );
+        }
+
+        const [alreadyIssued]: any = await conn.execute(
+          `SELECT serial_number, remarks FROM (
+             SELECT serial_number, remarks FROM product_serial_numbers WHERE serial_number IN (${placeholders}) AND status = 'ISSUED'
+             UNION ALL
+             SELECT serial_number, '' as remarks FROM inventory_serials WHERE serial_number IN (${placeholders}) AND status = 'DISPATCHED'
+           ) as issued_combined
+           LIMIT 1`,
+          [...sns, ...sns]
+        );
+
+        if (alreadyIssued && alreadyIssued.length > 0) {
+          const detail = alreadyIssued[0].remarks ? ` (${alreadyIssued[0].remarks})` : '';
+          throw new Error(
+            `Serial number ${alreadyIssued[0].serial_number} was already dispatched${detail}.`
+          );
+        }
+      }
+
+      // 2. Insert serials and update serial status in both tables
       for (const s of uniqueSerials) {
         const prodId = s.product_id || fallbackProductId;
         await conn.execute(
@@ -309,6 +376,12 @@ export const orderDb = {
                current_location = 'ISSUED',
                remarks = CONCAT(COALESCE(remarks, ''), ' | Dispatched Ticket #${order.order_number} (${order.customer_name})')`,
           [prodId, s.serial_number, `Dispatched Ticket #${order.order_number} (${order.customer_name})`]
+        );
+
+        // Also sync inventory_serials so it doesn't say 'IN_STOCK'
+        await conn.execute(
+          `UPDATE inventory_serials SET status = 'DISPATCHED' WHERE serial_number = ?`,
+          [s.serial_number]
         );
       }
 
@@ -327,7 +400,10 @@ export const orderDb = {
           return acc;
         }, {} as any);
 
-        const isSerialized = (categoryId: string) => categoryId === 'Solar Panels' || categoryId === 'Inverters';
+        const isSerialized = (cat?: string) => {
+          const c = String(cat || '').toLowerCase();
+          return c.includes('panel') || c.includes('inverter');
+        };
 
         // Build the final dispatched items
         const finalItems: any[] = [];
@@ -359,6 +435,12 @@ export const orderDb = {
             `INSERT INTO order_items (order_id, product_id, quantity, unit_price, line_total) VALUES (?, ?, ?, ?, ?)`,
             [ticketId, item.product_id, item.quantity, item.unit_price, item.line_total]
           );
+        }
+
+        // Recalculate and update order total amount
+        const newTotal = finalItems.reduce((acc, item) => acc + (Number(item.line_total) || 0), 0);
+        if (newTotal > 0) {
+          await conn.execute('UPDATE orders SET total_amount = ? WHERE id = ?', [newTotal, ticketId]);
         }
 
         // Now Sync stock based on final items
@@ -569,6 +651,10 @@ export const orderDb = {
                  current_location = 'ISSUED',
                  remarks = CONCAT(COALESCE(remarks, ''), ' | Dispatched Order #${order.order_number} (${data.customer_name})')`,
             [s.product_id, s.serial_number, `Dispatched Order #${order.order_number} (${data.customer_name})`]
+          );
+          await conn.execute(
+            `UPDATE inventory_serials SET status = 'DISPATCHED' WHERE serial_number = ?`,
+            [s.serial_number]
           );
         }
         for (const item of data.items) {

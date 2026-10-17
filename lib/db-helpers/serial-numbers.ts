@@ -197,11 +197,19 @@ export const serialNumberDb = {
   // Search serial number across all products
   search: async (searchTerm: string): Promise<any[]> => {
     const psnResults = await query<any>(
-      `SELECT psn.*, p.name as product_name, p.category as product_category, p.product_code, pr.project_id, c.name as customer_name, 'product_serial_numbers' as source_table
+      `SELECT psn.*, p.name as product_name, p.category as product_category, p.product_code, pr.project_id, c.name as customer_name, 'product_serial_numbers' as source_table,
+              os_info.dispatched_order_id, os_info.dispatched_order_number, os_info.dispatched_customer_name,
+              CASE WHEN os_info.dispatched_order_id IS NOT NULL OR psn.status = 'ISSUED' THEN 1 ELSE 0 END as is_dispatched
        FROM product_serial_numbers psn
        LEFT JOIN products p ON psn.product_id = p.id
        LEFT JOIN projects pr ON psn.project_id = pr.id
        LEFT JOIN customers c ON pr.customer_id = c.id
+       LEFT JOIN (
+          SELECT os.serial_number, o.id as dispatched_order_id, o.order_number as dispatched_order_number, o.customer_name as dispatched_customer_name
+          FROM order_serials os
+          JOIN orders o ON os.order_id = o.id
+          WHERE o.status IN ('DISPATCHED', 'DELIVERED')
+       ) os_info ON psn.serial_number = os_info.serial_number
        WHERE psn.serial_number LIKE ?
        ORDER BY psn.created_at DESC
        LIMIT 50`,
@@ -209,9 +217,17 @@ export const serialNumberDb = {
     );
     
     const invResults = await query<any>(
-      `SELECT inv.id, inv.product_id, inv.serial_number, inv.status, inv.added_at as created_at, inv.updated_at, p.name as product_name, p.product_code, 'inventory_serials' as source_table
+      `SELECT inv.id, inv.product_id, inv.serial_number, inv.status, inv.added_at as created_at, inv.updated_at, p.name as product_name, p.product_code, 'inventory_serials' as source_table,
+              os_info.dispatched_order_id, os_info.dispatched_order_number, os_info.dispatched_customer_name,
+              CASE WHEN os_info.dispatched_order_id IS NOT NULL OR inv.status = 'DISPATCHED' THEN 1 ELSE 0 END as is_dispatched
        FROM inventory_serials inv
        LEFT JOIN products p ON inv.product_id = p.id
+       LEFT JOIN (
+          SELECT os.serial_number, o.id as dispatched_order_id, o.order_number as dispatched_order_number, o.customer_name as dispatched_customer_name
+          FROM order_serials os
+          JOIN orders o ON os.order_id = o.id
+          WHERE o.status IN ('DISPATCHED', 'DELIVERED')
+       ) os_info ON inv.serial_number = os_info.serial_number
        WHERE inv.serial_number LIKE ?
        ORDER BY inv.added_at DESC
        LIMIT 50`,

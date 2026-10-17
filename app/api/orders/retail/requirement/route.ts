@@ -76,6 +76,7 @@ export async function POST(req: NextRequest) {
         product_id: Number(finalProductId),
         quantity: Number(item.quantity),
         unit_price: Number(item.unit_price || 0),
+        line_total: Number(item.quantity) * Number(item.unit_price || 0),
       });
     }
 
