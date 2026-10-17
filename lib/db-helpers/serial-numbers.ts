@@ -205,10 +205,14 @@ export const serialNumberDb = {
        LEFT JOIN projects pr ON psn.project_id = pr.id
        LEFT JOIN customers c ON pr.customer_id = c.id
        LEFT JOIN (
-          SELECT os.serial_number, o.id as dispatched_order_id, o.order_number as dispatched_order_number, o.customer_name as dispatched_customer_name
+          SELECT os.serial_number,
+                 MAX(o.id) as dispatched_order_id,
+                 MAX(o.order_number) as dispatched_order_number,
+                 MAX(o.customer_name) as dispatched_customer_name
           FROM order_serials os
           JOIN orders o ON os.order_id = o.id
           WHERE o.status IN ('DISPATCHED', 'DELIVERED')
+          GROUP BY os.serial_number
        ) os_info ON psn.serial_number = os_info.serial_number
        WHERE psn.serial_number LIKE ?
        ORDER BY psn.created_at DESC
@@ -223,10 +227,14 @@ export const serialNumberDb = {
        FROM inventory_serials inv
        LEFT JOIN products p ON inv.product_id = p.id
        LEFT JOIN (
-          SELECT os.serial_number, o.id as dispatched_order_id, o.order_number as dispatched_order_number, o.customer_name as dispatched_customer_name
+          SELECT os.serial_number,
+                 MAX(o.id) as dispatched_order_id,
+                 MAX(o.order_number) as dispatched_order_number,
+                 MAX(o.customer_name) as dispatched_customer_name
           FROM order_serials os
           JOIN orders o ON os.order_id = o.id
           WHERE o.status IN ('DISPATCHED', 'DELIVERED')
+          GROUP BY os.serial_number
        ) os_info ON inv.serial_number = os_info.serial_number
        WHERE inv.serial_number LIKE ?
        ORDER BY inv.added_at DESC

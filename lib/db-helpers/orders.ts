@@ -137,7 +137,10 @@ export const orderDb = {
        FROM order_serials os
        JOIN products p ON os.product_id = p.id
        LEFT JOIN (
-          SELECT os2.serial_number, o2.id as dispatched_order_id, o2.order_number as dispatched_order_number, o2.customer_name as dispatched_customer_name
+          SELECT os2.serial_number,
+                 MAX(o2.id) as dispatched_order_id,
+                 MAX(o2.order_number) as dispatched_order_number,
+                 MAX(o2.customer_name) as dispatched_customer_name
           FROM order_serials os2
           JOIN orders o2 ON os2.order_id = o2.id
           WHERE o2.id != ? AND o2.status IN ('DISPATCHED', 'DELIVERED')
