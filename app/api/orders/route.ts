@@ -207,7 +207,7 @@ export async function POST(req: NextRequest) {
       }
 
       let orderId;
-      if (body.ticket_id) {
+      if (body.ticket_id && dispatchImmediately) {
         orderId = Number(body.ticket_id);
         await orderDb.dispatchTicket(orderId, {
           vehicle_number,
@@ -216,6 +216,26 @@ export async function POST(req: NextRequest) {
           vehicle_photo_path: final_vehicle_photo_path,
           serials: finalSerials,
           userId,
+        });
+      } else if (body.ticket_id && !dispatchImmediately) {
+        orderId = Number(body.ticket_id);
+        await orderDb.updateDraft(orderId, {
+          order_type: order_type || 'RETAIL',
+          project_id: project_id ? Number(project_id) : undefined,
+          customer_id: customer_id ? Number(customer_id) : undefined,
+          customer_name,
+          customer_mobile,
+          delivery_address,
+          vehicle_number,
+          driver_name,
+          driver_mobile,
+          vehicle_photo_path: final_vehicle_photo_path,
+          total_amount: Number(total_amount || 0),
+          items: finalItems,
+          serials: finalSerials,
+          userId,
+          dispatchImmediately: false,
+          status: status || 'DRAFT',
         });
       } else {
         orderId = await orderDb.create({
@@ -234,7 +254,7 @@ export async function POST(req: NextRequest) {
           serials: finalSerials,
           userId,
           dispatchImmediately: Boolean(dispatchImmediately),
-          status,
+          status: dispatchImmediately ? undefined : (status || 'DRAFT'),
         });
       }
 
@@ -242,10 +262,10 @@ export async function POST(req: NextRequest) {
       success: true,
       order_id: orderId,
       message: body.ticket_id 
-        ? 'Requirement Ticket dispatched successfully!' 
+        ? (dispatchImmediately ? 'Requirement Ticket dispatched successfully!' : 'Requirement Ticket draft updated successfully!')
         : (dispatchImmediately
           ? 'Order created and dispatched! Stock and serial numbers synced.'
-          : 'Order created successfully!'),
+          : 'Order draft created successfully!'),
     });
   } catch (error: any) {
     console.error('Error creating order:', error);

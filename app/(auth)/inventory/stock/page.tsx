@@ -225,7 +225,20 @@ export default function StockPage() {
                             ) : productSerials.length === 0 ? (
                               <div className="text-center text-sm text-slate-500">No serial numbers recorded in stock for this product.</div>
                             ) : (
-                              <div className="flex flex-col gap-4">
+                              <div className="flex flex-col gap-3">
+                                <div className="flex flex-wrap items-center justify-between bg-slate-100 dark:bg-slate-800/80 px-3 py-2 rounded border border-slate-200 dark:border-slate-700 text-xs">
+                                  <div className="flex items-center gap-4 font-semibold">
+                                    <span className="text-slate-600 dark:text-slate-300">
+                                      Total Tracked: <span className="text-slate-900 dark:text-white font-bold">{productSerials.length}</span>
+                                    </span>
+                                    <span className="text-green-700 dark:text-green-400">
+                                      In Stock: <span className="font-bold">{productSerials.filter(s => s.status === 'AVAILABLE').length}</span>
+                                    </span>
+                                    <span className="text-red-700 dark:text-red-400">
+                                      Sold Out: <span className="font-bold">{productSerials.filter(s => s.status !== 'AVAILABLE').length}</span>
+                                    </span>
+                                  </div>
+                                </div>
                                 <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2">
                                   {productSerials.map((s, idx) => {
                                     const isAvailable = s.status === 'AVAILABLE';

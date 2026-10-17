@@ -393,16 +393,23 @@ class _OnGridBookingFormState extends State<OnGridBookingForm> {
             });
           }
         } else {
+          String errMsg = 'Failed to save booking (${response.statusCode})';
+          try {
+            final errBody = jsonDecode(response.body);
+            if (errBody is Map && errBody['error'] != null) {
+              errMsg = errBody['error'].toString();
+            }
+          } catch (_) {}
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Failed to save booking.')),
+              SnackBar(content: Text(errMsg), backgroundColor: Colors.red.shade700),
             );
           }
         }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Connection error')),
+            SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red.shade700),
           );
         }
       } finally {
@@ -794,7 +801,7 @@ class _OnGridBookingFormState extends State<OnGridBookingForm> {
                     onPressed: _isSubmitting ? null : () => _submitBooking(true),
                     child: _isSubmitting 
                         ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Color(0xFF7C5800), strokeWidth: 2))
-                        : const Text('Save as Draft'),
+                        : const Text('Save as Draft', style: TextStyle(fontWeight: FontWeight.bold)),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -803,12 +810,19 @@ class _OnGridBookingFormState extends State<OnGridBookingForm> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF7C5800),
                       foregroundColor: Colors.white,
+                      disabledBackgroundColor: Colors.grey.shade500,
+                      disabledForegroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 16),
+                      elevation: 2,
                     ),
                     onPressed: _isSubmitting ? null : () => _submitBooking(false),
                     child: _isSubmitting 
                         ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                        : const Text('Submit Booking', textAlign: TextAlign.center),
+                        : const Text(
+                            'Submit Booking',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+                          ),
                   ),
                 ),
               ],

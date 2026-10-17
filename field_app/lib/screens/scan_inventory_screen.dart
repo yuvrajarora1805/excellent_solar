@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-import 'package:http/http.dart' as http;
 import '../services/api_service.dart';
 import '../main.dart' show baseUrl;
 
@@ -465,8 +464,15 @@ class _ScanInventoryScreenState extends State<ScanInventoryScreen> {
                       const SizedBox(width: 8),
                       ElevatedButton(
                         onPressed: _isSubmitting ? null : _submitBulkScan,
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, foregroundColor: Colors.white),
-                        child: _isSubmitting ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text('Submit All'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue.shade700,
+                          foregroundColor: Colors.white,
+                          disabledBackgroundColor: Colors.grey.shade400,
+                          disabledForegroundColor: Colors.white,
+                        ),
+                        child: _isSubmitting
+                            ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                            : const Text('Submit All', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                       ),
                     ],
                   ),

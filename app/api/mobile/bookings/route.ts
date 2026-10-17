@@ -88,7 +88,7 @@ export async function POST(request: Request) {
                 const totalAmountNum = totalAmount ? parseFloat(totalAmount) : 0;
                 const orderResult = await query(
                   'INSERT INTO orders (customer_id, order_type, status, total_amount) VALUES (?, ?, ?, ?)',
-                  [customerId, 'RETAIL_REQUIREMENT', 'PENDING_DISPATCH', totalAmountNum]
+                  [customerId, 'RETAIL_REQUIREMENT', isDraft ? 'DRAFT' : 'PENDING_DISPATCH', totalAmountNum]
                 ) as any;
                 
                 for (const item of reservationItems) {
@@ -132,8 +132,8 @@ export async function POST(request: Request) {
 
     const dbProjectId = projectResult.insertId;
 
-    // 3. Create inventory reservations if provided
-    if (reservationsRaw) {
+    // 3. Create inventory reservations if provided (ONLY if not a draft)
+    if (!isDraft && reservationsRaw) {
       try {
         const reservationItems = JSON.parse(reservationsRaw);
         if (Array.isArray(reservationItems) && reservationItems.length > 0) {

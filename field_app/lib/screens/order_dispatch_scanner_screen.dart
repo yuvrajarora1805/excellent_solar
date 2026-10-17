@@ -83,10 +83,12 @@ class _OrderDispatchScannerScreenState extends State<OrderDispatchScannerScreen>
   final Map<int, ChecklistItem> _checklist = {};
 
   bool _isSubmitting = false;
+  bool _isCheckingManual = false;
 
   final TextEditingController _vehicleNumberController = TextEditingController();
   final TextEditingController _driverNameController = TextEditingController();
   final TextEditingController _driverMobileController = TextEditingController();
+  final TextEditingController _manualSerialController = TextEditingController();
 
   @override
   void initState() {
@@ -157,7 +159,85 @@ class _OrderDispatchScannerScreenState extends State<OrderDispatchScannerScreen>
     _vehicleNumberController.dispose();
     _driverNameController.dispose();
     _driverMobileController.dispose();
+    _manualSerialController.dispose();
     super.dispose();
+  }
+
+  Future<void> _addManualSerial() async {
+    final rawInput = _manualSerialController.text.trim();
+    if (rawInput.isEmpty) return;
+
+    final String serialNumber = extractSerialNumberFromBarcode(rawInput);
+    if (serialNumber.isEmpty) return;
+
+    if (_scannedItems.any((p) => p.serialNumber.toLowerCase() == serialNumber.toLowerCase() || p.serialNumber.toLowerCase() == rawInput.toLowerCase()) ||
+        _processingSerials.contains(serialNumber) ||
+        _processingSerials.contains(rawInput)) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('⚠️ Serial Number $serialNumber is already added!')),
+      );
+      return;
+    }
+
+    setState(() => _isCheckingManual = true);
+    _processingSerials.add(serialNumber);
+
+    try {
+      ScannedItem matchedItem = await _lookupInventoryStatus(serialNumber, rawInput: rawInput);
+
+      if (!mounted) return;
+      setState(() => _isCheckingManual = false);
+
+      if (matchedItem.isAlreadyDispatched) {
+        final ordMsg = matchedItem.dispatchedOrderNumber != null
+            ? ' in Order #${matchedItem.dispatchedOrderNumber}'
+            : '';
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Cannot add: Serial $serialNumber was already dispatched$ordMsg!'),
+            backgroundColor: Colors.red.shade900,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+        _processingSerials.remove(serialNumber);
+        return;
+      }
+
+      if (!matchedItem.isMatched) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Serial Number $serialNumber NOT found in Stock Inventory!'),
+            backgroundColor: Colors.red.shade800,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+        _processingSerials.remove(serialNumber);
+        return;
+      }
+
+      setState(() {
+        _scannedItems.insert(0, matchedItem);
+        _manualSerialController.clear();
+        if (matchedItem.productId != null && _checklist.containsKey(matchedItem.productId)) {
+          _checklist[matchedItem.productId]!.scannedQuantity++;
+        }
+      });
+
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('✓ In-Stock Matched: Model ${matchedItem.modelNumber} (${matchedItem.serialNumber})'),
+          backgroundColor: Colors.green.shade800,
+          duration: const Duration(milliseconds: 1400),
+        ),
+      );
+    } catch (e) {
+      if (mounted) setState(() => _isCheckingManual = false);
+      _processingSerials.remove(serialNumber);
+    }
   }
 
   Future<void> _onBarcodeDetected(BarcodeCapture capture) async {
@@ -241,15 +321,15 @@ class _OrderDispatchScannerScreenState extends State<OrderDispatchScannerScreen>
 
   Future<ScannedItem> _lookupInventoryStatus(String serial, {String? rawInput}) async {
     try {
-      var response = await ApiService.get(Uri.parse('$baseUrl/api/serial-numbers?search=$serial'));
+      var response = await ApiService.get(Uri.parse('$baseUrl/api/serial-numbers?search=${Uri.encodeComponent(serial.trim())}'));
       List<dynamic> list = [];
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         list = data is List ? data : (data['serials'] ?? []);
       }
 
-      if (list.isEmpty && rawInput != null && rawInput != serial && rawInput.isNotEmpty) {
-        response = await ApiService.get(Uri.parse('$baseUrl/api/serial-numbers?search=${Uri.encodeComponent(rawInput)}'));
+      if (list.isEmpty && rawInput != null && rawInput.trim() != serial.trim() && rawInput.trim().isNotEmpty) {
+        response = await ApiService.get(Uri.parse('$baseUrl/api/serial-numbers?search=${Uri.encodeComponent(rawInput.trim())}'));
         if (response.statusCode == 200) {
           final data = jsonDecode(response.body);
           list = data is List ? data : (data['serials'] ?? []);
@@ -257,8 +337,13 @@ class _OrderDispatchScannerScreenState extends State<OrderDispatchScannerScreen>
       }
 
       if (list.isNotEmpty) {
+        final serialClean = serial.trim().toLowerCase();
+        final rawClean = (rawInput ?? '').trim().toLowerCase();
         final matchingItems = list.where(
-          (item) => item['serial_number'] == serial || item['serial_number'] == rawInput,
+          (item) {
+            final sn = (item['serial_number'] ?? '').toString().trim().toLowerCase();
+            return sn == serialClean || (rawClean.isNotEmpty && sn == rawClean);
+          },
         ).toList();
         final match = matchingItems.isNotEmpty ? matchingItems.first : list.first;
 
@@ -483,6 +568,39 @@ class _OrderDispatchScannerScreenState extends State<OrderDispatchScannerScreen>
                         ],
                       ),
                     ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _manualSerialController,
+                            decoration: const InputDecoration(
+                              hintText: 'Or type Serial Number manually...',
+                              fillColor: Colors.white,
+                              filled: true,
+                              border: OutlineInputBorder(),
+                              isDense: true,
+                              contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                            ),
+                            onSubmitted: (_) => _isCheckingManual ? null : _addManualSerial(),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue.shade700,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                          ),
+                          onPressed: _isCheckingManual ? null : _addManualSerial,
+                          child: _isCheckingManual
+                              ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                              : const Text('Add Manual'),
+                        ),
+                      ],
+                    ),
+                  ),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     color: Colors.grey.shade100,
@@ -648,14 +766,19 @@ class _OrderDispatchScannerScreenState extends State<OrderDispatchScannerScreen>
                           child: ElevatedButton.icon(
                             icon: _isSubmitting 
                               ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                              : const Icon(Icons.check_circle),
-                            label: const Text('Confirm Dispatch', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                              : const Icon(Icons.check_circle, color: Colors.white),
+                            label: const Text(
+                              'Confirm Dispatch',
+                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                            ),
                             style: ElevatedButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               backgroundColor: Colors.green.shade600,
                               foregroundColor: Colors.white,
+                              disabledBackgroundColor: Colors.grey.shade500,
+                              disabledForegroundColor: Colors.white,
                             ),
-                            onPressed: _isSubmitting || _scannedItems.any((i) => i.isAlreadyDispatched) ? null : _submitDispatch,
+                            onPressed: _isSubmitting ? null : _submitDispatch,
                           ),
                         ),
                       ],

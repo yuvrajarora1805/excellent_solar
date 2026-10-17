@@ -138,7 +138,15 @@ export default auth((req) => {
     }
 
     // Common APIs accessible to any authenticated user
-    if (pathname.startsWith('/api/dashboard') || pathname.startsWith('/api/profile') || pathname.startsWith('/api/mobile')) {
+    if (
+      pathname.startsWith('/api/dashboard') ||
+      pathname.startsWith('/api/profile') ||
+      pathname.startsWith('/api/mobile') ||
+      pathname.startsWith('/api/serial-numbers') ||
+      pathname.startsWith('/api/inventory') ||
+      pathname.startsWith('/api/orders') ||
+      pathname.startsWith('/api/customers')
+    ) {
       hasApiAccess = true;
     }
 

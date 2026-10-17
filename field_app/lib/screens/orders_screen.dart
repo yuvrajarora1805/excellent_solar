@@ -414,7 +414,7 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
       setState(() => _isCheckingManual = true);
 
       // Perform Real-Time Live MySQL Inventory Stock Lookup
-      var response = await ApiService.get(Uri.parse('$baseUrl/api/serial-numbers?search=$code'));
+      var response = await ApiService.get(Uri.parse('$baseUrl/api/serial-numbers?search=${Uri.encodeComponent(code)}'));
       List<dynamic> list = [];
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -429,8 +429,13 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
       }
 
       if (list.isNotEmpty) {
+        final codeClean = code.trim().toLowerCase();
+        final rawClean = rawInput.trim().toLowerCase();
         final matchingItems = list.where(
-          (i) => i['serial_number'] == code || i['serial_number'] == rawInput,
+          (i) {
+            final sn = (i['serial_number'] ?? '').toString().trim().toLowerCase();
+            return sn == codeClean || sn == rawClean;
+          },
         ).toList();
         final item = matchingItems.isNotEmpty ? matchingItems.first : list.first;
 
@@ -542,6 +547,7 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
         }).toList(),
         'serials': serialsList,
         'dispatchImmediately': dispatchNow,
+        'status': dispatchNow ? 'DISPATCHED' : 'DRAFT',
       };
 
       final response = await ApiService.post(Uri.parse('$baseUrl/api/orders'), body: body);
@@ -963,6 +969,8 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.green.shade700,
                             foregroundColor: Colors.white,
+                            disabledBackgroundColor: Colors.grey.shade500,
+                            disabledForegroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 6),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                             elevation: 3,
@@ -972,7 +980,7 @@ class _CreateOrderBottomSheetState extends State<CreateOrderBottomSheet> {
                             fit: BoxFit.scaleDown,
                             child: Text(
                               _isSubmitting ? 'Syncing...' : '🚀 Dispatch & Sync Stock',
-                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
                             ),
                           ),
                         ),
@@ -1191,7 +1199,7 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
 
   Future<ScannedItem> _lookupInventoryStatus(String serial, {String? rawInput}) async {
     try {
-      var response = await ApiService.get(Uri.parse('$baseUrl/api/serial-numbers?search=$serial'));
+      var response = await ApiService.get(Uri.parse('$baseUrl/api/serial-numbers?search=${Uri.encodeComponent(serial.trim())}'));
       List<dynamic> list = [];
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -1200,7 +1208,7 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
 
       // Try search raw input if different from serial
       if (list.isEmpty && rawInput != null && rawInput != serial && rawInput.isNotEmpty) {
-        response = await ApiService.get(Uri.parse('$baseUrl/api/serial-numbers?search=${Uri.encodeComponent(rawInput)}'));
+        response = await ApiService.get(Uri.parse('$baseUrl/api/serial-numbers?search=${Uri.encodeComponent(rawInput.trim())}'));
         if (response.statusCode == 200) {
           final data = jsonDecode(response.body);
           list = data is List ? data : (data['serials'] ?? []);
@@ -1208,8 +1216,13 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
       }
 
       if (list.isNotEmpty) {
+        final serialClean = serial.trim().toLowerCase();
+        final rawClean = (rawInput ?? '').trim().toLowerCase();
         final matchingItems = list.where(
-          (i) => i['serial_number'] == serial || i['serial_number'] == rawInput,
+          (i) {
+            final sn = (i['serial_number'] ?? '').toString().trim().toLowerCase();
+            return sn == serialClean || (rawClean.isNotEmpty && sn == rawClean);
+          },
         ).toList();
         final item = matchingItems.isNotEmpty ? matchingItems.first : list.first;
 
@@ -1494,19 +1507,26 @@ class _MultiCameraBarcodeScannerViewState extends State<MultiCameraBarcodeScanne
                     padding: const EdgeInsets.all(12.0),
                     child: SizedBox(
                       width: double.infinity,
-                      child: ElevatedButton(
+                      child: ElevatedButton.icon(
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 16),
-                          backgroundColor: Theme.of(context).primaryColor,
+                          backgroundColor: const Color(0xFF1B5E20), // Rich dark green for clear contrast
+                          foregroundColor: Colors.white,
+                          elevation: 3,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                         onPressed: () {
                           final matchedItems = _scannedItems.where((p) => p.isMatched).toList();
                           Navigator.pop(context, matchedItems);
                         },
-                        child: Text(
+                        icon: const Icon(Icons.check_circle_outline, color: Colors.white, size: 22),
+                        label: Text(
                           'Confirm & Attach (${_scannedItems.where((p) => p.isMatched).length}) Matched Items',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
                         ),
                       ),
                     ),

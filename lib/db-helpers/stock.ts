@@ -231,7 +231,55 @@ export const stockDb = {
 
   // Get stock summary report
   getStockSummary: async (options?: { category?: string }): Promise<any[]> => {
-    let sql = `SELECT p.*, c.name as category_name
+    // 1. Auto-synchronize current_stock in products table with actual available serial numbers
+    try {
+      await execute(`
+        UPDATE products p
+        INNER JOIN (
+          SELECT product_id, 
+                 COUNT(CASE WHEN status = 'AVAILABLE' THEN 1 END) as avail_cnt
+          FROM product_serial_numbers
+          GROUP BY product_id
+        ) psn_counts ON p.id = psn_counts.product_id
+        SET p.current_stock = psn_counts.avail_cnt
+      `);
+
+      await execute(`
+        UPDATE products p
+        INNER JOIN (
+          SELECT product_id, 
+                 COUNT(CASE WHEN status = 'IN_STOCK' THEN 1 END) as avail_cnt
+          FROM inventory_serials
+          GROUP BY product_id
+        ) inv_counts ON p.id = inv_counts.product_id
+        SET p.current_stock = inv_counts.avail_cnt
+        WHERE p.id NOT IN (SELECT DISTINCT product_id FROM product_serial_numbers)
+      `);
+    } catch (_syncErr) {
+      // Non-blocking in case of DB read-only lock
+    }
+
+    let sql = `SELECT p.*, c.name as category_name,
+                      (
+                        SELECT COUNT(*)
+                        FROM product_serial_numbers psn
+                        WHERE psn.product_id = p.id AND psn.status = 'AVAILABLE'
+                      ) as psn_available_count,
+                      (
+                        SELECT COUNT(*)
+                        FROM product_serial_numbers psn
+                        WHERE psn.product_id = p.id
+                      ) as psn_total_count,
+                      (
+                        SELECT COUNT(*)
+                        FROM inventory_serials inv
+                        WHERE inv.product_id = p.id AND inv.status = 'IN_STOCK'
+                      ) as inv_available_count,
+                      (
+                        SELECT COUNT(*)
+                        FROM inventory_serials inv
+                        WHERE inv.product_id = p.id
+                      ) as inv_total_count
                FROM products p
                LEFT JOIN product_categories c ON p.category = c.name
                WHERE p.status = 'Active'`;
@@ -244,6 +292,27 @@ export const stockDb = {
 
     sql += ' ORDER BY p.category, p.name';
 
-    return query(sql, params);
+    const rows = await query<any>(sql, params);
+    return rows.map((p) => {
+      // If product has serial numbers, the actual in-stock count is the available serials count
+      if (p.psn_total_count > 0) {
+        return {
+          ...p,
+          current_stock: p.psn_available_count,
+          total_serials: p.psn_total_count,
+          available_serials: p.psn_available_count,
+          sold_out_serials: p.psn_total_count - p.psn_available_count,
+        };
+      } else if (p.inv_total_count > 0) {
+        return {
+          ...p,
+          current_stock: p.inv_available_count,
+          total_serials: p.inv_total_count,
+          available_serials: p.inv_available_count,
+          sold_out_serials: p.inv_total_count - p.inv_available_count,
+        };
+      }
+      return p;
+    });
   },
 };

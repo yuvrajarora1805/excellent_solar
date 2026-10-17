@@ -11,25 +11,53 @@ export async function GET(request: Request) {
     const offsetParam = searchParams.get('offset');
     const search = searchParams.get('search');
 
-    let sql = `SELECT *, 
-      (current_stock - COALESCE(reserved_stock, 0)) AS available_stock
-      FROM products WHERE 1=1`;
-    let countSql = `SELECT COUNT(*) as count FROM products WHERE 1=1`;
+    // Auto-sync products.current_stock in DB for serialized items
+    try {
+      await query(`
+        UPDATE products p
+        INNER JOIN (
+          SELECT product_id, COUNT(CASE WHEN status = 'AVAILABLE' THEN 1 END) as avail_cnt
+          FROM product_serial_numbers
+          GROUP BY product_id
+        ) psn_counts ON p.id = psn_counts.product_id
+        SET p.current_stock = psn_counts.avail_cnt
+      `);
+    } catch (_) {}
+
+    let sql = `SELECT p.*, 
+      CASE 
+        WHEN (SELECT COUNT(*) FROM product_serial_numbers psn WHERE psn.product_id = p.id) > 0
+          THEN (SELECT COUNT(*) FROM product_serial_numbers psn WHERE psn.product_id = p.id AND psn.status = 'AVAILABLE')
+        WHEN (SELECT COUNT(*) FROM inventory_serials inv WHERE inv.product_id = p.id) > 0
+          THEN (SELECT COUNT(*) FROM inventory_serials inv WHERE inv.product_id = p.id AND inv.status = 'IN_STOCK')
+        ELSE p.current_stock
+      END AS current_stock,
+      (
+        CASE 
+          WHEN (SELECT COUNT(*) FROM product_serial_numbers psn WHERE psn.product_id = p.id) > 0
+            THEN (SELECT COUNT(*) FROM product_serial_numbers psn WHERE psn.product_id = p.id AND psn.status = 'AVAILABLE')
+          WHEN (SELECT COUNT(*) FROM inventory_serials inv WHERE inv.product_id = p.id) > 0
+            THEN (SELECT COUNT(*) FROM inventory_serials inv WHERE inv.product_id = p.id AND inv.status = 'IN_STOCK')
+          ELSE p.current_stock
+        END - COALESCE(p.reserved_stock, 0)
+      ) AS available_stock
+      FROM products p WHERE 1=1`;
+    let countSql = `SELECT COUNT(*) as count FROM products p WHERE 1=1`;
     
     let params: any[] = [];
     
     let conditions = '';
     if (category) {
-      conditions += ' AND category = ?';
+      conditions += ' AND p.category = ?';
       params.push(category);
     }
     if (search) {
-      conditions += ' AND (name LIKE ? OR product_code LIKE ? OR brand LIKE ?)';
+      conditions += ' AND (p.name LIKE ? OR p.product_code LIKE ? OR p.brand LIKE ?)';
       const searchPattern = `%${search}%`;
       params.push(searchPattern, searchPattern, searchPattern);
     }
     if (lowStock === 'true') {
-      conditions += ' AND current_stock <= minimum_stock';
+      conditions += ' AND p.current_stock <= p.minimum_stock';
     }
 
     sql += conditions;

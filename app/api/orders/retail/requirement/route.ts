@@ -80,6 +80,8 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    const isDraft = is_draft === true || is_draft === 'true' || is_draft === 1 || is_draft === '1';
+
     // Create the requirement ticket as a pending order
     const orderId = await orderDb.create({
       order_type: 'RETAIL',
@@ -92,11 +94,11 @@ export async function POST(req: NextRequest) {
       serials: [],
       userId: 1, // System or default admin
       dispatchImmediately: false,
-      status: is_draft ? 'DRAFT' : 'PENDING_DISPATCH',
+      status: isDraft ? 'DRAFT' : 'PENDING_DISPATCH',
     });
 
     // Update reserved stock for each item only if not draft
-    if (!is_draft) {
+    if (!isDraft) {
       for (const item of processedItems) {
         await execute(
           'UPDATE products SET reserved_stock = COALESCE(reserved_stock, 0) + ? WHERE id = ?',
@@ -108,7 +110,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       order_id: orderId,
-      message: 'Retail requirement ticket created and stock reserved successfully!',
+      message: isDraft
+        ? 'Retail requirement draft saved successfully!'
+        : 'Retail requirement ticket created and stock reserved successfully!',
     });
   } catch (error: any) {
     console.error('Error creating retail requirement ticket:', error);

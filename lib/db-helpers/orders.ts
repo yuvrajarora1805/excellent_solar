@@ -178,13 +178,17 @@ export const orderDb = {
   }): Promise<number> => {
     return transaction(async (conn) => {
       const orderNumber = await orderDb.generateOrderNumber();
-      const initialStatus = data.status || (data.dispatchImmediately ? 'DISPATCHED' : 'READY_FOR_DISPATCH');
+      const isDispatched = Boolean(
+        (data.dispatchImmediately || data.status === 'DISPATCHED') &&
+        data.status !== 'DRAFT' &&
+        data.status !== 'PENDING_DISPATCH'
+      );
+      const initialStatus = data.status || (isDispatched ? 'DISPATCHED' : 'DRAFT');
 
-      const [res] = await conn.execute
-(
+      const [res] = await conn.execute(
         `INSERT INTO orders (order_number, order_type, project_id, customer_id, customer_name, customer_mobile, delivery_address,
          vehicle_number, driver_name, driver_mobile, vehicle_photo_path, total_amount, status, created_by, dispatched_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ${data.dispatchImmediately ? 'NOW()' : 'NULL'})`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ${isDispatched ? 'NOW()' : 'NULL'})`,
         [
           orderNumber,
           data.order_type,
@@ -224,8 +228,8 @@ export const orderDb = {
         );
       }
 
-      // Sync stock if dispatched
-      if (data.dispatchImmediately) {
+      // Sync stock ONLY if dispatched immediately (NEVER on draft!)
+      if (isDispatched) {
         for (const s of data.serials) {
           // Update or Upsert Serial Status in Inventory to ISSUED
           await conn.execute(
@@ -639,8 +643,13 @@ export const orderDb = {
         );
       }
 
-      // Sync stock if dispatched
-      if (data.dispatchImmediately) {
+      // Sync stock ONLY if dispatched immediately (NEVER on draft or pending dispatch!)
+      const isDispatched = Boolean(
+        (data.dispatchImmediately || data.status === 'DISPATCHED') &&
+        data.status !== 'DRAFT' &&
+        data.status !== 'PENDING_DISPATCH'
+      );
+      if (isDispatched) {
         await conn.execute(
           `UPDATE orders SET status = 'DISPATCHED', dispatched_at = NOW() WHERE id = ?`,
           [orderId]

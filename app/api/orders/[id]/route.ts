@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { orderDb } from '@/lib/db-helpers/orders';
+import { transaction } from '@/lib/db';
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -63,3 +64,30 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     return NextResponse.json({ error: error.message || 'Failed to update order' }, { status: 500 });
   }
 }
+
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id } = await params;
+    const orderId = Number(id);
+    const order = await orderDb.findById(orderId);
+    if (!order) {
+      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+    }
+
+    if (order.status !== 'DRAFT') {
+      return NextResponse.json({ error: 'Only draft orders can be deleted' }, { status: 400 });
+    }
+
+    await transaction(async (conn) => {
+      await conn.execute('DELETE FROM order_serials WHERE order_id = ?', [orderId]);
+      await conn.execute('DELETE FROM order_items WHERE order_id = ?', [orderId]);
+      await conn.execute('DELETE FROM orders WHERE id = ?', [orderId]);
+    });
+
+    return NextResponse.json({ success: true, message: 'Draft order deleted successfully' });
+  } catch (error: any) {
+    console.error('Error deleting draft order:', error);
+    return NextResponse.json({ error: error.message || 'Failed to delete draft order' }, { status: 500 });
+  }
+}
+
